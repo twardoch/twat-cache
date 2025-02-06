@@ -8,7 +8,8 @@ and offers a simple decorator interface.
 
 from importlib import metadat, metadata
 from pathlib import Path
-from typing import Callable, Optional, TypeVar
+from typing import Optional, TypeVar
+from collections.abc import Callable
 
 __version__ = metadata.version(__name__)
 

@@ -2,15 +2,14 @@
 
 import inspect
 import uuid
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
-from typing import Optional
 
 from twat.paths import PathManager
 
 
-@lru_cache(maxsize=None)
-def get_cache_path(folder_name: Optional[str] = None) -> Path:
+@cache
+def get_cache_path(folder_name: str | None = None) -> Path:
     """Get a platform-specific cache directory path.
 
     Args:

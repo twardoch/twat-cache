@@ -1,9 +1,8 @@
 """Disk-based cache engine using diskcache package."""
 
-from pathlib import Path
-from typing import Optional, cast
+from typing import cast
 
-from ..paths import get_cache_path
+from twat_cache.paths import get_cache_path
 from .base import CacheEngine, F
 
 try:
@@ -18,7 +17,7 @@ except ImportError:
 class DiskCacheEngine(CacheEngine):
     """Cache engine using diskcache package for SQL-based disk caching."""
 
-    def __init__(self, folder_name: Optional[str] = None):
+    def __init__(self, folder_name: str | None = None):
         """Initialize disk cache engine.
 
         Args:

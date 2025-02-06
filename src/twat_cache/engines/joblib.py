@@ -1,8 +1,8 @@
 """Joblib-based cache engine implementation."""
 
-from typing import Optional, cast
+from typing import cast
 
-from ..paths import get_cache_path
+from twat_cache.paths import get_cache_path
 from .base import CacheEngine, F
 
 
@@ -28,7 +28,7 @@ except ImportError:
 class JoblibEngine(CacheEngine):
     """Cache engine using joblib for disk caching of numpy arrays and large objects."""
 
-    def __init__(self, folder_name: Optional[str] = None):
+    def __init__(self, folder_name: str | None = None):
         """Initialize joblib cache engine.
 
         Args:

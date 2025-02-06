@@ -1,7 +1,7 @@
 """LRU cache engine implementation."""
 
-from functools import lru_cache, wraps
-from typing import Any, Callable, Optional, TypeVar, cast
+from functools import lru_cache
+from typing import cast
 
 from .base import CacheEngine, F
 
@@ -9,7 +9,7 @@ from .base import CacheEngine, F
 class LRUEngine(CacheEngine):
     """LRU cache engine using Python's built-in functools.lru_cache."""
 
-    def __init__(self, maxsize: Optional[int] = None):
+    def __init__(self, maxsize: int | None = None):
         """Initialize LRU cache engine.
 
         Args:

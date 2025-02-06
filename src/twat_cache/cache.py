@@ -1,16 +1,17 @@
 """Core caching functionality for the twat_cache package."""
 
-from typing import Callable, Optional, TypeVar, cast
+from typing import TypeVar, cast
+from collections.abc import Callable
 
-from .engines import CacheEngine, DiskCacheEngine, JoblibEngine, LRUEngine
+from .engines import DiskCacheEngine, JoblibEngine, LRUEngine
 
 F = TypeVar("F", bound=Callable[..., object])
 
 
 def ucache(
-    folder_name: Optional[str] = None,
+    folder_name: str | None = None,
     use_sql: bool = False,
-    maxsize: Optional[int] = None,
+    maxsize: int | None = None,
 ) -> Callable[[F], F]:
     """A universal caching decorator that supports multiple backends.
 

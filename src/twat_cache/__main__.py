@@ -19,15 +19,16 @@ Example:
 
 import inspect
 import uuid
-from functools import lru_cache
+from functools import lru_cache, cache
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeVar, cast
+from typing import Any, TypeVar, cast
+from collections.abc import Callable
 
 T = TypeVar("T")
 
 
-@lru_cache(maxsize=None)
-def get_cache_path(folder_name: Optional[str] = None) -> Path:
+@cache
+def get_cache_path(folder_name: str | None = None) -> Path:
     """
     Get or create a cache directory path.
 
@@ -66,22 +67,22 @@ def get_cache_path(folder_name: Optional[str] = None) -> Path:
 try:
     from diskcache import Cache
 
-    DISK_CACHE: Optional[Any] = Cache(get_cache_path("twat_cache"))
+    DISK_CACHE: Any | None = Cache(get_cache_path("twat_cache"))
 except ImportError:
     DISK_CACHE = None
 
 try:
     from joblib import Memory
 
-    JOBLIB_MEMORY: Optional[Any] = Memory(get_cache_path("twat_cache"), verbose=0)
+    JOBLIB_MEMORY: Any | None = Memory(get_cache_path("twat_cache"), verbose=0)
 except ImportError:
     JOBLIB_MEMORY = None
 
 
 def ucache(
-    folder_name: Optional[str] = None,
+    folder_name: str | None = None,
     use_sql: bool = False,
-    maxsize: Optional[int] = None,
+    maxsize: int | None = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """
     A decorator for caching function results with various backends.
