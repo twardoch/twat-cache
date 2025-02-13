@@ -91,6 +91,7 @@ detached = true
 dependencies = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
+    "pyupgrade>=3"
 ]
 
 
@@ -98,6 +99,11 @@ dependencies = [
 typing = "mypy --install-types --non-interactive {args:src/twat_cache tests}"
 style = ["ruff check {args:.}", "ruff format {args:.}"]
 fmt = ["ruff format {args:.}", "ruff check --fix {args:.}"]
+fix = [
+    # "pyupgrade --keep-runtime-typing --py310-plus \"$(python -c \"from pathlib import Path; cwd=Path.cwd(); print(' '.join(str(p.relative_to(cwd)) for p in Path(cwd).rglob('*.py')))\")\"",
+    "ruff check --fix --unsafe-fixes {args:.}", 
+    "ruff format {args:.}"
+    ]
 all = ["style", "typing"]
 
 
@@ -208,7 +214,12 @@ all = [
 ]
 
 [tool.hatch.envs.test]
-dependencies = [".[test]"]
+dependencies = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-xdist>=3.5.0",  # For parallel test execution
+    "pytest-benchmark[histogram]>=4.0.0",  # For performance testing
+]
 
 [tool.hatch.envs.test.scripts]
 test = "python -m pytest -n auto {args:tests}"

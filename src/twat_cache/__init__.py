@@ -6,10 +6,10 @@ backends (memory, disk, SQL). It automatically handles cache directory managemen
 and offers a simple decorator interface.
 """
 
-from importlib import metadat, metadata
+from collections.abc import Callable
+from importlib import metadata
 from pathlib import Path
 from typing import Optional, TypeVar
-from collections.abc import Callable
 
 __version__ = metadata.version(__name__)
 
