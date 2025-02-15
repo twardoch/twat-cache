@@ -11,7 +11,7 @@ from importlib import metadata
 from pathlib import Path
 from typing import Optional, TypeVar
 
-__version__ = metadata.version(__name__)
+from twat_cache.__version__ import version as __version__
 
 T = TypeVar("T")
 

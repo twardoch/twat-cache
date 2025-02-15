@@ -1,4 +1,5 @@
 """Path management utilities for twat_cache."""
+
 from __future__ import annotations
 
 import inspect

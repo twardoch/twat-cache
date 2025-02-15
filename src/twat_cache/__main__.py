@@ -16,6 +16,7 @@ Example:
     # Results will be cached automatically
     result = expensive_computation(42)
 """
+
 from __future__ import annotations
 
 import inspect

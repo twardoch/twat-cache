@@ -1,12 +1,29 @@
 """Core caching functionality for the twat_cache package."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import TypeVar, cast
 
 from twat_cache.engines import DiskCacheEngine, JoblibEngine, LRUEngine
 
 F = TypeVar("F", bound=Callable[..., object])
+
+
+def get_cache_path(folder_name: str | None = None) -> Path:
+    """Get the path to the cache directory.
+
+    Args:
+        folder_name: Optional name for the cache folder
+
+    Returns:
+        Path to the cache directory
+    """
+    base_path = Path.home() / ".cache" / "twat_cache"
+    if folder_name:
+        return base_path / folder_name
+    return base_path
 
 
 def ucache(

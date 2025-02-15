@@ -1,4 +1,5 @@
 """Disk-based cache engine using diskcache package."""
+
 from __future__ import annotations
 
 from typing import cast
