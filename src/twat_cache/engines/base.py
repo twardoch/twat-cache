@@ -1,7 +1,7 @@
 """Base protocol and utilities for cache engines."""
 
-from typing import Any, Protocol, TypeVar, runtime_checkable
 from collections.abc import Callable
+from typing import Any, Protocol, TypeVar, runtime_checkable
 
 T = TypeVar("T")
 F = TypeVar("F", bound=Callable[..., Any])

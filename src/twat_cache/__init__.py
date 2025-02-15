@@ -15,6 +15,6 @@ __version__ = metadata.version(__name__)
 
 T = TypeVar("T")
 
-from .cache import get_cache_path, ucache
+from twat_cache.cache import get_cache_path, ucache
 
 __all__ = ["__version__", "get_cache_path", "ucache"]

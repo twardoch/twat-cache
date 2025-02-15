@@ -1,9 +1,10 @@
 """LRU cache engine implementation."""
+from __future__ import annotations
 
 from functools import lru_cache
 from typing import cast
 
-from .base import CacheEngine, F
+from twat_cache.engines.base import CacheEngine, F
 
 
 class LRUEngine(CacheEngine):
@@ -30,7 +31,6 @@ class LRUEngine(CacheEngine):
 
     def clear(self) -> None:
         """Clear is not supported for LRU cache."""
-        pass
 
     @property
     def is_available(self) -> bool:

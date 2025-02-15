@@ -1,9 +1,10 @@
 """Joblib-based cache engine implementation."""
+from __future__ import annotations
 
 from typing import cast
 
+from twat_cache.engines.base import CacheEngine, F
 from twat_cache.paths import get_cache_path
-from .base import CacheEngine, F
 
 
 class DummyMemory:
