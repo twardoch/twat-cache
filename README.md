@@ -82,4 +82,5 @@ cache_dir = get_cache_path("my_cache")
 
 ## License
 
-MIT License 
+MIT License  
+.
