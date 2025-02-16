@@ -11,17 +11,21 @@
 
 import time
 from typing import Any, cast
+import importlib.util
+from collections.abc import Callable
 
 from klepto import lru_cache, lfu_cache, rr_cache
 from klepto.archives import (
     dir_archive,
     sqltable_archive,
+    file_archive,
+    sql_archive,
 )
 from loguru import logger
 
 from twat_cache.config import CacheConfig
 from twat_cache.type_defs import CacheKey, P, R
-from .base import BaseCacheEngine
+from .base import BaseCacheEngine, is_package_available
 
 
 class KleptoEngine(BaseCacheEngine[P, R]):
@@ -39,6 +43,13 @@ class KleptoEngine(BaseCacheEngine[P, R]):
         """Initialize the klepto cache engine."""
         super().__init__(config)
 
+        if not self.is_available:
+            msg = "klepto is not available"
+            raise ImportError(msg)
+
+        # Import here to avoid loading if not used
+        from klepto import keyed_cache
+
         # Create cache based on policy
         maxsize = config.maxsize or float("inf")
         if config.policy == "lru":
@@ -55,16 +66,17 @@ class KleptoEngine(BaseCacheEngine[P, R]):
         if self._cache_path:
             if config.use_sql:
                 # Use SQL archive
-                self._archive = sqltable_archive(
-                    filename=str(self._cache_path / "cache.db"),
-                    cached=True,
+                self._archive = sql_archive(
+                    str(self._cache_path / "cache.db"),
+                    maxsize=maxsize,
+                    timeout=config.ttl,
                 )
             else:
                 # Use directory archive
                 self._archive = dir_archive(
                     dirname=str(self._cache_path),
-                    cached=True,
-                    compression=6 if config.compress else 0,
+                    maxsize=maxsize,
+                    timeout=config.ttl,
                 )
 
             # Set secure permissions if requested
@@ -187,12 +199,86 @@ class KleptoEngine(BaseCacheEngine[P, R]):
         except Exception as e:
             logger.warning(f"Error closing klepto cache: {e}")
 
-    @classmethod
-    def is_available(cls) -> bool:
+    @property
+    def is_available(self) -> bool:
         """Check if this cache engine is available for use."""
-        try:
-            import klepto
+        return is_package_available("klepto")
 
-            return True
-        except ImportError:
-            return False
+    def cache(self, func: Callable[P, R]) -> Callable[P, R]:
+        """Decorate a function with caching.
+
+        Args:
+            func: Function to cache.
+
+        Returns:
+            Callable: Decorated function with caching.
+        """
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        return cast(
+            Callable[P, R],
+            keyed_cache(
+                cache=self._cache,
+                typed=True,
+            )(func),
+        )
+
+    def get(self, key: CacheKey) -> R | None:
+        """Get a value from the cache.
+
+        Args:
+            key: Cache key.
+
+        Returns:
+            Optional[R]: Cached value if found, None otherwise.
+        """
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        return cast(R | None, self._cache.get(str(key)))
+
+    def set(self, key: CacheKey, value: R) -> None:
+        """Set a value in the cache.
+
+        Args:
+            key: Cache key.
+            value: Value to cache.
+        """
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        self._cache[str(key)] = value
+        self._cache.dump()
+
+    def clear(self) -> None:
+        """Clear all cached values."""
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        self._cache.clear()
+        self._cache.dump()
+
+    @property
+    def stats(self) -> dict[str, Any]:
+        """Get cache statistics.
+
+        Returns:
+            dict[str, Any]: Dictionary of cache statistics.
+        """
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        return {
+            "hits": getattr(self._cache, "hits", 0),
+            "misses": getattr(self._cache, "misses", 0),
+            "size": len(self._cache),
+            "maxsize": self._config.maxsize,
+            "policy": self._config.policy,
+            "ttl": self._config.ttl,
+        }

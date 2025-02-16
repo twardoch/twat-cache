@@ -10,15 +10,19 @@
 
 """Disk-based cache engine using diskcache."""
 
+from __future__ import annotations
+
+import importlib.util
 import time
 from typing import Any, cast
+from collections.abc import Callable
 
 from diskcache import Cache
 from loguru import logger
 
 from twat_cache.config import CacheConfig
 from twat_cache.type_defs import CacheKey, P, R
-from .base import BaseCacheEngine
+from .base import BaseCacheEngine, is_package_available
 
 
 class DiskCacheEngine(BaseCacheEngine[P, R]):
@@ -36,6 +40,10 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
         if not self._cache_path:
             msg = "Cache path is required for disk cache"
             raise ValueError(msg)
+
+        if not self.is_available:
+            msg = "diskcache is not available"
+            raise ImportError(msg)
 
         # Initialize diskcache with our settings
         self._disk_cache = Cache(
@@ -154,12 +162,59 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
         except Exception as e:
             logger.warning(f"Error closing disk cache: {e}")
 
-    @classmethod
-    def is_available(cls) -> bool:
+    @property
+    def is_available(self) -> bool:
         """Check if this cache engine is available for use."""
-        try:
-            import diskcache
+        return is_package_available("diskcache")
 
-            return True
-        except ImportError:
-            return False
+    def cache(self, func: Callable[P, R]) -> Callable[P, R]:
+        """Decorate a function with caching.
+
+        Args:
+            func: Function to cache.
+
+        Returns:
+            Callable: Decorated function with caching.
+        """
+        if not self._disk_cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        # Import here to avoid loading if not used
+        from diskcache import memoize
+
+        return cast(
+            Callable[P, R],
+            memoize(
+                cache=self._disk_cache,
+                typed=True,
+            )(func),
+        )
+
+    def get(self, key: CacheKey) -> R | None:
+        """Get a value from the cache.
+
+        Args:
+            key: Cache key.
+
+        Returns:
+            Optional[R]: Cached value if found, None otherwise.
+        """
+        if not self._disk_cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        return cast(R | None, self._disk_cache.get(str(key)))
+
+    def set(self, key: CacheKey, value: R) -> None:
+        """Set a value in the cache.
+
+        Args:
+            key: Cache key.
+            value: Value to cache.
+        """
+        if not self._disk_cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        self._disk_cache.set(str(key), value)
