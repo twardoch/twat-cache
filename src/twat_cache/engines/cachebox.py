@@ -5,101 +5,134 @@ This module provides a cache engine implementation using the CacheBox library,
 which offers high-performance in-memory caching with advanced features.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
+from collections.abc import Callable
 
-
-from twat_cache.type_defs import (
-    F,
-    CacheKey,
-    P,
-    R,
-    CacheConfig,
-)
-from .base import BaseCacheEngine
+from twat_cache.config import CacheConfig
+from twat_cache.engines.base import BaseCacheEngine, is_package_available
+from twat_cache.type_defs import CacheKey, P, R
 
 
 class CacheBoxEngine(BaseCacheEngine[P, R]):
-    """Cache engine implementation using CacheBox."""
+    """Cache engine using cachebox."""
 
     def __init__(self, config: CacheConfig) -> None:
-        """Initialize the cache engine with the given configuration."""
-        super().__init__(config)
-        self._hits = 0
-        self._misses = 0
-        self._cache: dict[CacheKey, R] = {}
-        self._maxsize = config.maxsize or None
-        self._ttl = config.ttl
-
-        try:
-            import cachebox
-
-            self._backend = cachebox.Cache(maxsize=self._maxsize)
-        except ImportError as e:
-            msg = "CacheBox not available"
-            raise ImportError(msg) from e
-
-    def cache(self, func: F) -> F:
-        """
-        Decorate a function to cache its results.
+        """Initialize the cachebox engine.
 
         Args:
-            func: The function to cache
+            config: Cache configuration settings.
+        """
+        super().__init__(config)
+        self._config = config
+        self._cache = None
+
+        if not self.is_available:
+            msg = "cachebox is not available"
+            raise ImportError(msg)
+
+        # Import here to avoid loading if not used
+        from cachebox import Cache, LRUCache, LFUCache, FIFOCache, RRCache
+
+        # Select cache type based on policy
+        cache_types = {
+            "lru": LRUCache,
+            "lfu": LFUCache,
+            "fifo": FIFOCache,
+            "rr": RRCache,
+        }
+
+        cache_type = cache_types.get(config.policy, LRUCache)
+        self._cache: Cache = cache_type(
+            maxsize=config.maxsize or 100,
+            ttl=config.ttl,
+        )
+
+    def cache(self, func: Callable[P, R]) -> Callable[P, R]:
+        """Decorate a function with caching.
+
+        Args:
+            func: Function to cache.
 
         Returns:
-            A wrapped function that caches its results
+            Callable: Decorated function with caching.
         """
-        return cast(F, self._backend.memoize(maxsize=self._maxsize)(func))
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        # Import here to avoid loading if not used
+        from cachebox import cached
+
+        return cast(
+            Callable[P, R],
+            cached(
+                cache=self._cache,
+                key_maker=None,  # Use default key generation
+            )(func),
+        )
+
+    def get(self, key: CacheKey) -> R | None:
+        """Get a value from the cache.
+
+        Args:
+            key: Cache key.
+
+        Returns:
+            Optional[R]: Cached value if found, None otherwise.
+        """
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        return cast(R | None, self._cache.get(str(key)))
+
+    def set(self, key: CacheKey, value: R) -> None:
+        """Set a value in the cache.
+
+        Args:
+            key: Cache key.
+            value: Value to cache.
+        """
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        self._cache[str(key)] = value
 
     def clear(self) -> None:
         """Clear all cached values."""
-        if hasattr(self, "_backend"):
-            self._backend.clear()
-            self._hits = 0
-            self._misses = 0
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
 
-    def validate_config(self) -> None:
-        """
-        Validate the engine configuration.
-
-        Raises:
-            ValueError: If the configuration is invalid
-        """
-        if self._config.maxsize is not None and self._config.maxsize <= 0:
-            msg = "maxsize must be positive"
-            raise ValueError(msg)
-
-        if self._config.ttl is not None and self._config.ttl < 0:
-            msg = "ttl must be non-negative"
-            raise ValueError(msg)
+        self._cache.clear()
 
     @property
     def stats(self) -> dict[str, Any]:
-        """
-        Get cache statistics.
+        """Get cache statistics.
 
         Returns:
-            A dictionary containing cache statistics:
-            - hits: Number of cache hits
-            - misses: Number of cache misses
-            - size: Current number of items in cache
-            - maxsize: Maximum number of items allowed
+            dict[str, Any]: Dictionary of cache statistics.
         """
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
         return {
-            "hits": self._hits,
-            "misses": self._misses,
+            "hits": self._cache.hits,
+            "misses": self._cache.misses,
             "size": len(self._cache),
-            "maxsize": self._maxsize,
-            "backend": "cachebox",
-            "policy": "lru" if self._maxsize else None,
-            "ttl": self._ttl,
+            "maxsize": self._cache.maxsize,
+            "policy": self._config.policy,
         }
 
-    @classmethod
-    def is_available(cls) -> bool:
-        """Check if this cache engine is available for use."""
-        try:
-            import cachebox
+    @property
+    def is_available(self) -> bool:
+        """Check if this cache engine is available for use.
 
-            return True
-        except ImportError:
-            return False
+        Returns:
+            bool: True if the engine is available, False otherwise.
+        """
+        return is_package_available("cachebox")

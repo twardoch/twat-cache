@@ -8,118 +8,148 @@
 # ///
 # this_file: src/twat_cache/engines/cachetools.py
 
-"""Memory-based cache engine using cachetools."""
+"""Flexible in-memory cache engine using cachetools package."""
+
+from __future__ import annotations
 
 from typing import Any, cast
-
-from cachetools import Cache, LRUCache, TTLCache, LFUCache, FIFOCache, RRCache
-from loguru import logger
+from collections.abc import Callable
 
 from twat_cache.config import CacheConfig
+from twat_cache.engines.base import BaseCacheEngine, is_package_available
 from twat_cache.type_defs import CacheKey, P, R
-from .base import BaseCacheEngine
 
 
 class CacheToolsEngine(BaseCacheEngine[P, R]):
-    """
-    Memory-based cache engine using cachetools.
-
-    This engine provides flexible in-memory caching with support for:
-    - Multiple eviction policies (LRU, LFU, FIFO, RR)
-    - TTL-based expiration
-    - Maxsize limitation
-    """
+    """Cache engine using cachetools."""
 
     def __init__(self, config: CacheConfig) -> None:
-        """Initialize the cachetools cache engine."""
+        """Initialize the cachetools engine.
+
+        Args:
+            config: Cache configuration settings.
+        """
         super().__init__(config)
-        maxsize = config.maxsize or float("inf")
+        self._config = config
+        self._cache = None
 
-        # Create cache based on policy
-        if config.ttl is not None:
-            self._cache: Cache = TTLCache(
-                maxsize=maxsize,
-                ttl=config.ttl,
-            )
-        elif config.policy == "lru":
-            self._cache = LRUCache(maxsize=maxsize)
-        elif config.policy == "lfu":
-            self._cache = LFUCache(maxsize=maxsize)
-        elif config.policy == "fifo":
-            self._cache = FIFOCache(maxsize=maxsize)
-        elif config.policy == "rr":
-            self._cache = RRCache(maxsize=maxsize)
-        else:
-            # Default to LRU
-            self._cache = LRUCache(maxsize=maxsize)
+        if not self.is_available:
+            msg = "cachetools is not available"
+            raise ImportError(msg)
 
-        logger.debug(
-            f"Initialized {self.__class__.__name__} with "
-            f"maxsize={maxsize}, policy={config.policy}"
+        # Import here to avoid loading if not used
+        from cachetools import (
+            Cache,
+            LRUCache,
+            LFUCache,
+            TTLCache,
+            RRCache,
+            TLRUCache,
         )
 
-    def _get_cached_value(self, key: CacheKey) -> R | None:
-        """
-        Retrieve a value from the cache.
+        # Select cache type based on policy and TTL
+        if config.ttl:
+            if config.policy == "lru":
+                cache_type = TLRUCache
+            else:
+                cache_type = TTLCache
+        else:
+            cache_types = {
+                "lru": LRUCache,
+                "lfu": LFUCache,
+                "rr": RRCache,
+            }
+            cache_type = cache_types.get(config.policy, LRUCache)
+
+        self._cache: Cache = cache_type(
+            maxsize=config.maxsize or 100,
+            ttl=config.ttl,
+        )
+
+    def cache(self, func: Callable[P, R]) -> Callable[P, R]:
+        """Decorate a function with caching.
 
         Args:
-            key: The cache key to look up
+            func: Function to cache.
 
         Returns:
-            The cached value if found and not expired, None otherwise
+            Callable: Decorated function with caching.
         """
-        try:
-            return cast(R, self._cache.get(key))
-        except Exception as e:
-            logger.warning(f"Error retrieving from cachetools cache: {e}")
-            return None
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
 
-    def _set_cached_value(self, key: CacheKey, value: R) -> None:
-        """
-        Store a value in the cache.
+        # Import here to avoid loading if not used
+        from cachetools import cached
+
+        return cast(
+            Callable[P, R],
+            cached(
+                cache=self._cache,
+            )(func),
+        )
+
+    def get(self, key: CacheKey) -> R | None:
+        """Get a value from the cache.
 
         Args:
-            key: The cache key to store under
-            value: The value to cache
+            key: Cache key.
+
+        Returns:
+            Optional[R]: Cached value if found, None otherwise.
         """
-        try:
-            self._cache[key] = value
-            self._size = len(self._cache)
-        except Exception as e:
-            logger.warning(f"Error storing to cachetools cache: {e}")
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        return cast(R | None, self._cache.get(str(key)))
+
+    def set(self, key: CacheKey, value: R) -> None:
+        """Set a value in the cache.
+
+        Args:
+            key: Cache key.
+            value: Value to cache.
+        """
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        self._cache[str(key)] = value
 
     def clear(self) -> None:
         """Clear all cached values."""
-        try:
-            self._cache.clear()
-            self._hits = 0
-            self._misses = 0
-            self._size = 0
-        except Exception as e:
-            logger.warning(f"Error clearing cachetools cache: {e}")
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        self._cache.clear()
 
     @property
     def stats(self) -> dict[str, Any]:
-        """Get cache statistics."""
-        base_stats = super().stats
-        try:
-            base_stats.update(
-                {
-                    "currsize": len(self._cache),
-                    "maxsize": self._cache.maxsize,
-                    "policy": self._config.policy,
-                }
-            )
-        except Exception as e:
-            logger.warning(f"Error getting cachetools stats: {e}")
-        return base_stats
+        """Get cache statistics.
 
-    @classmethod
-    def is_available(cls) -> bool:
-        """Check if this cache engine is available for use."""
-        try:
-            import cachetools
+        Returns:
+            dict[str, Any]: Dictionary of cache statistics.
+        """
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
 
-            return True
-        except ImportError:
-            return False
+        return {
+            "hits": getattr(self._cache, "hits", 0),
+            "misses": getattr(self._cache, "misses", 0),
+            "size": len(self._cache),
+            "maxsize": self._cache.maxsize,
+            "policy": self._config.policy,
+            "ttl": getattr(self._cache, "ttl", None),
+        }
+
+    @property
+    def is_available(self) -> bool:
+        """Check if this cache engine is available for use.
+
+        Returns:
+            bool: True if the engine is available, False otherwise.
+        """
+        return is_package_available("cachetools")

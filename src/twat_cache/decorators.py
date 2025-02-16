@@ -38,6 +38,7 @@ from typing import (
     Protocol,
 )
 from collections.abc import Callable, Awaitable
+import importlib.util
 
 from loguru import logger
 
@@ -61,54 +62,13 @@ class AsyncCacheDecorator(Protocol[P, AsyncR]):
     ) -> Callable[P, Awaitable[AsyncR]]: ...
 
 
-# Try to import optional backends
-try:
-    import aiocache  # type: ignore
-
-    HAS_AIOCACHE = True
-except ImportError:
-    HAS_AIOCACHE = False
-    logger.warning("aiocache not available, will fall back to async wrapper")
-
-try:
-    import cachebox  # type: ignore
-
-    HAS_CACHEBOX = True
-except ImportError:
-    HAS_CACHEBOX = False
-    logger.warning("cachebox not available, will fall back to cachetools")
-
-try:
-    import cachetools  # type: ignore
-
-    HAS_CACHETOOLS = True
-except ImportError:
-    HAS_CACHETOOLS = False
-    logger.warning("cachetools not available, will fall back to functools")
-
-try:
-    import diskcache  # type: ignore
-
-    HAS_DISKCACHE = True
-except ImportError:
-    HAS_DISKCACHE = False
-    logger.warning("diskcache not available, will fall back to memory cache")
-
-try:
-    import joblib  # type: ignore
-
-    HAS_JOBLIB = True
-except ImportError:
-    HAS_JOBLIB = False
-    logger.warning("joblib not available, will fall back to memory cache")
-
-try:
-    import klepto  # type: ignore
-
-    HAS_KLEPTO = True
-except ImportError:
-    HAS_KLEPTO = False
-    logger.warning("klepto not available, will fall back to memory cache")
+# Check optional backend availability
+HAS_AIOCACHE = bool(importlib.util.find_spec("aiocache"))
+HAS_CACHEBOX = bool(importlib.util.find_spec("cachebox"))
+HAS_CACHETOOLS = bool(importlib.util.find_spec("cachetools"))
+HAS_DISKCACHE = bool(importlib.util.find_spec("diskcache"))
+HAS_JOBLIB = bool(importlib.util.find_spec("joblib"))
+HAS_KLEPTO = bool(importlib.util.find_spec("klepto"))
 
 
 def get_cache_dir(folder_name: str | None = None) -> Path:
@@ -447,48 +407,47 @@ def _create_engine(config: CacheConfig, func: Callable[P, R]) -> BaseCacheEngine
         func: Function to cache.
 
     Returns:
-        CacheEngine: Selected cache engine instance.
+        BaseCacheEngine: Configured cache engine.
+
+    Raises:
+        ImportError: If the requested engine is not available.
     """
-    # Determine requirements
-    is_async = asyncio.iscoroutinefunction(func)
-    needs_disk = bool(config.folder_name)
+    engine_type = config.engine.lower()
 
-    # Select backend
-    backend = _select_best_backend(
-        preferred=config.preferred_engine,
-        is_async=is_async,
-        needs_disk=needs_disk,
-    )
-
-    # Create engine based on selection
-    if backend == "functools":
-        return FunctoolsCacheEngine(config)
-    elif backend == "aiocache":
+    if engine_type == "aiocache" and HAS_AIOCACHE:
         from .engines.aiocache import AioCacheEngine
 
         return AioCacheEngine(config)
-    elif backend == "cachebox":
+
+    if engine_type == "cachebox" and HAS_CACHEBOX:
         from .engines.cachebox import CacheBoxEngine
 
         return CacheBoxEngine(config)
-    elif backend == "cachetools":
+
+    if engine_type == "cachetools" and HAS_CACHETOOLS:
         from .engines.cachetools import CacheToolsEngine
 
         return CacheToolsEngine(config)
-    elif backend == "diskcache":
+
+    if engine_type == "diskcache" and HAS_DISKCACHE:
         from .engines.diskcache import DiskCacheEngine
 
         return DiskCacheEngine(config)
-    elif backend == "joblib":
+
+    if engine_type == "joblib" and HAS_JOBLIB:
         from .engines.joblib import JoblibEngine
 
         return JoblibEngine(config)
-    elif backend == "klepto":
+
+    if engine_type == "klepto" and HAS_KLEPTO:
         from .engines.klepto import KleptoEngine
 
         return KleptoEngine(config)
-    else:
-        return FunctoolsCacheEngine(config)
+
+    # Default to functools
+    from .engines.functools import FunctoolsCacheEngine
+
+    return FunctoolsCacheEngine(config)
 
 
 def ucache(

@@ -19,7 +19,7 @@ from functools import wraps
 import inspect
 import json
 from pathlib import Path
-from typing import Any, Generic, cast, Optional
+from typing import Any, Generic, cast
 from collections.abc import Callable
 from importlib import util
 

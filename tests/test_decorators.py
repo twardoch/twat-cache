@@ -22,6 +22,10 @@ import time
 from typing import Any
 
 import pytest
+import importlib.util
+import os
+import tempfile
+from pathlib import Path
 
 from twat_cache.decorators import mcache, bcache, fcache, ucache, acache
 from .test_constants import (
@@ -36,7 +40,196 @@ from .test_constants import (
     TEST_KEY,
     TEST_BOOL,
     TEST_INT,
+    TEST_VALUE,
+    TEST_RESULT,
+    SMALL_CACHE_SIZE,
+    DEFAULT_CACHE_SIZE,
+    TEST_FOLDER,
+    TEST_PERMISSIONS,
 )
+
+# Check optional backend availability
+HAS_AIOCACHE = bool(importlib.util.find_spec("aiocache"))
+HAS_CACHEBOX = bool(importlib.util.find_spec("cachebox"))
+HAS_CACHETOOLS = bool(importlib.util.find_spec("cachetools"))
+HAS_DISKCACHE = bool(importlib.util.find_spec("diskcache"))
+HAS_JOBLIB = bool(importlib.util.find_spec("joblib"))
+HAS_KLEPTO = bool(importlib.util.find_spec("klepto"))
+
+
+def test_basic_memory_cache():
+    """Test basic memory caching with functools."""
+    call_count = 0
+
+    @bcache()
+    def square(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
+
+    # First call should compute
+    result1 = square(TEST_VALUE)
+    assert result1 == TEST_RESULT
+    assert call_count == 1
+
+    # Second call should use cache
+    result2 = square(TEST_VALUE)
+    assert result2 == TEST_RESULT
+    assert call_count == 1
+
+
+@pytest.mark.skipif(not HAS_CACHEBOX, reason="cachebox not available")
+def test_cachebox_memory():
+    """Test memory caching with cachebox."""
+    call_count = 0
+
+    @bcache(engine="cachebox")
+    def square(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
+
+    # First call should compute
+    result1 = square(TEST_VALUE)
+    assert result1 == TEST_RESULT
+    assert call_count == 1
+
+    # Second call should use cache
+    result2 = square(TEST_VALUE)
+    assert result2 == TEST_RESULT
+    assert call_count == 1
+
+
+@pytest.mark.skipif(not HAS_CACHETOOLS, reason="cachetools not available")
+def test_cachetools_memory():
+    """Test memory caching with cachetools."""
+    call_count = 0
+
+    @bcache(engine="cachetools")
+    def square(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
+
+    # First call should compute
+    result1 = square(TEST_VALUE)
+    assert result1 == TEST_RESULT
+    assert call_count == 1
+
+    # Second call should use cache
+    result2 = square(TEST_VALUE)
+    assert result2 == TEST_RESULT
+    assert call_count == 1
+
+
+@pytest.mark.skipif(not HAS_DISKCACHE, reason="diskcache not available")
+def test_diskcache_basic():
+    """Test basic disk caching with diskcache."""
+    call_count = 0
+
+    @bcache(engine="diskcache", folder_name=TEST_FOLDER)
+    def square(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
+
+    # First call should compute
+    result1 = square(TEST_VALUE)
+    assert result1 == TEST_RESULT
+    assert call_count == 1
+
+    # Second call should use cache
+    result2 = square(TEST_VALUE)
+    assert result2 == TEST_RESULT
+    assert call_count == 1
+
+
+@pytest.mark.skipif(not HAS_KLEPTO, reason="klepto not available")
+def test_klepto_sql():
+    """Test basic disk caching with klepto SQL backend."""
+    call_count = 0
+
+    @bcache(engine="klepto", folder_name=TEST_FOLDER)
+    def square(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
+
+    # First call should compute
+    result1 = square(TEST_VALUE)
+    assert result1 == TEST_RESULT
+    assert call_count == 1
+
+    # Second call should use cache
+    result2 = square(TEST_VALUE)
+    assert result2 == TEST_RESULT
+    assert call_count == 1
+
+
+@pytest.mark.skipif(not HAS_JOBLIB, reason="joblib not available")
+def test_joblib_file():
+    """Test file-based caching with joblib."""
+    call_count = 0
+
+    @bcache(engine="joblib", folder_name=TEST_FOLDER)
+    def square(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
+
+    # First call should compute
+    result1 = square(TEST_VALUE)
+    assert result1 == TEST_RESULT
+    assert call_count == 1
+
+    # Second call should use cache
+    result2 = square(TEST_VALUE)
+    assert result2 == TEST_RESULT
+    assert call_count == 1
+
+
+@pytest.mark.skipif(not HAS_KLEPTO, reason="klepto not available")
+def test_klepto_file():
+    """Test file-based caching with klepto file backend."""
+    call_count = 0
+
+    @bcache(engine="klepto", folder_name=TEST_FOLDER)
+    def square(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
+
+    # First call should compute
+    result1 = square(TEST_VALUE)
+    assert result1 == TEST_RESULT
+    assert call_count == 1
+
+    # Second call should use cache
+    result2 = square(TEST_VALUE)
+    assert result2 == TEST_RESULT
+    assert call_count == 1
+
+
+@pytest.mark.skipif(not HAS_AIOCACHE, reason="aiocache not available")
+def test_aiocache_memory():
+    """Test async caching with aiocache."""
+    call_count = 0
+
+    @ucache(engine="aiocache")
+    async def square(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
+
+    # First call should compute
+    result1 = square(TEST_VALUE)
+    assert result1 == TEST_RESULT
+    assert call_count == 1
+
+    # Second call should use cache
+    result2 = square(TEST_VALUE)
+    assert result2 == TEST_RESULT
+    assert call_count == 1
 
 
 def test_memory_cache_cachebox() -> None:
