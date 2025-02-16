@@ -43,6 +43,10 @@ from tests.test_constants import (
     SQUARE_RESULT,
     TEST_LIST,
     TEST_LIST_SUM,
+    TEST_PERMISSIONS,
+    TEST_FOLDER,
+    EXPECTED_CALLS_SINGLE,
+    EXPECTED_CALLS_DOUBLE,
 )
 
 
@@ -510,3 +514,50 @@ def test_specific_decorators() -> None:
 
     # Clean up
     clear_cache()
+
+
+def test_basic_memory_cache():
+    """Test basic memory caching."""
+    call_count = 0
+
+    @bcache()
+    def square(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
+
+    # First call should compute
+    result1 = square(TEST_VALUE)
+    assert result1 == TEST_RESULT
+    assert call_count == EXPECTED_CALLS_SINGLE
+
+    # Second call should use cache
+    result2 = square(TEST_VALUE)
+    assert result2 == TEST_RESULT
+    assert call_count == EXPECTED_CALLS_SINGLE
+
+
+def test_cache_clear():
+    """Test cache clearing functionality."""
+    call_count = 0
+
+    @bcache()
+    def square(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
+
+    # First call should compute
+    result1 = square(TEST_VALUE)
+    assert result1 == TEST_RESULT
+    assert call_count == EXPECTED_CALLS_SINGLE
+
+    # Second call should use cache
+    result2 = square(TEST_VALUE)
+    assert result2 == TEST_RESULT
+    assert call_count == EXPECTED_CALLS_SINGLE
+
+    # Clear cache and verify recomputation
+    square.clear()
+    result3 = square(TEST_VALUE)
+    assert result3 == TEST_RESULT
