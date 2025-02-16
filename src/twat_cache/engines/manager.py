@@ -15,15 +15,13 @@ This module provides the CacheEngineManager class which handles registration,
 selection and management of cache engine implementations.
 """
 
-from typing import Dict, List, Optional, Type, TypeVar, cast
+from typing import Any, Dict, List, Optional, Type, TypeVar, cast
 import os
 
 from loguru import logger
 
 from twat_cache.type_defs import (
     F,
-    P,
-    R,
     CacheConfig,
 )
 from .aiocache import AioCacheEngine
@@ -36,7 +34,7 @@ from .joblib import JoblibEngine
 from .klepto import KleptoEngine
 
 # Type variable for concrete cache engine
-E = TypeVar("E", bound=BaseCacheEngine)
+E = TypeVar("E", bound=BaseCacheEngine[Any, Any])
 
 # Try to import optional backends
 try:
@@ -77,7 +75,7 @@ class CacheEngineManager:
 
     def __init__(self) -> None:
         """Initialize the cache engine manager."""
-        self._engines: Dict[str, Type[BaseCacheEngine[P, R]]] = {}
+        self._engines: Dict[str, Type[BaseCacheEngine[Any, Any]]] = {}
         self._register_builtin_engines()
 
     def _register_builtin_engines(self) -> None:
@@ -100,9 +98,9 @@ class CacheEngineManager:
         """
         if name in self._engines:
             logger.warning(f"Overwriting existing engine registration for {name}")
-        self._engines[name] = engine_cls
+        self._engines[name] = cast(Type[BaseCacheEngine[Any, Any]], engine_cls)
 
-    def get_engine(self, name: str) -> Optional[Type[BaseCacheEngine[P, R]]]:
+    def get_engine(self, name: str) -> Optional[Type[BaseCacheEngine[Any, Any]]]:
         """
         Get a registered cache engine by name.
 
@@ -136,7 +134,7 @@ class CacheEngineManager:
         self,
         config: CacheConfig,
         preferred: Optional[List[str]] = None,
-    ) -> Optional[Type[BaseCacheEngine[P, R]]]:
+    ) -> Optional[Type[BaseCacheEngine[Any, Any]]]:
         """
         Select an appropriate cache engine based on configuration and preferences.
 
@@ -157,12 +155,16 @@ class CacheEngineManager:
             # Try preferred engines in order
             for engine_name in preferred:
                 if engine_name in available:
-                    engine_cls = self.get_engine(engine_name)
+                    engine_cls: Optional[Type[BaseCacheEngine[Any, Any]]] = (
+                        self.get_engine(engine_name)
+                    )
                     if engine_cls and engine_cls.is_available():
                         return engine_cls
 
         # Fall back to first available engine
-        fallback = self.get_engine(available[0])
+        fallback: Optional[Type[BaseCacheEngine[Any, Any]]] = self.get_engine(
+            available[0]
+        )
         if fallback and fallback.is_available():
             return fallback
 
