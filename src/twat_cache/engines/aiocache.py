@@ -8,7 +8,7 @@ from typing import Any, cast
 from collections.abc import Callable
 
 from twat_cache.engines.base import BaseCacheEngine
-from twat_cache.types import F, CacheKey, P, R
+from twat_cache.type_defs import F, P, R, CacheKey
 
 
 try:

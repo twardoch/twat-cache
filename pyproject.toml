@@ -186,33 +186,18 @@ dev-dependencies = [
 ]
 
 [project]
-name = 'twat-cache'
-version = '0.1.0'
-description = 'Flexible caching utilities for Python functions with multiple high-performance backends'
-readme = 'README.md'
-requires-python = '>=3.9'
-keywords = ['cache', 'caching', 'memoization', 'performance']
-classifiers = [
-    'Development Status :: 4 - Beta',
-    'Intended Audience :: Developers',
-    'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.9',
-    'Programming Language :: Python :: 3.10',
-    'Programming Language :: Python :: 3.11',
-    'Programming Language :: Python :: 3.12',
-    'Topic :: Software Development :: Libraries :: Python Modules',
+name = "twat_cache"
+version = "1.8.1"
+description = "Simple caching decorators with seamless fallback"
+authors = [
+    { name = "Adam Twardoch", email = "adam@twardoch.com" },
 ]
 dependencies = [
-    'loguru>=0.7.3',
-    'platformdirs>=4.3.6',
-    'pydantic>=2.10.6',
-    'pydantic-settings>=2.7.1',
+    "loguru",
+    "diskcache",
+    "joblib",
+    "cachetools",
 ]
-
-[[project.authors]]
-name = 'Adam Twardoch'
-email = 'adam+github@twardoch.com'
 
 [project.license]
 text = 'MIT'
@@ -261,3 +246,11 @@ test = [
     'pytest-asyncio>=0.25.3',
     'numpy>=2.2.3',
 ]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+typing_extensions = "^4.3"
+loguru = "^0.7.2"  # Add version constraint
+types-loguru = "^0.7.2"  # Add type stubs
+types-diskcache = "^5.6.3"  # Add type stubs
+# Note: cachebox doesn't have type stubs, we'll need to create our own

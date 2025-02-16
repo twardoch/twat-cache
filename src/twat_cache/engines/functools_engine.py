@@ -19,7 +19,7 @@ from collections.abc import Callable
 from functools import wraps, lru_cache
 import json
 
-from twat_cache.types import CacheConfig, P, R, CacheKey
+from twat_cache.type_defs import CacheConfig, P, R, CacheKey
 from .base import BaseCacheEngine
 
 

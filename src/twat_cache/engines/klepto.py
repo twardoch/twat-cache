@@ -17,7 +17,7 @@ try:
 except ImportError:
     HAS_KLEPTO = False
     dir_archive = type("dir_archive", (), {})  # type: ignore
-    keymap = picklemap = lambda *args, **kwargs: lambda f: f  # type: ignore
+    keymap = picklemap = lambda *_args, **_kwargs: lambda f: f  # type: ignore
 
 
 class KleptoEngine(BaseCacheEngine[P, R]):

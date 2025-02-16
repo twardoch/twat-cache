@@ -22,7 +22,7 @@ from collections.abc import Callable
 
 from loguru import logger
 
-from twat_cache.types import CacheConfig, CacheKey, P, R
+from twat_cache.type_defs import CacheConfig, CacheKey, P, R
 from twat_cache.paths import get_cache_path, validate_cache_path
 
 
@@ -147,7 +147,8 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         Returns:
             The cached value if found, None otherwise
         """
-        ...
+        _ = key  # Used for type checking
+        return None
 
     @abstractmethod
     def _set_cached_value(self, key: CacheKey, value: R) -> None:
@@ -206,13 +207,13 @@ class BaseCacheEngine(ABC, Generic[P, R]):
 
         return wrapper
 
-    @abstractmethod
     def get(self, key: str) -> R | None:
-        ...
+        """Get a value from the cache."""
+        return self._get_cached_value(key)
 
-    @abstractmethod
     def set(self, key: str, value: R) -> None:
-        ...
+        """Set a value in the cache."""
+        self._set_cached_value(key, value)
 
     @property
     def name(self) -> str:
@@ -220,7 +221,7 @@ class BaseCacheEngine(ABC, Generic[P, R]):
 
     @classmethod
     def is_available(cls) -> bool:
-        return True # Override in subclasses if availability depends on imports
+        return True  # Override in subclasses if availability depends on imports
 
 
 class CacheEngine(BaseCacheEngine[P, R]):
@@ -268,12 +269,6 @@ class CacheEngine(BaseCacheEngine[P, R]):
         Subclasses should override this with actual cache clearing logic.
         """
         pass
-
-    def get(self, key: str) -> R | None:
-        ...
-
-    def set(self, key: str, value: R) -> None:
-        ...
 
     def cache(
         self, func: Callable[P, R] | None = None

@@ -6,81 +6,104 @@
 # ///
 # this_file: src/twat_cache/config.py
 
-"""
-Simple configuration system for twat_cache.
+"""Simple configuration for twat_cache."""
 
-This module provides a simple configuration system for the cache decorators.
-"""
-
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Callable
+from dataclasses import dataclass
+from typing import Any
+from collections.abc import Callable
 
 
 @dataclass
 class CacheConfig:
-    """Cache configuration."""
+    """Basic cache configuration."""
 
     maxsize: int | None = None
     folder_name: str | None = None
     preferred_engine: str | None = None
     serializer: Callable[[Any], str] | None = None
-    use_sql: bool = field(default=False, init=False)
+    use_sql: bool = False
+    cache_type: str | None = None
 
-    def to_dict(self) -> dict[str, Any]:
-        """Convert config to dictionary."""
+    def get_maxsize(self) -> int | None:
+        """Get the maxsize value."""
+        return self.maxsize
+
+    def get_folder_name(self) -> str | None:
+        """Get the folder name."""
+        return self.folder_name
+
+    def get_use_sql(self) -> bool:
+        """Get the use_sql value."""
+        return self.use_sql
+
+    def get_preferred_engine(self) -> str | None:
+        """Get the preferred engine."""
+        return self.preferred_engine
+
+    def get_cache_type(self) -> str | None:
+        """Get the cache type."""
+        return self.cache_type
+
+    def validate(self) -> None:
+        """Validate the configuration."""
+        if self.maxsize is not None and self.maxsize <= 0:
+            msg = "maxsize must be positive or None"
+            raise ValueError(msg)
+        if self.folder_name is not None and not isinstance(self.folder_name, str):
+            msg = "folder_name must be a string or None"
+            raise ValueError(msg)
+
+    def model_dump(self) -> dict[str, Any]:
+        """Convert the model to a dictionary."""
         return {
             "maxsize": self.maxsize,
             "folder_name": self.folder_name,
             "preferred_engine": self.preferred_engine,
             "use_sql": self.use_sql,
+            "cache_type": self.cache_type,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "CacheConfig":
-        """Create config from dictionary."""
-        return cls(
-            maxsize=data.get("maxsize"),
-            folder_name=data.get("folder_name"),
-            preferred_engine=data.get("preferred_engine"),
-            use_sql=data.get("use_sql", False),
-        )
-
-    def validate(self) -> None:
-        """Validate configuration."""
-        if self.maxsize is not None and self.maxsize <= 0:
-            msg = "maxsize must be positive if specified"
-            raise ValueError(msg)
-
-        if self.preferred_engine is not None and self.preferred_engine not in {
-            "memory",
-            "disk",
-            "fast",
-        }:
-            msg = "preferred_engine must be one of: memory, disk, fast"
-            raise ValueError(msg)
-
-        if self.folder_name is not None:
-            try:
-                path = Path(self.folder_name)
-                if not path.parent.exists():
-                    msg = f"Parent directory does not exist: {path.parent}"
-                    raise ValueError(msg)
-            except Exception as e:
-                msg = f"Invalid folder name: {e}"
-                raise ValueError(msg) from e
+        """Create a config from a dictionary."""
+        return cls(**data)
 
 
-def create_cache_config(**kwargs: Any) -> CacheConfig:
+def create_cache_config(
+    maxsize: int | None = None,
+    folder_name: str | None = None,
+    preferred_engine: str | None = None,
+    serializer: Callable[[Any], str] | None = None,
+    use_sql: bool = False,
+    cache_type: str | None = None,
+    cache_dir: str | None = None,  # For backward compatibility
+) -> CacheConfig:
     """
     Create a cache configuration.
 
     Args:
-        **kwargs: Configuration options
+        maxsize: Maximum cache size (None for unlimited)
+        folder_name: Cache directory name
+        preferred_engine: Preferred caching backend ('memory', 'disk', or 'file')
+        serializer: Optional function to serialize non-JSON-serializable objects
+        use_sql: Whether to use SQL-based disk cache
+        cache_type: Type of cache to use
+        cache_dir: Alias for folder_name (for backward compatibility)
 
     Returns:
         A validated cache configuration
     """
-    config = CacheConfig(**kwargs)
+    # Handle backward compatibility
+    if cache_dir is not None:
+        folder_name = cache_dir
+
+    config = CacheConfig(
+        maxsize=maxsize,
+        folder_name=folder_name,
+        preferred_engine=preferred_engine,
+        serializer=serializer,
+        use_sql=use_sql,
+        cache_type=cache_type,
+    )
     config.validate()
     return config

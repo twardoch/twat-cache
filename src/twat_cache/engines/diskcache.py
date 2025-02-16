@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from typing import Any, cast
-import json
 
 from twat_cache.engines.base import BaseCacheEngine
-from twat_cache.types import F, CacheKey, P, R, CacheConfig
+from twat_cache.types import F, P, R, CacheConfig
 from twat_cache.paths import get_cache_path
 from loguru import logger
 
@@ -37,15 +36,18 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
         self._misses = 0
 
     def get(self, key: str) -> R | None:
-        if not self._cache: return None
+        if not self._cache:
+            return None
         return self._cache.get(key)
 
     def set(self, key: str, value: R) -> None:
-        if not self._cache: return
+        if not self._cache:
+            return
         self._cache.set(key, value)
 
     def clear(self) -> None:
-        if not self._cache: return
+        if not self._cache:
+            return
         self._cache.clear()
         self._hits = 0
         self._misses = 0

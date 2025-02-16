@@ -55,6 +55,7 @@ class JoblibEngine(BaseCacheEngine[P, R]):
         # Joblib's caching is handled within the decorated function itself.
         # We return None here to indicate that we haven't retrieved a value
         # directly. The actual cache lookup happens within the `cache` wrapper.
+        _ = key  # Used for type checking
         return None
 
     def _set_cached_value(self, key: CacheKey, value: R) -> None:
@@ -65,6 +66,7 @@ class JoblibEngine(BaseCacheEngine[P, R]):
         """
         # Joblib's caching is handled within the decorated function itself.
         # We don't need to do anything here.
+        _ = key, value  # Used for type checking
         pass
 
     def clear(self) -> None:
