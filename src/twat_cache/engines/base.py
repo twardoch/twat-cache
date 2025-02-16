@@ -49,7 +49,7 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         self.validate_config()
 
         # Initialize cache path if needed
-        if hasattr(self._config, "folder_name"):
+        if self._config.folder_name is not None:
             self._cache_path = get_cache_path(self._config.folder_name)
 
         logger.debug(f"Initialized {self.__class__.__name__} with config: {config}")
@@ -61,7 +61,7 @@ class BaseCacheEngine(ABC, Generic[P, R]):
             "hits": self._hits,
             "misses": self._misses,
             "size": self._size,
-            "maxsize": getattr(self._config, "maxsize", None),
+            "maxsize": self._config.maxsize,
             "backend": self.__class__.__name__,
             "path": str(self._cache_path) if self._cache_path else None,
         }
@@ -74,16 +74,15 @@ class BaseCacheEngine(ABC, Generic[P, R]):
             ValueError: If the configuration is invalid
         """
         # Validate maxsize if present
-        if hasattr(self._config, "maxsize"):
-            maxsize = self._config.maxsize
-            if maxsize is not None and maxsize <= 0:
-                msg = "maxsize must be positive or None"
-                raise ValueError(msg)
+        maxsize = self._config.maxsize
+        if maxsize is not None and maxsize <= 0:
+            msg = "maxsize must be positive or None"
+            raise ValueError(msg)
 
         # Validate cache folder if provided
-        if hasattr(self._config, "cache_dir"):
+        if self._config.folder_name is not None:
             try:
-                validate_cache_path(self._config.cache_dir)
+                validate_cache_path(self._config.folder_name)
             except ValueError as e:
                 msg = f"Invalid cache folder: {e}"
                 raise ValueError(msg) from e
@@ -187,18 +186,41 @@ class BaseCacheEngine(ABC, Generic[P, R]):
             if cached_value is not None:
                 self._hits += 1
                 logger.trace(f"Cache hit for {func.__name__} with key {key}")
-                return cached_value
+                if isinstance(cached_value, Exception):
+                    raise cached_value
+                return cast(R, cached_value)
 
             # Cache miss - compute and store
             self._misses += 1
-            value = func(*args, **kwargs)
-            self._set_cached_value(key, value)
+            try:
+                value = func(*args, **kwargs)
+                self._set_cached_value(key, value)
+            except Exception as e:
+                # Cache the exception
+                self._set_cached_value(key, cast(R, e))
+                raise
             self._size += 1
             logger.trace(f"Cache miss for {func.__name__} with key {key}")
 
             return value
 
-        return cast(Callable[P, R], wrapper)
+        return wrapper
+
+    @abstractmethod
+    def get(self, key: str) -> R | None:
+        ...
+
+    @abstractmethod
+    def set(self, key: str, value: R) -> None:
+        ...
+
+    @property
+    def name(self) -> str:
+        return self.__class__.__name__
+
+    @classmethod
+    def is_available(cls) -> bool:
+        return True # Override in subclasses if availability depends on imports
 
 
 class CacheEngine(BaseCacheEngine[P, R]):
@@ -247,27 +269,11 @@ class CacheEngine(BaseCacheEngine[P, R]):
         """
         pass
 
-    def get(self, key: Any) -> R | None:
-        """
-        Get a value from the cache.
+    def get(self, key: str) -> R | None:
+        ...
 
-        Args:
-            key: The key to look up
-
-        Returns:
-            The cached value if found, None otherwise
-        """
-        return self._get_cached_value(key)
-
-    def set(self, key: Any, value: R) -> None:
-        """
-        Set a value in the cache.
-
-        Args:
-            key: The key to store under
-            value: The value to cache
-        """
-        self._set_cached_value(key, value)
+    def set(self, key: str, value: R) -> None:
+        ...
 
     def cache(
         self, func: Callable[P, R] | None = None
@@ -300,13 +306,12 @@ class CacheEngine(BaseCacheEngine[P, R]):
                         result = f(*args, **kwargs)
                         self._set_cached_value(key, result)
                     except Exception as e:
-                        # Cache the exception to avoid recomputing
-                        # We know the exception is safe to cache in this context
+                        # Cache the exception
                         self._set_cached_value(key, cast(R, e))
                         raise
                 elif isinstance(result, Exception):
                     raise result
-                return result
+                return cast(R, result)
 
             return wrapper
 

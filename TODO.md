@@ -4,95 +4,103 @@ this_file: TODO.md
 
 # twat_cache TODO List
 
-## Overview
+## Core Goals
 
-`twat_cache` is a Python library providing multiple high-performance caching backends with a unified interface. The project aims to support various caching strategies from simple in-memory caching to distributed solutions.
+1. Provide simple, easy-to-use caching decorators:
+   - `mcache`: Memory-based caching (using FASTEST available backend but allowing fallback)
 
-## Implemented Features
+   - `bcache`: database caching (using MOST SUITABLE backend)
+   - `fcache`: Persistent filesystem cachine using joblib, allowing fallback — the point being that it should be easy to actually access the cached files
+   - `ucache`: Universal caching with automatic fallback
 
-* ✅ Memory-based cache using functools.lru_cache (always available)
-* ✅ SQL-based disk cache with SQLite backend (`diskcache`)
-* ✅ Async-capable caching (`aiocache`)
-* ✅ Rust-based high-performance cache (`cachebox`)
-* ✅ Flexible in-memory caching (`cachetools`)
-* ✅ Scientific computing caching (`klepto`)
-* ✅ Efficient array caching (`joblib`)
-* ✅ Path management system
-* ✅ Type system with abstract base classes
-* ✅ Configuration management
-* ✅ Basic test suite
+2. Minimize our own code:
+   - Let 3rd party packages do the heavy lifting
+   - Don't reinvent caching mechanisms
+   - Provide simple passthrough to underlying functionality
+   - Focus on ease of use over feature completeness
 
-As you develop, run 
+3. Implement seamless fallback:
+   - If preferred backend isn't available, fall back gracefully
+   - Use simple warning logs to inform about fallbacks
+   - Always have functools.lru_cache as final fallback
 
+4. Analyze and ingest the project @README.md that details the current state, and ingest @VARIA.md that details some observations. 
+
+5. Then analyze the existing codebase, and review the previous Implementation Tasks below. 
+
+6. TASK: Adjust the plan below, write a DETAILED PLAN including sketching out new code structures. Write snippets and pseudocode for the core functionality. 
+
+## Implementation Tasks
+
+### Phase 1: Core Functionality
+
+* **1.1. Simplify Decorators:**
+  - [ ] Implement `mcache` 
+  - [ ] Implement `bcache` 
+  - [ ] Implement `fcache` 
+  - [ ] Implement `ucache` 
+
+* **1.2. Streamline Backend Integration:**
+  - [ ] Remove complex abstraction layers
+  - [ ] Simplify backend detection
+  - [ ] Implement basic logging for fallbacks
+  - [ ] Add simple passthrough to backend features
+
+* **1.3. Fix Configuration:**
+  - [ ] Remove complex config system
+  - [ ] Use simple kwargs for decorator options
+  - [ ] Add basic path management for disk caches
+  - [ ] Implement minimal validation
+
+### Phase 2: Testing and Documentation
+
+* **2.1. Improve Test Suite:**
+  - [ ] Add basic decorator tests
+  - [ ] Test fallback mechanisms
+  - [ ] Verify backend detection
+  - [ ] Add simple performance tests
+
+* **2.2. Update Documentation:**
+  - [ ] Add clear usage examples
+  - [ ] Document fallback behavior
+  - [ ] Add backend-specific notes
+  - [ ] Update installation guide
+
+### Phase 3: Polish and Release
+
+* **3.1. Final Touches:**
+  - [ ] Clean up dependencies
+  - [ ] Verify type hints
+  - [ ] Add proper error messages
+  - [ ] Update package metadata
+
+* **3.2. Release Preparation:**
+  - [ ] Run final test suite
+  - [ ] Update version numbers
+  - [ ] Prepare release notes
+  - [ ] Publish to PyPI
+
+## Development Notes
+
+Remember to run:
+```bash
+uv venv; source .venv/bin/activate; uv pip install -e .[all,dev,test]; hatch run lint:fix; hatch test;
 ```
-uv venv; source .venv/bin/activate; uv pip install -e .[all,dev,test]; hatch run lint:fix; hatch test
-```
 
-to ensure that the code is linted and tested. This will inform your next steps. 
+## Implementation Guidelines
 
-## Phase 1: Immediate Fixes (Completed)
+1. Keep It Simple:
+   - Minimize abstraction layers
+   - Use direct backend calls where possible
+   - Don't try to normalize all backends
 
-* ✅ **1.1. Fix `aiocache.py` Linter Errors:**
-  + ✅ **1.1.1. Correct Imports:**
-  + ✅ **1.1.2. Add Type Hints:**
-  + ✅ **1.1.3 Add this_file magic record:**
-* ✅ **1.2. Review and Consolidate `CacheEngine` and `BaseCacheEngine`:**
-  + ✅ **1.2.1.**
-  + ✅ **1.2.2.** Update all imports.
-* ✅ **1.3. Update `DEPENDENCIES.txt`:**
-  + ✅ **1.3.1.** Remove the incorrect file listing.
-  + ✅ **1.3.2.** Add missing dependencies.
+2. Focus on User Experience:
+   - Make decorators intuitive to use
+   - Provide sensible defaults
+   - Keep configuration minimal
 
-## Phase 2: Core Functionality and Testing
-
-* **2.1. Fix Configuration System:**
-  + **2.1.1. Fix CacheConfig Implementation:**
-    - ✅ Update Pydantic field validators to use @classmethod
-    - ✅ Fix model_config settings
-    - ❌ Fix Pydantic model initialization (TypeError: CacheConfig() takes no arguments)
-    - ❌ Add proper error messages for field validation
-  + **2.1.2. Fix Cache Directory Management:**
-    - ❌ Implement proper cache directory creation
-    - ❌ Add directory cleanup on errors
-    - ❌ Add cache size monitoring
-  + **2.1.3. Add Validation:**
-    - ❌ Add config schema validation
-    - ❌ Add runtime checks for backend availability
-    - ❌ Add type validation for cache keys
-
-* **2.2. Fix Cache Engine Issues:**
-  + **2.2.1. Fix Core Engine Components:**
-    - ❌ Fix CacheEngine import in base.py (current blocker)
-    - ❌ Fix stats tracking in FunctoolsCacheEngine
-    - ❌ Fix maxsize enforcement
-    - ❌ Implement proper cache key generation
-  + **2.2.2. Add Error Handling:**
-    - ❌ Add proper exception hierarchy
-    - ❌ Add fallback mechanisms for failed backends
-    - ❌ Add retry logic for transient failures
-
-
-* **2.3. Fix Test Suite:**
-  + **2.3.1. Fix Critical Test Failures:**
-    - ❌ Fix CacheEngine import in test_engines.py
-    - ❌ Fix CacheConfig initialization tests
-    - ❌ Fix cache stats tracking tests
-  + **2.3.2. Add Engine-specific Tests:**
-    - ❌ Add tests for each backend type
-    - ❌ Add concurrent access tests
-    - ❌ Add error handling tests
-  + **2.3.3. Add Performance Tests:**
-    - ❌ Add benchmark suite
-    - ❌ Add memory usage tests
-    - ❌ Add cache invalidation tests
-
-* **2.4. Documentation and Examples:**
-  + **2.4.1. Update Documentation:**
-    - ❌ Add configuration guide
-    - ❌ Add backend selection guide
-    - ❌ Add performance optimization guide
-  + **2.4.2. Add Examples:**
-    - ❌ Add examples for each backend
-    - ❌ Add error handling examples
-    - ❌ Add performance optimization examples
+3. Efficient Fallbacks:
+   - Try preferred backend first
+   - Fall back gracefully with warning
+   - Always have functools.lru_cache as backup
 
