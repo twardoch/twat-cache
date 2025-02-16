@@ -2,6 +2,7 @@
 # /// script
 # dependencies = [
 #   "loguru",
+#   "pydantic",
 # ]
 # ///
 # this_file: src/twat_cache/engines/base.py
@@ -16,13 +17,15 @@ implementing common functionality and enforcing the CacheEngine protocol.
 from abc import ABC, abstractmethod
 from functools import wraps
 import inspect
+import json
 from pathlib import Path
-from typing import Any, Generic, cast
+from typing import Any, Generic, cast, Optional
 from collections.abc import Callable
 
 from loguru import logger
 
-from twat_cache.type_defs import CacheConfig, CacheKey, P, R
+from twat_cache.config import CacheConfig
+from twat_cache.type_defs import CacheKey, P, R
 from twat_cache.paths import get_cache_path, validate_cache_path
 
 
@@ -43,7 +46,8 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         self._hits = 0
         self._misses = 0
         self._size = 0
-        self._cache_path: Path | None = None
+        self._cache_path: Optional[Path] = None
+        self._cache: dict[CacheKey, tuple[R, Optional[float]]] = {}
 
         # Validate configuration
         self.validate_config()
@@ -51,6 +55,8 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         # Initialize cache path if needed
         if self._config.folder_name is not None:
             self._cache_path = get_cache_path(self._config.folder_name)
+            if self._config.secure:
+                self._cache_path.chmod(0o700)
 
         logger.debug(f"Initialized {self.__class__.__name__} with config: {config}")
 
@@ -64,6 +70,8 @@ class BaseCacheEngine(ABC, Generic[P, R]):
             "maxsize": self._config.maxsize,
             "backend": self.__class__.__name__,
             "path": str(self._cache_path) if self._cache_path else None,
+            "policy": self._config.policy,
+            "ttl": self._config.ttl,
         }
 
     def validate_config(self) -> None:
@@ -73,13 +81,8 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         Raises:
             ValueError: If the configuration is invalid
         """
-        # Validate maxsize if present
-        maxsize = self._config.maxsize
-        if maxsize is not None and maxsize <= 0:
-            msg = "maxsize must be positive or None"
-            raise ValueError(msg)
-
-        # Validate cache folder if provided
+        # Config is already validated by Pydantic
+        # Just validate cache folder if provided
         if self._config.folder_name is not None:
             try:
                 validate_cache_path(self._config.folder_name)
@@ -110,8 +113,18 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         func_name = func.__name__
 
         # Convert args and kwargs to a stable string representation
-        args_str = str(args) if args else ""
-        kwargs_str = str(sorted(kwargs.items())) if kwargs else ""
+        try:
+            # Try JSON serialization first for stable representation
+            args_str = json.dumps(args, sort_keys=True) if args else ""
+            kwargs_str = (
+                json.dumps(dict(sorted(kwargs.items())), sort_keys=True)
+                if kwargs
+                else ""
+            )
+        except (TypeError, ValueError):
+            # Fall back to str() for non-JSON-serializable objects
+            args_str = str(args) if args else ""
+            kwargs_str = str(sorted(kwargs.items())) if kwargs else ""
 
         # Combine components into a key
         key_components = [
@@ -134,10 +147,15 @@ class BaseCacheEngine(ABC, Generic[P, R]):
 
         Override this in backend implementations if needed.
         """
-        return []
+        components = []
+        if self._config.ttl is not None:
+            components.append(f"ttl={self._config.ttl}")
+        if self._config.policy != "lru":
+            components.append(f"policy={self._config.policy}")
+        return components
 
     @abstractmethod
-    def _get_cached_value(self, key: CacheKey) -> R | None:
+    def _get_cached_value(self, key: CacheKey) -> Optional[R]:
         """
         Retrieve a value from the cache.
 
@@ -147,8 +165,7 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         Returns:
             The cached value if found, None otherwise
         """
-        _ = key  # Used for type checking
-        return None
+        ...
 
     @abstractmethod
     def _set_cached_value(self, key: CacheKey, value: R) -> None:
@@ -207,7 +224,7 @@ class BaseCacheEngine(ABC, Generic[P, R]):
 
         return wrapper
 
-    def get(self, key: str) -> R | None:
+    def get(self, key: str) -> Optional[R]:
         """Get a value from the cache."""
         return self._get_cached_value(key)
 
@@ -217,10 +234,12 @@ class BaseCacheEngine(ABC, Generic[P, R]):
 
     @property
     def name(self) -> str:
+        """Get the name of the cache engine."""
         return self.__class__.__name__
 
     @classmethod
     def is_available(cls) -> bool:
+        """Check if this cache engine is available for use."""
         return True  # Override in subclasses if availability depends on imports
 
 
@@ -228,88 +247,62 @@ class CacheEngine(BaseCacheEngine[P, R]):
     """
     Concrete implementation of the cache engine protocol.
 
-    This class provides a default implementation of the abstract methods
-    defined in BaseCacheEngine. It can be used directly or subclassed
-    for more specific caching needs.
+    This class provides a default implementation using a simple in-memory
+    dictionary cache with the configured eviction policy.
     """
 
-    def _get_cached_value(self, key: CacheKey) -> R | None:
+    def _get_cached_value(self, key: CacheKey) -> Optional[R]:
         """
         Retrieve a value from the cache.
-
-        This default implementation always returns None, indicating a cache miss.
-        Subclasses should override this with actual caching logic.
 
         Args:
             key: The cache key to look up
 
         Returns:
-            None, indicating a cache miss
+            The cached value if found and not expired, None otherwise
         """
-        return None
+        if key not in self._cache:
+            return None
+
+        value, expiry = self._cache[key]
+        if expiry is not None and expiry <= 0:
+            del self._cache[key]
+            self._size -= 1
+            return None
+
+        return value
 
     def _set_cached_value(self, key: CacheKey, value: R) -> None:
         """
         Store a value in the cache.
 
-        This default implementation does nothing.
-        Subclasses should override this with actual caching logic.
-
         Args:
             key: The cache key to store under
             value: The value to cache
         """
-        pass
+        # Check maxsize
+        if self._config.maxsize is not None and self._size >= self._config.maxsize:
+            # Remove oldest item based on policy
+            if self._config.policy == "lru":
+                # Remove least recently used
+                oldest_key = next(iter(self._cache))
+                del self._cache[oldest_key]
+                self._size -= 1
+            elif self._config.policy == "fifo":
+                # Remove first item added
+                oldest_key = next(iter(self._cache))
+                del self._cache[oldest_key]
+                self._size -= 1
+            # Other policies would be implemented here
+
+        # Store with TTL if configured
+        expiry = self._config.ttl
+        self._cache[key] = (value, expiry)
+        self._size += 1
 
     def clear(self) -> None:
-        """
-        Clear all cached values.
-
-        This default implementation does nothing.
-        Subclasses should override this with actual cache clearing logic.
-        """
-        pass
-
-    def cache(
-        self, func: Callable[P, R] | None = None
-    ) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
-        """
-        Decorate a function to cache its results.
-
-        This method can be used both as a decorator and as a decorator factory:
-
-        @engine.cache
-        def func(): ...
-
-        @engine.cache()
-        def func(): ...
-
-        Args:
-            func: The function to cache, or None if used as a decorator factory
-
-        Returns:
-            A wrapped function that caches its results, or a decorator
-        """
-
-        def decorator(f: Callable[P, R]) -> Callable[P, R]:
-            @wraps(f)
-            def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-                key = self._make_key(f, args, kwargs)
-                result = self._get_cached_value(key)
-                if result is None:
-                    try:
-                        result = f(*args, **kwargs)
-                        self._set_cached_value(key, result)
-                    except Exception as e:
-                        # Cache the exception
-                        self._set_cached_value(key, cast(R, e))
-                        raise
-                elif isinstance(result, Exception):
-                    raise result
-                return cast(R, result)
-
-            return wrapper
-
-        if func is None:
-            return decorator
-        return decorator(func)
+        """Clear all cached values."""
+        self._cache.clear()
+        self._size = 0
+        self._hits = 0
+        self._misses = 0

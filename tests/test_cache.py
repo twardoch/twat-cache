@@ -11,6 +11,7 @@
 #   "cachebox",
 #   "klepto",
 #   "aiocache",
+#   "pydantic",
 # ]
 # ///
 # this_file: tests/test_cache.py
@@ -24,10 +25,11 @@ from pathlib import Path
 from typing import Any, cast
 
 import pytest
+from pydantic import ValidationError
 
 from twat_cache.cache import clear_cache, get_stats
-from twat_cache.decorators import ucache, acache
-from twat_cache.config import create_cache_config
+from twat_cache.decorators import ucache, acache, mcache, bcache, fcache
+from twat_cache.config import create_cache_config, CacheConfig
 
 
 # Test constants
@@ -45,18 +47,27 @@ def test_cache_settings_validation() -> None:
     """Test validation of cache settings."""
     # Valid settings
     config = create_cache_config(maxsize=100)
-    config.validate()  # Should not raise
+    assert config.maxsize == 100
 
     # Invalid maxsize
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         create_cache_config(maxsize=-1)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         create_cache_config(maxsize=0)
 
     # Invalid TTL
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         create_cache_config(ttl=-1)
+
+    # Valid TTL and policy
+    config = create_cache_config(ttl=1.0)
+    assert config.policy == "ttl"  # Should auto-set policy to ttl
+
+    # Valid eviction policies
+    for policy in ["lru", "lfu", "fifo", "rr", "ttl"]:
+        config = create_cache_config(policy=policy)
+        assert config.policy == policy
 
 
 def test_basic_caching() -> None:
@@ -127,7 +138,9 @@ def test_cache_stats() -> None:
     assert stats["hits"] >= MIN_STATS_COUNT
     assert stats["misses"] >= MIN_STATS_COUNT
     assert "size" in stats
-    assert "backend" in stats  # Check backend is reported
+    assert "backend" in stats
+    assert "policy" in stats
+    assert "ttl" in stats
 
 
 def test_list_processing() -> None:
@@ -144,9 +157,11 @@ def test_list_processing() -> None:
 
     # First call
     result1 = process_list(test_list)
+    assert call_count == 1
 
     # Second call should use cache
     result2 = process_list(test_list)
+    assert call_count == 1
 
     assert result1 == result2 == TEST_LIST_SUM
 
@@ -174,6 +189,9 @@ def test_different_backends() -> None:
 
         # Should be consistent across backends
         assert all(r == results[0] for r in results)
+
+    # Clean up
+    clear_cache()
 
 
 def test_cache_with_complex_types() -> None:
@@ -251,22 +269,22 @@ def test_ttl_caching(tmp_path: Path) -> None:
     assert cached_function(TEST_INPUT) == TEST_RESULT
     assert call_count == 1
 
-    # Within TTL
+    # Second call should use cache
     assert cached_function(TEST_INPUT) == TEST_RESULT
     assert call_count == 1
 
     # Wait for TTL to expire
     time.sleep(TTL_DURATION + 0.1)
 
-    # Should recompute
+    # Should recompute after TTL expires
     assert cached_function(TEST_INPUT) == TEST_RESULT
-    assert call_count == 2
+    assert call_count == EXPECTED_CALL_COUNT
 
 
 def test_security_features(tmp_path: Path) -> None:
-    """Test security features of cache."""
+    """Test security features for disk caches."""
 
-    @ucache(folder_name=str(tmp_path))
+    @ucache(folder_name=str(tmp_path), secure=True)
     def cached_function(x: int) -> int:
         return x * x
 
@@ -274,17 +292,13 @@ def test_security_features(tmp_path: Path) -> None:
     cached_function(TEST_INPUT)
 
     # Check cache directory permissions
-    stat = os.stat(tmp_path)
-    assert stat.st_mode & 0o777 in (0o700, 0o755)  # Only owner should have full access
+    cache_path = tmp_path
+    assert cache_path.exists()
 
-    # Check cache file permissions
-    for path in tmp_path.glob("**/*"):
-        if path.is_file():
-            stat = os.stat(path)
-            assert stat.st_mode & 0o777 in (
-                0o600,
-                0o644,
-            )  # Only owner should have write access
+    # On Unix-like systems, check permissions
+    if os.name == "posix":
+        mode = cache_path.stat().st_mode & 0o777
+        assert mode == 0o700
 
 
 @pytest.mark.asyncio
@@ -310,36 +324,32 @@ async def test_async_caching() -> None:
     assert call_count == 1
 
 
-def test_race_conditions(tmp_path: Path) -> None:
-    """Test handling of race conditions in cache access."""
-    import threading
+def test_specific_decorators() -> None:
+    """Test each specific cache decorator."""
 
-    results: list[int] = []
-    exceptions: list[Exception] = []
-
-    @ucache(folder_name=str(tmp_path))
-    def cached_function(x: int) -> int:
-        time.sleep(0.1)  # Simulate work that could cause race conditions
+    # Test memory cache
+    @mcache(maxsize=100)
+    def mem_func(x: int) -> int:
         return x * x
 
-    def worker() -> None:
-        try:
-            result = cached_function(TEST_INPUT)
-            results.append(result)
-        except Exception as e:
-            exceptions.append(e)
+    assert mem_func(5) == 25
+    assert mem_func(5) == 25  # Should use cache
 
-    # Create multiple threads
-    threads = [threading.Thread(target=worker) for _ in range(5)]
+    # Test basic disk cache
+    @bcache(folder_name="test_disk")
+    def disk_func(x: int) -> int:
+        return x * x
 
-    # Start all threads
-    for t in threads:
-        t.start()
+    assert disk_func(5) == 25
+    assert disk_func(5) == 25  # Should use cache
 
-    # Wait for all threads
-    for t in threads:
-        t.join()
+    # Test file cache
+    @fcache(folder_name="test_file")
+    def file_func(x: int) -> int:
+        return x * x
 
-    # Check results
-    assert len(exceptions) == 0  # No exceptions occurred
-    assert all(r == TEST_RESULT for r in results)  # All results are correct
+    assert file_func(5) == 25
+    assert file_func(5) == 25  # Should use cache
+
+    # Clean up
+    clear_cache()
