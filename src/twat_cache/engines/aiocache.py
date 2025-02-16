@@ -7,168 +7,143 @@
 # ///
 # this_file: src/twat_cache/engines/aiocache.py
 
-"""Async-capable cache engine using aiocache."""
+"""Async-capable cache engine using aiocache package."""
 
-import asyncio
+from __future__ import annotations
+
 from typing import Any, cast
-
-from aiocache import Cache, SimpleMemoryCache, RedisCache, MemcachedCache
-from loguru import logger
+from collections.abc import Callable
 
 from twat_cache.config import CacheConfig
-from twat_cache.type_defs import CacheKey, P, AsyncR
-from .base import BaseCacheEngine
+from twat_cache.engines.base import BaseCacheEngine, is_package_available
+from twat_cache.type_defs import CacheKey, P, R
 
 
-class AioCacheEngine(BaseCacheEngine[P, AsyncR]):
-    """
-    Async-capable cache engine using aiocache.
-
-    This engine provides asynchronous caching with support for:
-    - Multiple backends (memory, Redis, Memcached)
-    - TTL-based expiration
-    - Maxsize limitation (via our wrapper)
-    """
+class AioCacheEngine(BaseCacheEngine[P, R]):
+    """Cache engine using aiocache."""
 
     def __init__(self, config: CacheConfig) -> None:
-        """Initialize the aiocache engine."""
+        """Initialize the aiocache engine.
+
+        Args:
+            config: Cache configuration settings.
+        """
         super().__init__(config)
+        self._config = config
+        self._cache = None
+
+        if not self.is_available:
+            msg = "aiocache is not available"
+            raise ImportError(msg)
+
+        # Import here to avoid loading if not used
+        from aiocache import Cache, RedisCache, MemcachedCache, SimpleMemoryCache
 
         # Select backend based on availability
-        try:
-            import redis
-
+        if is_package_available("redis"):
             self._cache: Cache = RedisCache(
-                ttl=self._config.ttl or 0,
-                namespace=self._config.folder_name,
+                endpoint=config.redis_host or "localhost",
+                port=config.redis_port or 6379,
+                namespace=config.folder_name,
+                ttl=config.ttl,
             )
-            logger.debug("Using Redis backend for aiocache")
-        except ImportError:
-            try:
-                import pymemcache
+        elif is_package_available("pymemcache"):
+            self._cache = MemcachedCache(
+                endpoint=config.memcached_host or "localhost",
+                port=config.memcached_port or 11211,
+                namespace=config.folder_name,
+                ttl=config.ttl,
+            )
+        else:
+            self._cache = SimpleMemoryCache(
+                namespace=config.folder_name,
+                ttl=config.ttl,
+            )
 
-                self._cache = MemcachedCache(
-                    ttl=self._config.ttl or 0,
-                    namespace=self._config.folder_name,
-                )
-                logger.debug("Using Memcached backend for aiocache")
-            except ImportError:
-                self._cache = SimpleMemoryCache(
-                    ttl=self._config.ttl or 0,
-                    namespace=self._config.folder_name,
-                )
-                logger.debug("Using memory backend for aiocache")
+    def cache(self, func: Callable[P, R]) -> Callable[P, R]:
+        """Decorate a function with caching.
 
-        logger.debug(
-            f"Initialized {self.__class__.__name__} with ttl={self._config.ttl}"
+        Args:
+            func: Function to cache.
+
+        Returns:
+            Callable: Decorated function with caching.
+        """
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        # Import here to avoid loading if not used
+        from aiocache import cached
+
+        return cast(
+            Callable[P, R],
+            cached(
+                ttl=self._config.ttl,
+                cache=self._cache,
+                namespace=self._config.folder_name,
+            )(func),
         )
 
-    async def _get_cached_value_async(self, key: CacheKey) -> AsyncR | None:
-        """
-        Retrieve a value from the cache asynchronously.
+    def get(self, key: CacheKey) -> R | None:
+        """Get a value from the cache.
 
         Args:
-            key: The cache key to look up
+            key: Cache key.
 
         Returns:
-            The cached value if found and not expired, None otherwise
+            Optional[R]: Cached value if found, None otherwise.
         """
-        try:
-            result = await self._cache.get(str(key))
-            if result is None:
-                return None
-            return cast(AsyncR, result)
-        except Exception as e:
-            logger.warning(f"Error retrieving from aiocache: {e}")
-            return None
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
 
-    def _get_cached_value(self, key: CacheKey) -> AsyncR | None:
-        """
-        Retrieve a value from the cache.
+        return cast(R | None, self._cache.get(str(key)))
 
-        This is a synchronous wrapper around the async get method.
+    def set(self, key: CacheKey, value: R) -> None:
+        """Set a value in the cache.
 
         Args:
-            key: The cache key to look up
-
-        Returns:
-            The cached value if found and not expired, None otherwise
+            key: Cache key.
+            value: Value to cache.
         """
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(self._get_cached_value_async(key))
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
 
-    async def _set_cached_value_async(self, key: CacheKey, value: AsyncR) -> None:
-        """
-        Store a value in the cache asynchronously.
-
-        Args:
-            key: The cache key to store under
-            value: The value to cache
-        """
-        try:
-            await self._cache.set(
-                str(key),
-                value,
-                ttl=self._config.ttl or None,
-            )
-            self._size = await self._cache.raw("dbsize")  # type: ignore
-        except Exception as e:
-            logger.warning(f"Error storing to aiocache: {e}")
-
-    def _set_cached_value(self, key: CacheKey, value: AsyncR) -> None:
-        """
-        Store a value in the cache.
-
-        This is a synchronous wrapper around the async set method.
-
-        Args:
-            key: The cache key to store under
-            value: The value to cache
-        """
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self._set_cached_value_async(key, value))
-
-    async def clear_async(self) -> None:
-        """Clear all cached values asynchronously."""
-        try:
-            await self._cache.clear()
-            self._hits = 0
-            self._misses = 0
-            self._size = 0
-        except Exception as e:
-            logger.warning(f"Error clearing aiocache: {e}")
+        self._cache.set(str(key), value, ttl=self._config.ttl)
 
     def clear(self) -> None:
         """Clear all cached values."""
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.clear_async())
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
+
+        self._cache.clear()
 
     @property
     def stats(self) -> dict[str, Any]:
-        """Get cache statistics."""
-        base_stats = super().stats
-        try:
-            loop = asyncio.get_event_loop()
-            info = loop.run_until_complete(self._cache.raw("info"))  # type: ignore
-            base_stats.update(info)
-        except Exception as e:
-            logger.warning(f"Error getting aiocache stats: {e}")
-        return base_stats
+        """Get cache statistics.
 
-    def __del__(self) -> None:
-        """Clean up resources."""
-        try:
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(self._cache.close())  # type: ignore
-        except Exception as e:
-            logger.warning(f"Error closing aiocache: {e}")
+        Returns:
+            dict[str, Any]: Dictionary of cache statistics.
+        """
+        if not self._cache:
+            msg = "Cache not initialized"
+            raise RuntimeError(msg)
 
-    @classmethod
-    def is_available(cls) -> bool:
-        """Check if this cache engine is available for use."""
-        try:
-            import aiocache
+        return {
+            "hits": self._cache.hits,
+            "misses": self._cache.misses,
+            "size": len(self._cache),
+            "backend": self._cache.__class__.__name__,
+        }
 
-            return True
-        except ImportError:
-            return False
+    @property
+    def is_available(self) -> bool:
+        """Check if this cache engine is available for use.
+
+        Returns:
+            bool: True if the engine is available, False otherwise.
+        """
+        return is_package_available("aiocache")
