@@ -17,6 +17,56 @@ uv venv; source .venv/bin/activate; uv pip install -e .[all,dev,test]; hatch run
 
 to ensure that the code is linted and tested. This will inform your next steps. 
 
+## [1.8.0] - 2025-02-17
+
+### Added
+- New `acache` decorator for async caching support
+- TTL support for persistent caches
+- Security features for disk caches
+- Race condition handling
+- Comprehensive test suite for all features
+
+### Changed
+- Reorganized backend priorities for each decorator:
+  - mcache: cachebox > cachetools > functools
+  - bcache: diskcache > klepto SQL > mcache
+  - fcache: joblib > klepto file > mcache
+  - acache: aiocache > async mcache wrapper
+- Enhanced test coverage with backend-specific tests
+- Improved error handling and logging
+- Updated configuration system to support TTL and security options
+
+### Fixed
+- Linting issues in test files
+- Type hints for async functions
+- Cache key generation for complex types
+- Race conditions in multi-threaded scenarios
+- File permissions for disk caches
+
+### Issues
+- Missing type stubs for several dependencies
+- Untyped decorators in async tests
+- TTL configuration not fully implemented
+- Security features need enhancement
+- Race condition handling needs improvement
+
+### Next Steps
+1. Core Implementation:
+   - Complete `acache` decorator implementation
+   - Add TTL support to all persistent caches
+   - Enhance security features
+   - Improve race condition handling
+
+2. Type System:
+   - Add missing type stubs for dependencies
+   - Fix untyped decorators
+   - Improve type safety
+
+3. Testing:
+   - Add more async tests
+   - Enhance security tests
+   - Add stress tests for race conditions
+
 ## [1.7.9] - 2025-02-16
 
 ### Changed

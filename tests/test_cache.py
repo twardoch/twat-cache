@@ -2,18 +2,31 @@
 # /// script
 # dependencies = [
 #   "pytest",
+#   "pytest-asyncio",
+#   "loguru",
+#   "diskcache",
+#   "joblib",
+#   "types-pytest",
+#   "cachetools",
+#   "cachebox",
+#   "klepto",
+#   "aiocache",
 # ]
 # ///
 # this_file: tests/test_cache.py
 
 """Tests for the main cache interface."""
 
-from typing import Any
+import asyncio
+import os
+import time
+from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
 from twat_cache.cache import clear_cache, get_stats
-from twat_cache.decorators import ucache
+from twat_cache.decorators import ucache, acache
 from twat_cache.config import create_cache_config
 
 
@@ -25,6 +38,7 @@ TEST_RESULT_2 = TEST_INPUT_2 * TEST_INPUT_2
 EXPECTED_CALL_COUNT = 2
 MIN_STATS_COUNT = 2
 TEST_LIST_SUM = 15
+TTL_DURATION = 0.5
 
 
 def test_cache_settings_validation() -> None:
@@ -39,6 +53,10 @@ def test_cache_settings_validation() -> None:
 
     with pytest.raises(ValueError):
         create_cache_config(maxsize=0)
+
+    # Invalid TTL
+    with pytest.raises(ValueError):
+        create_cache_config(ttl=-1)
 
 
 def test_basic_caching() -> None:
@@ -109,6 +127,7 @@ def test_cache_stats() -> None:
     assert stats["hits"] >= MIN_STATS_COUNT
     assert stats["misses"] >= MIN_STATS_COUNT
     assert "size" in stats
+    assert "backend" in stats  # Check backend is reported
 
 
 def test_list_processing() -> None:
@@ -216,3 +235,111 @@ def test_kwargs_handling() -> None:
 
     assert kwarg_function(TEST_INPUT, multiplier=2) == TEST_INPUT * 2
     assert call_count == EXPECTED_CALL_COUNT  # Different kwargs = new computation
+
+
+def test_ttl_caching(tmp_path: Path) -> None:
+    """Test TTL (Time To Live) functionality."""
+    call_count = 0
+
+    @ucache(folder_name=str(tmp_path), ttl=TTL_DURATION)
+    def cached_function(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
+
+    # First call
+    assert cached_function(TEST_INPUT) == TEST_RESULT
+    assert call_count == 1
+
+    # Within TTL
+    assert cached_function(TEST_INPUT) == TEST_RESULT
+    assert call_count == 1
+
+    # Wait for TTL to expire
+    time.sleep(TTL_DURATION + 0.1)
+
+    # Should recompute
+    assert cached_function(TEST_INPUT) == TEST_RESULT
+    assert call_count == 2
+
+
+def test_security_features(tmp_path: Path) -> None:
+    """Test security features of cache."""
+
+    @ucache(folder_name=str(tmp_path))
+    def cached_function(x: int) -> int:
+        return x * x
+
+    # Call function to create cache
+    cached_function(TEST_INPUT)
+
+    # Check cache directory permissions
+    stat = os.stat(tmp_path)
+    assert stat.st_mode & 0o777 in (0o700, 0o755)  # Only owner should have full access
+
+    # Check cache file permissions
+    for path in tmp_path.glob("**/*"):
+        if path.is_file():
+            stat = os.stat(path)
+            assert stat.st_mode & 0o777 in (
+                0o600,
+                0o644,
+            )  # Only owner should have write access
+
+
+@pytest.mark.asyncio
+async def test_async_caching() -> None:
+    """Test async caching functionality."""
+    call_count = 0
+
+    @acache()
+    async def async_function(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        await asyncio.sleep(0.1)  # Simulate async work
+        return x * x
+
+    # First call
+    result1 = await async_function(TEST_INPUT)
+    assert result1 == TEST_RESULT
+    assert call_count == 1
+
+    # Second call should use cache
+    result2 = await async_function(TEST_INPUT)
+    assert result2 == TEST_RESULT
+    assert call_count == 1
+
+
+def test_race_conditions(tmp_path: Path) -> None:
+    """Test handling of race conditions in cache access."""
+    import threading
+
+    results: list[int] = []
+    exceptions: list[Exception] = []
+
+    @ucache(folder_name=str(tmp_path))
+    def cached_function(x: int) -> int:
+        time.sleep(0.1)  # Simulate work that could cause race conditions
+        return x * x
+
+    def worker() -> None:
+        try:
+            result = cached_function(TEST_INPUT)
+            results.append(result)
+        except Exception as e:
+            exceptions.append(e)
+
+    # Create multiple threads
+    threads = [threading.Thread(target=worker) for _ in range(5)]
+
+    # Start all threads
+    for t in threads:
+        t.start()
+
+    # Wait for all threads
+    for t in threads:
+        t.join()
+
+    # Check results
+    assert len(exceptions) == 0  # No exceptions occurred
+    assert all(r == TEST_RESULT for r in results)  # All results are correct
