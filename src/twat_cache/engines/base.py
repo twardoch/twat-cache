@@ -19,7 +19,7 @@ from functools import wraps
 import inspect
 import json
 from pathlib import Path
-from typing import Any, Generic, cast, Optional
+from typing import Any, Generic, cast
 from collections.abc import Callable
 
 from loguru import logger
@@ -46,8 +46,8 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         self._hits = 0
         self._misses = 0
         self._size = 0
-        self._cache_path: Optional[Path] = None
-        self._cache: dict[CacheKey, tuple[R, Optional[float]]] = {}
+        self._cache_path: Path | None = None
+        self._cache: dict[CacheKey, tuple[R, float | None]] = {}
 
         # Validate configuration
         self.validate_config()
@@ -155,7 +155,7 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         return components
 
     @abstractmethod
-    def _get_cached_value(self, key: CacheKey) -> Optional[R]:
+    def _get_cached_value(self, key: CacheKey) -> R | None:
         """
         Retrieve a value from the cache.
 
@@ -224,7 +224,7 @@ class BaseCacheEngine(ABC, Generic[P, R]):
 
         return wrapper
 
-    def get(self, key: str) -> Optional[R]:
+    def get(self, key: str) -> R | None:
         """Get a value from the cache."""
         return self._get_cached_value(key)
 
@@ -251,7 +251,7 @@ class CacheEngine(BaseCacheEngine[P, R]):
     dictionary cache with the configured eviction policy.
     """
 
-    def _get_cached_value(self, key: CacheKey) -> Optional[R]:
+    def _get_cached_value(self, key: CacheKey) -> R | None:
         """
         Retrieve a value from the cache.
 

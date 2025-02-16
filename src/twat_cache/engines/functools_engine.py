@@ -4,7 +4,7 @@
 #   "loguru",
 # ]
 # ///
-# this_file: src/twat_cache/engines/functools.py
+# this_file: src/twat_cache/engines/functools_engine.py
 
 """
 Functools-based cache engine implementation.
@@ -16,11 +16,13 @@ backend that requires no external dependencies.
 
 from typing import Any, cast
 from collections.abc import Callable
-from functools import wraps, lru_cache
+from functools import wraps
 import json
+import time
 
 from twat_cache.type_defs import CacheConfig, P, R, CacheKey
 from .base import BaseCacheEngine
+from loguru import logger
 
 
 class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
@@ -37,7 +39,11 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
     def __init__(self, config: CacheConfig) -> None:
         """Initialize the functools cache engine."""
         super().__init__(config)
-        self._cache = lru_cache(maxsize=config.maxsize)
+        self._cache: dict[CacheKey, tuple[R, float | None]] = {}
+        self._maxsize = config.maxsize or float("inf")
+        logger.debug(
+            f"Initialized {self.__class__.__name__} with maxsize={self._maxsize}"
+        )
 
     def get(self, key: str) -> R | None:
         """
@@ -67,7 +73,10 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
 
     def clear(self) -> None:
         """Clear all cached values and reset statistics."""
-        self._cache.cache_clear()
+        self._cache.clear()
+        self._hits = 0
+        self._misses = 0
+        self._size = 0
 
     @property
     def name(self) -> str:
@@ -170,12 +179,18 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
             key: The cache key to look up
 
         Returns:
-            The cached value if found, None otherwise
+            The cached value if found and not expired, None otherwise
         """
-        try:
-            return self._cache.cache_getitem(lambda k: k, str(key))  # type: ignore
-        except KeyError:
+        if key not in self._cache:
             return None
+
+        value, expiry = self._cache[key]
+        if expiry is not None and time.time() >= expiry:
+            del self._cache[key]
+            self._size -= 1
+            return None
+
+        return value
 
     def _set_cached_value(self, key: CacheKey, value: R) -> None:
         """
@@ -185,5 +200,30 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
             key: The cache key to store under
             value: The value to cache
         """
-        self._cache(lambda k: k)(str(key))  # type: ignore
-        self._cache.cache_setitem(lambda k: k, str(key), value)  # type: ignore
+        # Check maxsize and evict if needed
+        if len(self._cache) >= self._maxsize:
+            # Remove oldest item based on policy
+            if self._config.policy == "lru":
+                # Remove least recently used
+                oldest_key = next(iter(self._cache))
+                del self._cache[oldest_key]
+                self._size -= 1
+            elif self._config.policy == "fifo":
+                # Remove first item added
+                oldest_key = next(iter(self._cache))
+                del self._cache[oldest_key]
+                self._size -= 1
+
+        # Calculate expiry time if TTL configured
+        expiry = (
+            time.time() + self._config.ttl if self._config.ttl is not None else None
+        )
+
+        # Store with expiry
+        self._cache[key] = (value, expiry)
+        self._size += 1
+
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if this cache engine is available for use."""
+        return True  # Always available as it uses only stdlib

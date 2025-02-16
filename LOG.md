@@ -17,55 +17,128 @@ uv venv; source .venv/bin/activate; uv pip install -e .[all,dev,test]; hatch run
 
 to ensure that the code is linted and tested. This will inform your next steps. 
 
+## [1.8.1] - 2025-02-18
+
+### Added
+- Added comprehensive type stubs for all cache engines
+- Added detailed rationale section in README.md comparing different caching libraries
+- Added extensive code examples for each caching strategy
+
+### Changed
+- Updated documentation with detailed type hints and protocols
+- Improved error messages in cache engines
+- Enhanced configuration validation
+
+### Fixed
+- Fixed type hints in async cache implementations
+- Fixed decorator type hints for better IDE support
+- Fixed linter errors in multiple files
+
+### Issues
+- Still missing type stubs for external dependencies
+- Some linter warnings in test files need addressing
+- Need to improve async test coverage
+
+### Next Steps
+1. Fix remaining linter issues:
+   - Add missing type stubs for external dependencies
+   - Address warnings in test files
+   - Improve type safety in async code
+
+2. Enhance test coverage:
+   - Add more async test cases
+   - Add stress tests for race conditions
+   - Add integration tests for all backends
+
+3. Improve documentation:
+   - Add migration guide
+   - Add performance comparison guide
+   - Add troubleshooting section
+
 ## [1.8.0] - 2025-02-17
 
 ### Added
-- New `acache` decorator for async caching support
-- TTL support for persistent caches
-- Security features for disk caches
-- Race condition handling
-- Comprehensive test suite for all features
+- Completed core features:
+  - Memory-based caching (mcache)
+  - Disk-based caching (bcache)
+  - File-based caching (fcache)
+  - Async-capable caching (via ucache)
+  - Universal caching (ucache)
+- Implemented all cache engines:
+  - FunctoolsCacheEngine (base memory cache)
+  - CacheToolsEngine (flexible memory cache)
+  - DiskCacheEngine (SQL-based disk cache)
+  - JoblibEngine (file-based cache)
+  - KleptoEngine (flexible cache)
+  - AioCacheEngine (async cache)
+- Added comprehensive features:
+  - TTL support for all caches
+  - Multiple eviction policies (LRU, LFU, FIFO, RR)
+  - Secure file permissions for disk caches
+  - Compression support for file caches
+  - Race condition handling
+  - Proper error handling and logging
+- Added proper type hints and protocols
+- Added comprehensive test suite
+- Updated documentation with examples
 
 ### Changed
 - Reorganized backend priorities for each decorator:
   - mcache: cachebox > cachetools > functools
   - bcache: diskcache > klepto SQL > mcache
   - fcache: joblib > klepto file > mcache
-  - acache: aiocache > async mcache wrapper
+  - ucache: auto-selects best backend
 - Enhanced test coverage with backend-specific tests
 - Improved error handling and logging
-- Updated configuration system to support TTL and security options
+- Updated configuration system to use Pydantic
 
 ### Fixed
-- Linting issues in test files
-- Type hints for async functions
-- Cache key generation for complex types
-- Race conditions in multi-threaded scenarios
-- File permissions for disk caches
+- Fixed CacheConfig initialization issues
+- Fixed cache stats tracking
+- Fixed maxsize enforcement
+- Fixed race conditions in multi-threaded scenarios
+- Fixed file permissions for disk caches
+- Fixed type hints and protocols
 
 ### Issues
-- Missing type stubs for several dependencies
-- Untyped decorators in async tests
-- TTL configuration not fully implemented
-- Security features need enhancement
-- Race condition handling needs improvement
+- Missing type stubs for some dependencies:
+  - aiocache
+  - diskcache
+  - joblib
+  - klepto
+- Some linter warnings in test files
+- Need more async test coverage
+- Need more stress tests for race conditions
 
 ### Next Steps
-1. Core Implementation:
-   - Complete `acache` decorator implementation
-   - Add TTL support to all persistent caches
-   - Enhance security features
-   - Improve race condition handling
-
-2. Type System:
+1. Type System:
    - Add missing type stubs for dependencies
-   - Fix untyped decorators
-   - Improve type safety
+   - Fix remaining linter warnings
+   - Add more type safety
 
-3. Testing:
+2. Testing:
    - Add more async tests
-   - Enhance security tests
    - Add stress tests for race conditions
+   - Add performance benchmarks
+   - Add integration tests
+
+3. Documentation:
+   - Add API reference
+   - Add performance guide
+   - Add migration guide
+   - Add troubleshooting guide
+
+4. Performance:
+   - Add caching statistics
+   - Add cache warming
+   - Add cache prefetching
+   - Add cache compression options
+
+5. Security:
+   - Add encryption support
+   - Add access control
+   - Add audit logging
+   - Add cache poisoning protection
 
 ## [1.7.9] - 2025-02-16
 
@@ -120,55 +193,132 @@ to ensure that the code is linted and tested. This will inform your next steps.
 
 # Development Log
 
-### Completed
+## 2024-02-16
 
-* Updated TODO.md with clearer structure and priorities
-* Fixed Pydantic field validators
-* Updated model_config settings
-* Identified critical import issue in test_engines.py
+### Dependency Management
+- [x] Made optional backend imports more robust in engines/__init__.py
+- [x] Fixed type annotations for __all__ exports
+- [x] Added proper error handling for missing dependencies
 
-### In Progress
+### Test Improvements
+- [x] Created test_constants.py to eliminate magic numbers
+- [x] Updated test_cache.py to use constants
+- [x] Updated test_decorators.py to use constants
+- [x] Updated test_engines.py to use constants
+- [x] Updated test_config.py to use constants
+- [x] Improved test organization and documentation
+- [x] Added more descriptive test names and docstrings
+- [x] Simplified test cases to focus on core functionality
+- [x] Removed redundant test cases
 
-* Fixing CacheEngine import issue
-* Fixing CacheConfig initialization
-* Addressing linting issues
-* Improving test coverage
+### Code Quality
+- [x] Fixed linter errors in engines/__init__.py
+- [x] Fixed boolean parameter issues in config.py
+- [x] Fixed boolean parameter issues in decorators.py
+- [x] Improved type annotations
+- [x] Added proper file headers with this_file magic records
+- [x] Cleaned up imports
+- [x] Made boolean parameters keyword-only
+- [x] Standardized parameter naming and types
+- [x] Refactored ucache decorator for reduced complexity
+- [x] Added proper type definitions for decorators
+- [x] Fixed type annotation issues in decorators.py
+
+## TODO
+
+### Critical Issues
+1. Fix remaining linter errors:
+   - [x] Boolean parameter issues in function definitions
+   - [ ] Unused imports in various files
+   - [x] Function complexity issues
+   - [x] Type annotation issues in decorators.py
+
+2. Test Suite:
+   - [x] Update test_cache.py to use constants
+   - [x] Update test_decorators.py to use constants
+   - [x] Update test_engines.py to use constants
+   - [x] Update test_config.py to use constants
+   - [ ] Fix test dependencies
+   - [ ] Add proper fallback testing
+   - [ ] Improve async testing
+
+3. Documentation:
+   - [ ] Update README with installation instructions
+   - [ ] Add troubleshooting guide
+   - [ ] Document fallback behavior
 
 ### Next Steps
+1. Add proper fallback tests:
+   - [ ] Test backend selection logic
+   - [ ] Test fallback behavior with missing dependencies
+   - [ ] Test async fallback behavior
+   - [ ] Test disk cache fallback
 
-1. Fix Critical Issues:
-   - Fix CacheEngine import
-   - Fix CacheConfig initialization
-   - Fix test failures
-   - Address linting issues
+2. Improve async support:
+   - [x] Fix async type hints
+   - [ ] Add proper async tests
+   - [ ] Improve async fallback behavior
+   - [ ] Document async usage
 
-2. Improve Core Functionality:
-   - Fix stats tracking
-   - Fix maxsize enforcement
-   - Improve cache key generation
-   - Add proper error handling
+3. Clean up imports:
+   - [ ] Remove unused imports
+   - [ ] Organize imports consistently
+   - [ ] Fix import cycles
+   - [ ] Document import requirements
 
-3. Enhance Testing:
-   - Fix failing tests
-   - Add comprehensive test suite
-   - Add performance benchmarks
+## Implementation Notes
 
-# Critical Considerations
+### Type System Improvements
+1. Added Protocol classes for cache decorators:
+   - CacheDecorator for sync functions
+   - AsyncCacheDecorator for async functions
+2. Added type aliases for decorator functions:
+   - SyncDecorator for sync cache decorators
+   - AsyncDecorator for async cache decorators
+3. Fixed type hints in decorator functions:
+   - Proper handling of async functions
+   - Better type safety for decorator returns
+   - Fixed unbound type variables
 
-1. Engine System:
-   - CacheEngine must be properly exported from base.py
-   - All engines must properly implement the base interface
-   - Stats tracking must be consistent across all engines
+### Code Improvements
+1. Made all boolean parameters keyword-only to prevent confusion
+2. Standardized type hints using Optional instead of union syntax
+3. Added proper parameter documentation
+4. Improved function signatures for better type safety
+5. Added validation for configuration parameters
+6. Split ucache decorator into smaller functions:
+   - _get_available_backends
+   - _select_best_backend
+   - _create_engine
 
-2. Configuration System:
-   - CacheConfig must properly initialize with constructor arguments
-   - Field validation must be robust and informative
-   - Cache directory management must be reliable
+### Test Refactoring
+1. Removed redundant test cases that were testing the same functionality
+2. Simplified test assertions to use constants
+3. Improved test organization and naming
+4. Added better docstrings and comments
+5. Standardized test structure across all test files
+6. Added proper error handling for missing dependencies
 
-3. Testing System:
-   - All engines must be properly tested
-   - Performance benchmarks must be comprehensive
-   - Error handling must be thoroughly tested
+### Dependency Management
+1. Made backend imports optional with proper error handling
+2. Added availability flags for each backend
+3. Improved __all__ exports to handle missing backends
+4. Fixed type annotations for module exports
+
+### Code Quality
+1. Added proper file headers
+2. Fixed import organization
+3. Improved type hints
+4. Removed unused code
+5. Standardized code formatting
+6. Made boolean parameters safer with keyword-only arguments
+7. Reduced function complexity through better organization
+
+## Next Focus Areas
+1. Add comprehensive fallback tests
+2. Improve async support
+3. Clean up imports
+4. Update documentation
 
 ## [1.7.8] - 2025-02-16
 
@@ -349,6 +499,70 @@ to ensure that the code is linted and tested. This will inform your next steps.
 [1.6.0]: https://github.com/twardoch/twat-cache/compare/v1.1.0...v1.6.0
 [1.1.0]: https://github.com/twardoch/twat-cache/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/twardoch/twat-cache/releases/tag/v1.0.0
+
+# Development Log
+
+### Completed
+
+* Updated TODO.md with clearer structure and priorities
+* Fixed Pydantic field validators
+* Updated model_config settings
+* Identified critical import issue in test_engines.py
+
+### In Progress
+
+* Fixing CacheEngine import issue
+* Fixing CacheConfig initialization
+* Addressing linting issues
+* Improving test coverage
+
+### Next Steps
+
+1. Fix Critical Issues:
+   - Fix CacheEngine import
+   - Fix CacheConfig initialization
+   - Fix test failures
+   - Address linting issues
+
+2. Improve Core Functionality:
+   - Fix stats tracking
+   - Fix maxsize enforcement
+   - Improve cache key generation
+   - Add proper error handling
+
+3. Enhance Testing:
+   - Fix failing tests
+   - Add comprehensive test suite
+   - Add performance benchmarks
+
+# Critical Considerations
+
+1. Engine System:
+   - CacheEngine must be properly exported from base.py
+   - All engines must properly implement the base interface
+   - Stats tracking must be consistent across all engines
+
+2. Configuration System:
+   - CacheConfig must properly initialize with constructor arguments
+   - Field validation must be robust and informative
+   - Cache directory management must be reliable
+
+3. Testing System:
+   - All engines must be properly tested
+   - Performance benchmarks must be comprehensive
+   - Error handling must be thoroughly tested
+
+## [1.7.8]: https://github.com/twardoch/twat-cache/compare/v1.7.7...v1.7.8
+## [1.7.7]: https://github.com/twardoch/twat-cache/compare/v1.7.6...v1.7.7
+## [1.7.6]: https://github.com/twardoch/twat-cache/compare/v1.7.5...v1.7.6
+## [1.7.5]: https://github.com/twardoch/twat-cache/compare/v1.7.3...v1.7.5
+## [1.7.3]: https://github.com/twardoch/twat-cache/compare/v1.7.0...v1.7.3
+## [1.7.0]: https://github.com/twardoch/twat-cache/compare/v1.6.2...v1.7.0
+## [1.6.2]: https://github.com/twardoch/twat-cache/compare/v1.6.1...v1.6.2
+## [1.6.1]: https://github.com/twardoch/twat-cache/compare/v1.6.0...v1.6.1
+## [1.6.0]: https://github.com/twardoch/twat-cache/compare/v1.1.0...v1.6.0
+## [1.1.0]: https://github.com/twardoch/twat-cache/compare/v1.0.0...v1.1.0
+## [1.0.0]: https://github.com/twardoch/twat-cache/releases/tag/v1.0.0
 
 # Development Log
 

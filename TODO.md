@@ -2,6 +2,264 @@
 this_file: TODO.md
 ---
 
+# Test Adjustment Plan
+
+## Issues with Current Tests
+
+1. Dependency Management:
+   - Tests assume all optional backends are available
+   - No proper fallback testing
+   - Hard dependencies on aiocache causing test failures
+
+2. Test Structure:
+   - Magic numbers in comparisons
+   - Brittle backend-specific tests
+   - Insufficient async testing
+   - Missing integration tests
+
+3. Test Philosophy:
+   - Tests don't follow "test behavior, not implementation"
+   - Too much focus on specific backends
+   - Not enough focus on fallback behavior
+   - Missing performance benchmarks
+
+## Required Test Changes
+
+### 1. Dependency Tests
+```python
+def test_backend_availability():
+    """Test proper backend detection and fallback."""
+    # Test each backend's availability
+    assert mcache.get_available_backends() == ["functools"]  # Minimum
+    
+    # Test fallback behavior
+    @mcache()
+    def func(x): return x
+    
+    # Should work even with no optional backends
+    assert func(1) == 1
+```
+
+### 2. Decorator Tests
+```python
+def test_decorator_behavior():
+    """Test decorator behavior regardless of backend."""
+    call_count = 0
+    
+    @ucache()
+    def func(x):
+        nonlocal call_count
+        call_count += 1
+        return x
+        
+    # Test caching behavior
+    assert func(1) == 1
+    assert call_count == 1
+    assert func(1) == 1
+    assert call_count == 1  # Still 1, used cache
+```
+
+### 3. Configuration Tests
+```python
+def test_config_validation():
+    """Test configuration validation without backend specifics."""
+    # Test invalid configs
+    with pytest.raises(ValidationError):
+        create_cache_config(maxsize=-1)
+        
+    # Test valid configs
+    config = create_cache_config(maxsize=None)
+    assert config.maxsize is None
+```
+
+### 4. Integration Tests
+```python
+def test_cache_integration():
+    """Test cache integration with real-world scenarios."""
+    # Test with large objects
+    data = [1] * 1000000
+    
+    @fcache(compress=True)
+    def process_large_data(x):
+        return sum(x)
+        
+    # Should handle large data efficiently
+    assert process_large_data(data) == 1000000
+```
+
+### 5. Performance Tests
+```python
+def test_cache_performance(benchmark):
+    """Test cache performance metrics."""
+    @mcache()
+    def func(x): return x
+    
+    # Measure cache hit performance
+    result = benchmark(lambda: func(1))
+    assert result < 0.001  # Sub-millisecond
+```
+
+## Implementation Plan
+
+1. First Phase (Critical):
+   - [ ] Remove hard dependencies in test imports
+   - [ ] Add proper backend detection tests
+   - [ ] Implement basic behavior tests
+   - [ ] Fix configuration tests
+
+2. Second Phase (Important):
+   - [ ] Add integration tests
+   - [ ] Implement performance benchmarks
+   - [ ] Add stress tests
+   - [ ] Add async tests
+
+3. Third Phase (Enhancement):
+   - [ ] Add security tests
+   - [ ] Add race condition tests
+   - [ ] Add memory leak tests
+   - [ ] Add documentation tests
+
+## Test Constants
+
+Replace magic numbers with meaningful constants:
+
+```python
+# test_constants.py
+CACHE_SIZE = 100
+SMALL_CACHE = 10
+LARGE_CACHE = 1000
+
+TEST_VALUE = 42
+SQUARE_INPUT = 5
+SQUARE_RESULT = 25
+
+FILE_PERMISSIONS = 0o700
+CACHE_TTL = 0.5
+```
+
+## Test Categories
+
+1. Unit Tests:
+   - Core functionality without backends
+   - Configuration validation
+   - Key generation
+   - TTL handling
+
+2. Integration Tests:
+   - Backend fallback behavior
+   - File system interaction
+   - Concurrent access
+   - Memory management
+
+3. Performance Tests:
+   - Cache hit/miss timing
+   - Memory usage
+   - Disk usage
+   - Network usage (for Redis)
+
+4. Security Tests:
+   - File permissions
+   - Key sanitization
+   - Race conditions
+   - Resource cleanup
+
+# TODO List for twat-cache
+
+## Critical Issues (Priority 1)
+
+### Missing Dependencies
+- [ ] Fix missing `aiocache` dependency causing test failures
+- [ ] Add proper dependency management in pyproject.toml
+- [ ] Add fallback behavior when optional dependencies are missing
+
+### Linter Errors
+- [ ] Fix boolean argument type issues in function definitions
+- [ ] Address magic number warnings in tests
+- [ ] Fix unused imports in engine availability checks
+- [ ] Reduce complexity in `ucache` function
+- [ ] Fix module naming conflict with `functools.py`
+
+### Type System
+- [ ] Add missing type stubs for external dependencies:
+  - [ ] aiocache
+  - [ ] diskcache
+  - [ ] joblib
+  - [ ] klepto
+  - [ ] redis
+  - [ ] pymemcache
+- [ ] Fix unbound type variables in async code
+- [ ] Update Union types to use | operator (Python 3.10+)
+
+## Important Improvements (Priority 2)
+
+### Code Quality
+- [ ] Refactor `ucache` to reduce complexity
+- [ ] Improve error handling in engine imports
+- [ ] Add proper cleanup in async code
+- [ ] Implement proper context managers for cache resources
+
+### Testing
+- [ ] Fix failing test suite
+- [ ] Add proper async test coverage
+- [ ] Add stress tests for race conditions
+- [ ] Add integration tests for all backends
+- [ ] Add performance benchmarks
+
+### Documentation
+- [ ] Add migration guide
+- [ ] Add performance comparison guide
+- [ ] Add troubleshooting section
+- [ ] Update type hints documentation
+
+## Future Enhancements (Priority 3)
+
+### Features
+- [ ] Add cache warming capability
+- [ ] Implement cache prefetching
+- [ ] Add compression options
+- [ ] Add encryption support
+
+### Security
+- [ ] Add access control
+- [ ] Implement audit logging
+- [ ] Add cache poisoning protection
+- [ ] Improve file permission handling
+
+### Performance
+- [ ] Add caching statistics
+- [ ] Optimize key generation
+- [ ] Improve memory usage
+- [ ] Add cache size estimation
+
+## Development Process
+
+1. First address critical dependency issues:
+   ```bash
+   uv pip install aiocache redis pymemcache
+   ```
+
+2. Then fix linter errors:
+   ```bash
+   hatch run lint:fix
+   ```
+
+3. Run tests to verify fixes:
+   ```bash
+   hatch test
+   ```
+
+4. Update documentation to reflect changes:
+   ```bash
+   hatch run docs:build
+   ```
+
+## Notes
+
+- Keep both sync and async interfaces consistent
+- Maintain backward compatibility
+- Follow PEP 8 and type hinting best practices
+- Document all changes in LOG.md
+
 # twat_cache TODO List
 
 ## Core Goals
@@ -273,88 +531,3 @@ CacheKey = Union[str, tuple[Any, ...]]
    def test_disk_performance(): ...
    def test_async_performance(): ...
    ```
-
-### 4. Documentation Plan
-
-1. API Documentation:
-   - [ ] Core decorator usage
-   - [ ] Backend selection guide
-   - [ ] Configuration options
-   - [ ] Security best practices
-
-2. Tutorials:
-   - [ ] Basic caching guide
-   - [ ] Advanced features guide
-   - [ ] Security guide
-   - [ ] Performance optimization guide
-
-3. Examples:
-   - [ ] Basic usage examples
-   - [ ] Backend selection examples
-   - [ ] Security configuration examples
-   - [ ] Performance optimization examples
-
-### 5. Release Plan
-
-1. Version 1.8.0:
-   - [ ] Complete core features
-   - [ ] Fix all critical issues
-   - [ ] Complete documentation
-   - [ ] Pass all tests
-
-2. Version 1.9.0:
-   - [ ] Add advanced features
-   - [ ] Enhance security
-   - [ ] Add benchmarks
-   - [ ] Add migration guide
-
-3. Version 2.0.0:
-   - [ ] Complete async support
-   - [ ] Add all planned features
-   - [ ] Comprehensive documentation
-   - [ ] Production ready
-
-## Development Notes
-
-Remember to run:
-```bash
-uv venv; source .venv/bin/activate; uv pip install -e .[all,dev,test]; hatch run lint:fix; hatch test;
-```
-
-## Implementation Guidelines
-
-1. Keep It Simple:
-   - Use direct backend calls
-   - Minimize abstraction layers
-   - Focus on ease of use
-
-2. Focus on User Experience:
-   - Make decorators intuitive
-   - Provide sensible defaults
-   - Keep configuration minimal
-   - Clear indication of active backend
-
-3. Efficient Fallbacks:
-   - Try preferred backend first
-   - Fall back gracefully with warning
-   - Always have functools.lru_cache as backup
-   - Log backend selection clearly
-
-4. Backend Selection:
-   - Allow explicit backend choice in `ucache`
-   - Provide optimized defaults per use case
-   - Support async when needed
-   - Implement proper security measures
-
-5. Performance Considerations:
-   - Use fastest available backend
-   - Minimize serialization overhead
-   - Provide direct cache access
-   - Handle race conditions properly
-
-6. Security Best Practices:
-   - Secure file permissions
-   - Safe key generation
-   - Optional encryption
-   - Proper cleanup
-

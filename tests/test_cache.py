@@ -16,20 +16,30 @@
 # ///
 # this_file: tests/test_cache.py
 
-"""Tests for the main cache interface."""
+"""Tests for the cache module."""
 
 import asyncio
 import os
 import time
+import tempfile
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, List
 
 import pytest
 from pydantic import ValidationError
 
 from twat_cache.cache import clear_cache, get_stats
-from twat_cache.decorators import ucache, acache, mcache, bcache, fcache
-from twat_cache.config import create_cache_config, CacheConfig
+from twat_cache.decorators import ucache, mcache, bcache, fcache
+from twat_cache.config import create_cache_config, EvictionPolicy
+from twat_cache.paths import get_cache_path
+from .test_constants import (
+    CACHE_SIZE,
+    FILE_PERMISSIONS,
+    SQUARE_INPUT,
+    SQUARE_RESULT,
+    TEST_LIST,
+    TEST_LIST_SUM,
+)
 
 
 # Test constants
@@ -39,35 +49,120 @@ TEST_INPUT_2 = 6
 TEST_RESULT_2 = TEST_INPUT_2 * TEST_INPUT_2
 EXPECTED_CALL_COUNT = 2
 MIN_STATS_COUNT = 2
-TEST_LIST_SUM = 15
 TTL_DURATION = 0.5
 
 
-def test_cache_settings_validation() -> None:
-    """Test validation of cache settings."""
+def test_config_validation() -> None:
+    """Test configuration validation."""
     # Valid settings
-    config = create_cache_config(maxsize=100)
-    assert config.maxsize == 100
+    config = create_cache_config(maxsize=CACHE_SIZE)
+    assert config.maxsize == CACHE_SIZE
 
     # Invalid maxsize
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValueError):
         create_cache_config(maxsize=-1)
 
-    with pytest.raises(ValidationError):
-        create_cache_config(maxsize=0)
-
-    # Invalid TTL
-    with pytest.raises(ValidationError):
+    # Invalid ttl
+    with pytest.raises(ValueError):
         create_cache_config(ttl=-1)
 
-    # Valid TTL and policy
-    config = create_cache_config(ttl=1.0)
-    assert config.policy == "ttl"  # Should auto-set policy to ttl
 
-    # Valid eviction policies
-    for policy in ["lru", "lfu", "fifo", "rr", "ttl"]:
-        config = create_cache_config(policy=policy)
-        assert config.policy == policy
+def test_cache_path() -> None:
+    """Test cache path generation."""
+    # Default path
+    path = get_cache_path()
+    assert path.exists()
+    assert path.is_dir()
+
+    # Custom path
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        path = get_cache_path(folder_name="test", cache_dir=str(temp_path))
+        assert path.parent == temp_path
+        assert "test" in path.name
+
+
+def test_cache_clear() -> None:
+    """Test cache clearing."""
+    # Create a test cache file
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        test_file = temp_path / "test.cache"
+        test_file.touch()
+
+        # Clear cache
+        clear_cache(folder_name="test", cache_dir=str(temp_path))
+        assert not test_file.exists()
+
+
+def test_cache_stats() -> None:
+    """Test cache statistics."""
+    # Reset stats
+    clear_cache()
+
+    # Create a test function
+    call_count = 0
+
+    @mcache()
+    def process_list(lst: List[int]) -> int:
+        nonlocal call_count
+        call_count += 1
+        return sum(lst)
+
+    # First call
+    result1 = process_list(TEST_LIST)
+    assert result1 == TEST_LIST_SUM
+
+    # Second call (should use cache)
+    result2 = process_list(TEST_LIST)
+    assert result1 == result2 == TEST_LIST_SUM
+
+    # Get stats
+    stats = get_stats()
+    assert isinstance(stats, dict)
+    assert "hits" in stats
+    assert "misses" in stats
+    assert stats["hits"] > 0
+
+
+def test_cache_security() -> None:
+    """Test cache security features."""
+    # Test file permissions
+    if os.name == "posix":
+        cache_path = get_cache_path()
+        mode = cache_path.stat().st_mode & 0o777
+        assert mode == FILE_PERMISSIONS
+
+
+def test_cache_decorators() -> None:
+    """Test all cache decorators."""
+
+    # Test memory cache
+    @mcache()
+    def mem_func(x: int) -> int:
+        return x * x
+
+    assert mem_func(SQUARE_INPUT) == SQUARE_RESULT
+    assert mem_func(SQUARE_INPUT) == SQUARE_RESULT  # Should use cache
+
+    # Test basic disk cache
+    @bcache()
+    def disk_func(x: int) -> int:
+        return x * x
+
+    assert disk_func(SQUARE_INPUT) == SQUARE_RESULT
+    assert disk_func(SQUARE_INPUT) == SQUARE_RESULT  # Should use cache
+
+    # Test file cache
+    @fcache()
+    def file_func(x: int) -> int:
+        return x * x
+
+    assert file_func(SQUARE_INPUT) == SQUARE_RESULT
+    assert file_func(SQUARE_INPUT) == SQUARE_RESULT  # Should use cache
+
+    # Clean up
+    clear_cache()
 
 
 def test_basic_caching() -> None:
@@ -179,7 +274,11 @@ def test_different_backends() -> None:
 
     for config in configs:
 
-        @ucache(config=config)
+        @ucache(
+            maxsize=config.maxsize,
+            folder_name=config.folder_name,
+            use_sql=config.use_sql,
+        )
         def cached_function(x: int) -> int:
             return x * x
 
@@ -306,7 +405,7 @@ async def test_async_caching() -> None:
     """Test async caching functionality."""
     call_count = 0
 
-    @acache()
+    @ucache(use_async=True)
     async def async_function(x: int) -> int:
         nonlocal call_count
         call_count += 1

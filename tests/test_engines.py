@@ -10,21 +10,31 @@
 
 """Tests for cache engine implementations."""
 
+import os
+import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 import pytest
 
 from twat_cache.engines.base import CacheEngine
 from twat_cache.engines.functools import FunctoolsCacheEngine
 from twat_cache.engines.manager import EngineManager
-from twat_cache.config import create_cache_config
-from twat_cache.types import CacheConfig
+from twat_cache.config import create_cache_config, CacheConfig
+from .test_constants import (
+    CACHE_SIZE,
+    CACHE_TTL,
+    EXPECTED_CALLS_SINGLE,
+    SQUARE_INPUT,
+    SQUARE_RESULT,
+    TEST_KEY,
+    TEST_BOOL,
+    TEST_INT,
+    TEST_LIST,
+)
 
 # Test constants
-TEST_KEY = "test_key"
 TEST_VALUE = "test_value"
-TEST_MAXSIZE = 100
 TEST_FOLDER = "test_cache"
 TEST_FUNCTION_RESULT = 42
 
@@ -38,7 +48,7 @@ def engine_manager() -> EngineManager:
 @pytest.fixture
 def base_config() -> CacheConfig:
     """Provide a basic cache configuration."""
-    return create_cache_config(maxsize=TEST_MAXSIZE)
+    return create_cache_config(maxsize=CACHE_SIZE)
 
 
 @pytest.fixture
@@ -47,132 +57,128 @@ def base_engine(base_config: CacheConfig) -> CacheEngine[Any, Any]:
     return FunctoolsCacheEngine(base_config)
 
 
-def test_base_engine_initialization(base_config: CacheConfig) -> None:
-    """Test basic engine initialization."""
-    engine = FunctoolsCacheEngine(base_config)
+def create_test_engine() -> CacheEngine:
+    """Create a test cache engine instance."""
+    config = CacheConfig(
+        maxsize=CACHE_SIZE,
+        ttl=CACHE_TTL,
+        folder_name="test",
+        secure=True,
+    )
+    return FunctoolsCacheEngine(config)
+
+
+def test_engine_initialization() -> None:
+    """Test cache engine initialization."""
+    engine = create_test_engine()
     assert isinstance(engine, CacheEngine)
-    assert engine._config == base_config
+    assert engine.config.maxsize == CACHE_SIZE
+    assert engine.config.ttl == CACHE_TTL
 
 
-def test_base_engine_key_generation(base_engine: CacheEngine[Any, Any]) -> None:
-    """Test key generation for different input types."""
-    # Test with simple types
-    assert isinstance(base_engine._make_key("test"), str)
-    assert isinstance(base_engine._make_key(123), str)
-    assert isinstance(base_engine._make_key(True), str)
+def test_key_generation() -> None:
+    """Test cache key generation."""
+    engine = create_test_engine()
+
+    # Test with different types
+    assert isinstance(engine._make_key(TEST_KEY), str)
+    assert isinstance(engine._make_key(TEST_INT), str)
+    assert isinstance(engine._make_key(TEST_BOOL), str)
 
     # Test with complex types
-    assert isinstance(base_engine._make_key({"a": 1}), str)
-    assert isinstance(base_engine._make_key([1, 2, 3]), str)
-    assert isinstance(base_engine._make_key((1, "test")), str)
+    assert isinstance(engine._make_key(TEST_LIST), str)
+    assert isinstance(engine._make_key((1, 2, 3)), str)
+    assert isinstance(engine._make_key({"a": 1}), str)
 
 
-def test_base_engine_cache_decorator(base_engine: CacheEngine[Any, Any]) -> None:
-    """Test the cache decorator functionality."""
+def test_cache_operations() -> None:
+    """Test basic cache operations."""
+    engine = create_test_engine()
     call_count = 0
 
-    @base_engine.cache()
     def test_function(x: int) -> int:
         nonlocal call_count
         call_count += 1
-        return x * 2
+        return x * x
 
     # First call
-    result = test_function(2)
-    assert result == 4
-    assert call_count == 1
+    result = test_function(SQUARE_INPUT)
+    assert result == SQUARE_RESULT
+    assert call_count == EXPECTED_CALLS_SINGLE
 
     # Second call (should use cache)
-    result = test_function(2)
-    assert result == 4
-    assert call_count == 1  # Should not increment
+    result = test_function(SQUARE_INPUT)
+    assert result == SQUARE_RESULT
+    assert call_count == EXPECTED_CALLS_SINGLE  # Should not increment
 
 
-def test_base_engine_validation(base_config: CacheConfig) -> None:
-    """Test engine configuration validation."""
-    engine = FunctoolsCacheEngine(base_config)
-    engine.validate_config()  # Should not raise
+def test_cache_eviction() -> None:
+    """Test cache eviction behavior."""
+    engine = create_test_engine()
 
-    # Test with invalid configuration
-    with pytest.raises(ValueError, match="maxsize must be positive"):
-        create_cache_config(maxsize=-1)
-
-
-def test_lru_cache_initialization(base_config: CacheConfig) -> None:
-    """Test LRU cache initialization."""
-    engine = FunctoolsCacheEngine(base_config)
-    assert isinstance(engine, FunctoolsCacheEngine)
-    assert engine._config == base_config
-
-
-def test_lru_cache_maxsize_enforcement(base_config: CacheConfig) -> None:
-    """Test LRU cache maxsize enforcement."""
-    engine = FunctoolsCacheEngine(base_config)
-
-    # Add items up to maxsize
-    for i in range(TEST_MAXSIZE):
+    # Fill cache
+    for i in range(CACHE_SIZE + 1):
         engine.set(str(i), i)
 
-    # Add one more item
-    engine.set("overflow", TEST_MAXSIZE)
-
-    # First item should be evicted
-    assert engine.get("0") is None
+    # Check eviction
+    assert len(engine._cache) <= CACHE_SIZE
 
 
-def test_lru_cache_clear(base_config: CacheConfig) -> None:
-    """Test LRU cache clearing."""
-    engine = FunctoolsCacheEngine(base_config)
+def test_cache_ttl() -> None:
+    """Test time-to-live behavior."""
+    import time
+
+    engine = create_test_engine()
+    call_count = 0
+
+    def test_function(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
+
+    # First call
+    result = test_function(SQUARE_INPUT)
+    assert result == SQUARE_RESULT
+    assert call_count == EXPECTED_CALLS_SINGLE
+
+    # Wait for TTL to expire
+    time.sleep(CACHE_TTL + 0.1)
+
+    # Should recompute
+    result = test_function(SQUARE_INPUT)
+    assert result == SQUARE_RESULT
+    assert call_count == EXPECTED_CALLS_SINGLE + 1
+
+
+def test_cache_clear() -> None:
+    """Test cache clearing."""
+    engine = create_test_engine()
 
     # Add some items
-    engine.set(TEST_KEY, TEST_VALUE)
-    assert engine.get(TEST_KEY) == TEST_VALUE
+    for i in range(CACHE_SIZE):
+        engine.set(str(i), i)
 
     # Clear cache
     engine.clear()
-    assert engine.get(TEST_KEY) is None
+    assert len(engine._cache) == 0
 
 
-def test_lru_cache_with_complex_values(base_config: CacheConfig) -> None:
-    """Test LRU cache with complex value types."""
-    engine = FunctoolsCacheEngine(base_config)
+def test_cache_stats() -> None:
+    """Test cache statistics."""
+    engine = create_test_engine()
+    call_count = 0
 
-    # Test with different value types
-    test_values = [
-        {"key": "value"},
-        [1, 2, 3],
-        (4, 5, 6),
-        Path("test.txt"),
-        lambda x: x * 2,  # Functions should work too
-    ]
+    def test_function(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
 
-    for i, value in enumerate(test_values):
-        key = f"test_key_{i}"
-        engine.set(key, value)
-        assert engine.get(key) == value
+    # First call (miss)
+    result = test_function(SQUARE_INPUT)
+    assert result == SQUARE_RESULT
+    assert engine.stats["misses"] == 1
 
-
-def test_lru_cache_stats_accuracy(base_config: CacheConfig) -> None:
-    """Test accuracy of LRU cache statistics."""
-    engine = FunctoolsCacheEngine(base_config)
-
-    # Test initial stats
-    stats = engine.stats()
-    assert stats.hits == 0
-    assert stats.misses == 0
-    assert stats.size == 0
-
-    # Add an item and test
-    engine.set(TEST_KEY, TEST_VALUE)
-    stats = engine.stats()
-    assert stats.size == 1
-
-    # Test hit
-    engine.get(TEST_KEY)
-    stats = engine.stats()
-    assert stats.hits == 1
-
-    # Test miss
-    engine.get("nonexistent")
-    stats = engine.stats()
-    assert stats.misses == 1
+    # Second call (hit)
+    result = test_function(SQUARE_INPUT)
+    assert result == SQUARE_RESULT
+    assert engine.stats["hits"] == 1

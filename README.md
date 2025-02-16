@@ -42,7 +42,195 @@ pip install twat-cache[joblib]       # For efficient array caching
 
 ## Usage
 
-TODO AT THE END
+### Basic Memory Caching
+
+For simple in-memory caching with LRU eviction:
+
+```python
+from twat_cache import mcache
+
+@mcache(maxsize=100)  # Cache up to 100 items
+def expensive_function(x: int) -> int:
+    # Expensive computation here
+    return x * x
+
+# First call computes
+result1 = expensive_function(5)  # Computes 25
+
+# Second call uses cache
+result2 = expensive_function(5)  # Returns cached 25
+```
+
+### Disk-Based Caching
+
+For persistent caching using SQLite:
+
+```python
+from twat_cache import bcache
+
+@bcache(
+    folder_name="my_cache",  # Cache directory name
+    maxsize=1_000_000,       # Max cache size in bytes
+    ttl=3600,               # Cache entries expire after 1 hour
+    use_sql=True,           # Use SQLite backend
+    secure=True,            # Use secure file permissions
+)
+def expensive_function(x: int) -> int:
+    return x * x
+```
+
+### File-Based Caching
+
+For efficient caching of large objects like NumPy arrays:
+
+```python
+from twat_cache import fcache
+import numpy as np
+
+@fcache(
+    folder_name="array_cache",
+    compress=True,           # Enable compression
+    secure=True,            # Use secure file permissions
+)
+def process_array(data: np.ndarray) -> np.ndarray:
+    # Expensive array processing here
+    return data * 2
+```
+
+### Async Caching
+
+For async functions with Redis or memory backend:
+
+```python
+from twat_cache import ucache
+
+@ucache(use_async=True)
+async def fetch_data(url: str) -> dict:
+    # Async web request here
+    return {"data": "..."}
+
+# First call fetches
+data1 = await fetch_data("https://api.example.com")
+
+# Second call uses cache
+data2 = await fetch_data("https://api.example.com")
+```
+
+### Universal Caching
+
+Let the library choose the best backend:
+
+```python
+from twat_cache import ucache
+
+@ucache(
+    folder_name="cache",     # Optional - uses disk cache if provided
+    maxsize=1000,           # Optional - limits cache size
+    ttl=3600,              # Optional - entries expire after 1 hour
+    policy="lru",          # Optional - LRU eviction (default)
+    use_sql=True,          # Optional - use SQL backend if available
+    compress=True,         # Optional - enable compression
+    secure=True,           # Optional - secure file permissions
+)
+def my_function(x: int) -> int:
+    return x * x
+```
+
+### Cache Management
+
+Clear caches and get statistics:
+
+```python
+from twat_cache import clear_cache, get_stats
+
+# Clear all caches
+clear_cache()
+
+# Get cache statistics
+stats = get_stats()
+print(stats)  # Shows hits, misses, size, etc.
+```
+
+## Advanced Features
+
+### TTL Support
+
+Set time-to-live for cache entries:
+
+```python
+from twat_cache import ucache
+
+@ucache(ttl=3600)  # Entries expire after 1 hour
+def get_weather(city: str) -> dict:
+    # Fetch weather data
+    return {"temp": 20}
+```
+
+### Eviction Policies
+
+Choose from multiple eviction policies:
+
+```python
+from twat_cache import mcache
+
+# Least Recently Used (default)
+@mcache(policy="lru")
+def func1(): pass
+
+# Least Frequently Used
+@mcache(policy="lfu")
+def func2(): pass
+
+# First In First Out
+@mcache(policy="fifo")
+def func3(): pass
+
+# Random Replacement
+@mcache(policy="rr")
+def func4(): pass
+```
+
+### Security Features
+
+Enable secure file permissions for disk caches:
+
+```python
+from twat_cache import bcache
+
+@bcache(
+    folder_name="secure_cache",
+    secure=True,  # Sets 0o700 for dirs, 0o600 for files
+)
+def sensitive_function(): pass
+```
+
+### Backend Selection
+
+Explicitly choose a backend:
+
+```python
+from twat_cache import ucache
+
+# Use cachebox if available
+@ucache(preferred_engine="cachebox")
+def fast_function(): pass
+
+# Use diskcache if available
+@ucache(preferred_engine="diskcache")
+def persistent_function(): pass
+
+# Use joblib if available
+@ucache(preferred_engine="joblib")
+def array_function(): pass
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Rationale
 

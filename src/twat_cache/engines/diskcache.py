@@ -1,95 +1,165 @@
-"""Disk-based cache engine using diskcache package."""
+#!/usr/bin/env -S uv run
+# /// script
+# dependencies = [
+#   "loguru",
+#   "diskcache",
+#   "types-diskcache",
+# ]
+# ///
+# this_file: src/twat_cache/engines/diskcache.py
 
-from __future__ import annotations
+"""Disk-based cache engine using diskcache."""
 
+import time
 from typing import Any, cast
 
-from twat_cache.engines.base import BaseCacheEngine
-from twat_cache.types import F, P, R, CacheConfig
-from twat_cache.paths import get_cache_path
+from diskcache import Cache
 from loguru import logger
 
-try:
-    from diskcache import Cache
-
-    HAS_DISKCACHE = True
-except ImportError:
-    HAS_DISKCACHE = False
-    logger.debug("diskcache not available")
-    Cache = None
+from twat_cache.config import CacheConfig
+from twat_cache.type_defs import CacheKey, P, R
+from .base import BaseCacheEngine
 
 
 class DiskCacheEngine(BaseCacheEngine[P, R]):
-    """Cache engine using diskcache package for SQL-based disk caching."""
+    """
+    Disk-based cache engine using diskcache.
 
-    def __init__(self, config: CacheConfig):
-        """Initialize disk cache engine.
+    This engine provides persistent caching using SQLite and the filesystem,
+    with support for TTL, compression, and secure file permissions.
+    """
+
+    def __init__(self, config: CacheConfig) -> None:
+        """Initialize the disk cache engine."""
+        super().__init__(config)
+
+        if not self._cache_path:
+            msg = "Cache path is required for disk cache"
+            raise ValueError(msg)
+
+        # Initialize diskcache with our settings
+        self._disk_cache = Cache(
+            directory=str(self._cache_path),
+            size_limit=self._config.maxsize or int(1e9),
+            disk_min_file_size=0,  # Small values in SQLite
+            disk_pickle_protocol=5,  # Latest protocol
+            statistics=True,  # Enable hit/miss tracking
+            tag_index=True,  # Enable tag-based operations
+            eviction_policy="least-recently-used",  # Match our LRU default
+            sqlite_cache_size=2048,  # 2MB page cache
+            sqlite_mmap_size=1024 * 1024 * 32,  # 32MB mmap
+            disk_compression_level=6 if self._config.compress else 0,
+        )
+
+        # Set secure permissions if requested
+        if self._config.secure:
+            self._cache_path.chmod(0o700)
+            for path in self._cache_path.glob("**/*"):
+                if path.is_file():
+                    path.chmod(0o600)
+
+        logger.debug(
+            f"Initialized {self.__class__.__name__} at {self._cache_path}"
+            f" with maxsize={self._config.maxsize}, ttl={self._config.ttl}"
+        )
+
+    def _get_cached_value(self, key: CacheKey) -> R | None:
+        """
+        Retrieve a value from the cache.
 
         Args:
-            config: Cache configuration.
+            key: The cache key to look up
+
+        Returns:
+            The cached value if found and not expired, None otherwise
         """
-        super().__init__(config)
-        self._folder_name = config.folder_name or "diskcache"
-        self._cache_dir = get_cache_path(self._folder_name)
-        self._cache = Cache(str(self._cache_dir)) if HAS_DISKCACHE else None
-        self._hits = 0
-        self._misses = 0
+        try:
+            # Get value and expiry time
+            result = self._disk_cache.get(str(key), default=None, retry=True)
+            if result is None:
+                return None
 
-    def get(self, key: str) -> R | None:
-        if not self._cache:
+            value, expiry = result
+
+            # Check TTL if configured
+            if expiry is not None:
+                if time.time() >= expiry:
+                    self._disk_cache.delete(str(key))
+                    return None
+
+            return cast(R, value)
+
+        except Exception as e:
+            logger.warning(f"Error retrieving from disk cache: {e}")
             return None
-        return self._cache.get(key)
 
-    def set(self, key: str, value: R) -> None:
-        if not self._cache:
-            return
-        self._cache.set(key, value)
+    def _set_cached_value(self, key: CacheKey, value: R) -> None:
+        """
+        Store a value in the cache.
+
+        Args:
+            key: The cache key to store under
+            value: The value to cache
+        """
+        try:
+            # Calculate expiry time if TTL configured
+            expiry = (
+                time.time() + self._config.ttl if self._config.ttl is not None else None
+            )
+
+            # Store value with expiry
+            self._disk_cache.set(
+                str(key),
+                (value, expiry),
+                expire=self._config.ttl,
+                retry=True,
+                tag=None,
+            )
+
+        except Exception as e:
+            logger.warning(f"Error storing to disk cache: {e}")
 
     def clear(self) -> None:
-        if not self._cache:
-            return
-        self._cache.clear()
-        self._hits = 0
-        self._misses = 0
-
-    @classmethod
-    def is_available(cls) -> bool:
-        """Check if diskcache is available."""
-        return HAS_DISKCACHE
+        """Clear all cached values."""
+        try:
+            self._disk_cache.clear()
+            self._hits = 0
+            self._misses = 0
+            self._size = 0
+        except Exception as e:
+            logger.warning(f"Error clearing disk cache: {e}")
 
     @property
     def stats(self) -> dict[str, Any]:
-        """
-        Get cache statistics.
+        """Get cache statistics."""
+        base_stats = super().stats
+        try:
+            disk_stats = self._disk_cache.stats(enable=True)
+            base_stats.update(
+                {
+                    "hits": disk_stats.hits,
+                    "misses": disk_stats.misses,
+                    "size": disk_stats.size,
+                    "max_size": disk_stats.max_size,
+                }
+            )
+        except Exception as e:
+            logger.warning(f"Error getting disk cache stats: {e}")
+        return base_stats
 
-        Returns:
-            dict: A dictionary containing cache statistics
-        """
-        return {
-            "type": "diskcache",
-            "maxsize": getattr(self._config, "maxsize", None),
-            "current_size": len(self._cache) if self._cache else 0,  # type: ignore
-            "hits": self._hits,
-            "misses": self._misses,
-            "size": len(self._cache) if self._cache else 0,  # type: ignore
-            "backend": self.__class__.__name__,
-            "path": str(self._cache_dir),
-        }
+    def __del__(self) -> None:
+        """Clean up resources."""
+        try:
+            self._disk_cache.close()
+        except Exception as e:
+            logger.warning(f"Error closing disk cache: {e}")
 
-    @property
-    def name(self) -> str:
-        """Get engine name."""
-        return "diskcache"
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if this cache engine is available for use."""
+        try:
+            import diskcache
 
-    def cache(self, func: F) -> F:
-        """Apply disk caching to the function.
-
-        Args:
-            func: Function to be cached
-
-        Returns:
-            Cached function wrapper
-        """
-        if not self.is_available:
-            return func
-        return cast(F, self._cache.memoize()(func))
+            return True
+        except ImportError:
+            return False

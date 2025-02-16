@@ -1,8 +1,11 @@
 #!/usr/bin/env -S uv run
 # /// script
-# dependencies = []
+# dependencies = [
+#   "loguru",
+#   "pydantic",
+# ]
 # ///
-# this_file: src/twat_cache/types.py
+# this_file: src/twat_cache/type_defs.py
 
 """
 Core type definitions for twat-cache.
@@ -20,8 +23,11 @@ from typing import (
     Literal,
     runtime_checkable,
     ParamSpec,
+    Union,
+    Callable,
+    Awaitable,
 )
-from collections.abc import Callable
+from collections.abc import Callable, Awaitable
 from pathlib import Path
 
 # Type variables for generic cache types
@@ -29,10 +35,34 @@ T = TypeVar("T")
 P = ParamSpec("P")
 R = TypeVar("R")
 F = TypeVar("F", bound=Callable[..., Any])
+AsyncR = TypeVar("AsyncR")
 
 # Cache key and value types
-CacheKey = str | int | float | tuple[Any, ...]
+CacheKey = Union[str, tuple[Any, ...]]
 CacheValue = Any  # Consider constraining this in future versions
+
+# Protocol for cache decorators
+class CacheDecorator(Protocol[P, R]):
+    """Protocol for cache decorators."""
+
+    def __call__(self, func: Callable[P, R]) -> Callable[P, R]: ...
+
+# Protocol for async cache decorators
+class AsyncCacheDecorator(Protocol[P, AsyncR]):
+    """Protocol for async cache decorators."""
+
+    def __call__(
+        self,
+        func: Callable[P, Awaitable[AsyncR]] | Callable[P, AsyncR],
+    ) -> Callable[P, Awaitable[AsyncR]]: ...
+
+# Type aliases for decorator functions
+SyncDecorator = Callable[[Callable[P, R]], Callable[P, R]]
+AsyncDecorator = Callable[
+    [Callable[P, Awaitable[AsyncR]] | Callable[P, AsyncR]],
+    [Callable[P, AsyncR | Awaitable[AsyncR]]],
+    Callable[P, Awaitable[AsyncR]],
+]
 
 
 @runtime_checkable

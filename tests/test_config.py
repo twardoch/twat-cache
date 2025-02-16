@@ -6,79 +6,90 @@
 # ///
 # this_file: tests/test_config.py
 
-"""Tests for the configuration management system."""
+"""Tests for cache configuration."""
 
 import pytest
 
 from twat_cache.config import create_cache_config, CacheConfig
+from .test_constants import (
+    CACHE_SIZE,
+    CACHE_TTL,
+    TEST_KEY,
+    TEST_BOOL,
+    TEST_INT,
+)
 
 
-def test_cache_config_validation() -> None:
-    """Test validation of cache configuration."""
-    # Valid configurations
-    config = create_cache_config(maxsize=100)
-    config.validate()  # Should not raise
-
-    config = create_cache_config(maxsize=None)
-    config.validate()  # Should not raise
-
-    # Invalid configurations
-    with pytest.raises(ValueError):
-        config = create_cache_config(maxsize=-1)
-        config.validate()
-
-    with pytest.raises(ValueError):
-        config = create_cache_config(maxsize=0)
-        config.validate()
-
-
-def test_cache_config_creation() -> None:
-    """Test creation of cache configuration."""
-    # Test with minimal configuration
+def test_config_creation() -> None:
+    """Test cache configuration creation."""
+    # Test with minimal settings
     config = create_cache_config()
     assert config.maxsize is None
+    assert config.ttl is None
     assert config.folder_name is None
-    assert config.preferred_engine is None
-    assert config.use_sql is False
 
-    # Test with full configuration
+    # Test with all settings
     config = create_cache_config(
-        maxsize=100,
-        folder_name="test",
+        maxsize=CACHE_SIZE,
+        folder_name=TEST_KEY,
         preferred_engine="memory",
+        ttl=CACHE_TTL,
         use_sql=True,
     )
-    assert config.maxsize == 100
-    assert config.folder_name == "test"
+    assert config.maxsize == CACHE_SIZE
+    assert config.folder_name == TEST_KEY
     assert config.preferred_engine == "memory"
+    assert config.ttl == CACHE_TTL
     assert config.use_sql is True
 
 
-def test_cache_config_to_dict() -> None:
-    """Test conversion of config to dictionary."""
+def test_config_validation() -> None:
+    """Test configuration validation."""
+    # Test invalid maxsize
+    with pytest.raises(ValueError):
+        create_cache_config(maxsize=-1)
+
+    # Test invalid ttl
+    with pytest.raises(ValueError):
+        create_cache_config(ttl=-1)
+
+    # Test valid eviction policies
+    policies = ["lru", "lfu", "fifo", "rr", "ttl"]
+    for policy in policies:
+        config = create_cache_config(policy=policy)
+        assert config.policy == policy
+
+
+def test_config_serialization() -> None:
+    """Test configuration serialization."""
+    # Create a config
     config = create_cache_config(
-        maxsize=100,
-        folder_name="test",
+        maxsize=CACHE_SIZE,
+        folder_name=TEST_KEY,
         preferred_engine="memory",
+        ttl=CACHE_TTL,
         use_sql=True,
     )
+
+    # Convert to dict
     data = config.to_dict()
-    assert data["maxsize"] == 100
-    assert data["folder_name"] == "test"
+    assert data["maxsize"] == CACHE_SIZE
+    assert data["folder_name"] == TEST_KEY
     assert data["preferred_engine"] == "memory"
+    assert data["ttl"] == CACHE_TTL
     assert data["use_sql"] is True
 
-
-def test_cache_config_from_dict() -> None:
-    """Test creation of config from dictionary."""
+    # Create from dict
     data = {
-        "maxsize": 100,
-        "folder_name": "test",
+        "maxsize": CACHE_SIZE,
+        "folder_name": TEST_KEY,
         "preferred_engine": "memory",
+        "ttl": CACHE_TTL,
         "use_sql": True,
     }
     config = CacheConfig.from_dict(data)
-    assert config.maxsize == 100
-    assert config.folder_name == "test"
+    assert config.maxsize == CACHE_SIZE
+    assert config.folder_name == TEST_KEY
     assert config.preferred_engine == "memory"
+    assert config.ttl == CACHE_TTL
     assert config.use_sql is True

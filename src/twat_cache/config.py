@@ -7,81 +7,84 @@
 # ///
 # this_file: src/twat_cache/config.py
 
-"""Simple configuration for twat_cache."""
+"""Cache configuration system."""
 
-from typing import Any, Callable, Literal, Optional
-from pydantic import BaseModel, Field, field_validator, model_validator
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, Optional, Union
 
-CacheType = Literal["memory", "disk", "file", "async"]
-EvictionPolicy = Literal["lru", "lfu", "fifo", "rr", "ttl"]
+from pydantic import BaseModel, Field, field_validator
+
+# Type aliases
+EvictionPolicy = Union[str, None]
+CacheType = Union[str, None]
 
 
+@dataclass
 class CacheConfig(BaseModel):
-    """Cache configuration using Pydantic for validation."""
+    """Cache configuration settings."""
 
-    maxsize: Optional[int] = Field(
-        default=None, description="Maximum cache size (None for unlimited)", ge=1
-    )
-    folder_name: Optional[str] = Field(default=None, description="Cache directory name")
-    preferred_engine: Optional[str] = Field(
-        default=None, description="Preferred caching backend"
-    )
-    serializer: Optional[Callable[[Any], str]] = Field(
-        default=None, description="Function to serialize non-JSON-serializable objects"
-    )
-    use_sql: bool = Field(
-        default=False, description="Whether to use SQL-based disk cache"
-    )
-    cache_type: Optional[CacheType] = Field(
-        default=None, description="Type of cache to use"
-    )
-    ttl: Optional[float] = Field(
-        default=None, description="Time-to-live in seconds", ge=0
-    )
-    policy: EvictionPolicy = Field(default="lru", description="Cache eviction policy")
-    compress: bool = Field(default=False, description="Whether to compress cached data")
-    secure: bool = Field(
-        default=True,
-        description="Whether to use secure file permissions for disk cache",
-    )
+    maxsize: Optional[int] = Field(default=None, ge=1)
+    folder_name: Optional[str] = None
+    preferred_engine: Optional[str] = None
+    serializer: Optional[Callable[[Any], str]] = None
+    cache_type: Optional[CacheType] = None
+    ttl: Optional[float] = Field(default=None, ge=0)
+    policy: EvictionPolicy = "lru"
+    cache_dir: Optional[str] = None  # For backward compatibility
 
-    model_config = {
-        "arbitrary_types_allowed": True,
-        "validate_assignment": True,
-        "extra": "forbid",
-    }
+    # Keyword-only boolean fields
+    use_sql: bool = field(default=False, kw_only=True)
+    compress: bool = field(default=False, kw_only=True)
+    secure: bool = field(default=True, kw_only=True)
 
-    @field_validator("folder_name")
-    @classmethod
-    def validate_folder_name(cls, v: Optional[str]) -> Optional[str]:
-        """Validate folder name if provided."""
-        if v is not None and not isinstance(v, str):
-            raise ValueError("folder_name must be a string or None")
+    class Config:
+        """Pydantic model configuration."""
+
+        validate_assignment = True
+        extra = "forbid"
+
+    @field_validator("maxsize")
+    def validate_maxsize(cls, v: Optional[int]) -> Optional[int]:
+        """Validate maxsize field."""
+        if v is not None and v <= 0:
+            raise ValueError("maxsize must be positive")
         return v
 
-    @field_validator("preferred_engine")
-    @classmethod
-    def validate_preferred_engine(cls, v: Optional[str]) -> Optional[str]:
-        """Validate preferred engine if provided."""
-        valid_engines = {
-            "cachebox",
-            "cachetools",
-            "diskcache",
-            "joblib",
-            "klepto",
-            "functools",
-            "aiocache",
+    @field_validator("ttl")
+    def validate_ttl(cls, v: Optional[float]) -> Optional[float]:
+        """Validate ttl field."""
+        if v is not None and v < 0:
+            raise ValueError("ttl must be non-negative")
+        return v
+
+    @field_validator("policy")
+    def validate_policy(cls, v: EvictionPolicy) -> EvictionPolicy:
+        """Validate policy field."""
+        valid_policies = {"lru", "lfu", "fifo", "rr", "ttl"}
+        if v is not None and v not in valid_policies:
+            raise ValueError(f"policy must be one of {valid_policies}")
+        return v
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert configuration to dictionary."""
+        return {
+            "maxsize": self.maxsize,
+            "folder_name": self.folder_name,
+            "preferred_engine": self.preferred_engine,
+            "serializer": self.serializer,
+            "cache_type": self.cache_type,
+            "ttl": self.ttl,
+            "policy": self.policy,
+            "use_sql": self.use_sql,
+            "compress": self.compress,
+            "secure": self.secure,
+            "cache_dir": self.cache_dir,
         }
-        if v is not None and v not in valid_engines:
-            raise ValueError(f"preferred_engine must be one of {valid_engines}")
-        return v
 
-    @model_validator(mode="after")
-    def validate_ttl_policy(self) -> "CacheConfig":
-        """Validate TTL and policy compatibility."""
-        if self.ttl is not None and self.policy != "ttl":
-            self.policy = "ttl"
-        return self
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "CacheConfig":
+        """Create configuration from dictionary."""
+        return cls(**data)
 
 
 def create_cache_config(
@@ -89,46 +92,46 @@ def create_cache_config(
     folder_name: Optional[str] = None,
     preferred_engine: Optional[str] = None,
     serializer: Optional[Callable[[Any], str]] = None,
-    use_sql: bool = False,
     cache_type: Optional[CacheType] = None,
     ttl: Optional[float] = None,
     policy: EvictionPolicy = "lru",
+    cache_dir: Optional[str] = None,  # For backward compatibility
+    *,  # Force remaining arguments to be keyword-only
+    use_sql: bool = False,
     compress: bool = False,
     secure: bool = True,
-    cache_dir: Optional[str] = None,  # For backward compatibility
 ) -> CacheConfig:
-    """
-    Create a validated cache configuration.
+    """Create a cache configuration.
 
     Args:
-        maxsize: Maximum cache size (None for unlimited)
-        folder_name: Cache directory name
-        preferred_engine: Preferred caching backend
-        serializer: Function to serialize non-JSON-serializable objects
-        use_sql: Whether to use SQL-based disk cache
-        cache_type: Type of cache to use
-        ttl: Time-to-live in seconds
-        policy: Cache eviction policy
-        compress: Whether to compress cached data
-        secure: Whether to use secure file permissions
-        cache_dir: Alias for folder_name (for backward compatibility)
+        maxsize: Maximum size of the cache. None means unlimited.
+        folder_name: Name of the cache folder.
+        preferred_engine: Preferred cache engine.
+        serializer: Function to serialize cache keys.
+        cache_type: Type of cache to use.
+        ttl: Time-to-live in seconds.
+        policy: Cache eviction policy.
+        cache_dir: Cache directory (deprecated).
+        use_sql: Whether to use SQL backend.
+        compress: Whether to compress cached data.
+        secure: Whether to use secure file permissions.
 
     Returns:
-        A validated CacheConfig instance
-    """
-    # Handle backward compatibility
-    if cache_dir is not None:
-        folder_name = cache_dir
+        CacheConfig: Cache configuration object.
 
+    Raises:
+        ValueError: If configuration is invalid.
+    """
     return CacheConfig(
         maxsize=maxsize,
         folder_name=folder_name,
         preferred_engine=preferred_engine,
         serializer=serializer,
-        use_sql=use_sql,
         cache_type=cache_type,
         ttl=ttl,
         policy=policy,
+        use_sql=use_sql,
         compress=compress,
         secure=secure,
+        cache_dir=cache_dir,
     )
