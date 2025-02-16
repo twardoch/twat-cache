@@ -43,19 +43,19 @@ to ensure that the code is linted and tested. This will inform your next steps.
   + ✅ **1.3.1.** Remove the incorrect file listing.
   + ✅ **1.3.2.** Add missing dependencies.
 
-## Phase 2: Deeper Dependency Integration and Code Enhancement
+## Phase 2: Core Functionality and Testing
 
-* **2.1. Implement Core Cache Engine Functionality:**
+* **2.1. Fix Critical Issues:**
   + ✅ **2.1.1.** Implement the abstract methods in engine classes.
   + ✅ **2.1.2.** Add comprehensive docstrings to these methods.
   + ✅ **2.1.3.** Rename `lru.py` to `functools.py` and update implementation.
   + ✅ **2.1.4.** Remove custom SQL and Redis implementations.
   + **2.1.5.** Fix failing tests and complete test coverage:
-    - ❌ Fix Pydantic field validator issues in CacheConfig
-    - ❌ Fix linting issues (27 remaining)
-    - ❌ Fix cache stats tracking
-    - ❌ Fix list/unhashable type handling
+    - ❌ Fix CacheConfig initialization (TypeError: CacheConfig() takes no arguments)
+    - ❌ Fix cache stats tracking (hits/misses not being counted)
+    - ❌ Fix maxsize enforcement (cache growing beyond limit)
     - ❌ Fix cache clearing behavior
+    - ❌ Fix kwargs handling in cache keys
   + **2.1.6.** Add missing engine-specific tests:
     - ❌ Test cache eviction policies
     - ❌ Test concurrent access
@@ -64,95 +64,46 @@ to ensure that the code is linted and tested. This will inform your next steps.
     - ❌ Test memory limits
     - ❌ Test cache invalidation strategies
 
-* **2.2. Enhance `EngineManager`:**
-  + **2.2.1. Prioritized Engine Selection:**
-    - ✅ Fix engine priority list implementation
-    - ✅ Add proper engine type hints
-    - ❌ Add tests for fallback behavior
-  + **2.2.2. Lazy Loading:**
-    - ❌ Implement lazy engine registration
-    - ❌ Add lazy import mechanism
-    - ❌ Add tests for lazy loading
-  + **2.2.3. Global Cache:**
-    - ✅ Add proper caching to `get_engine`
-    - ✅ Add cache invalidation
-    - ❌ Add tests for caching behavior
-
-* **2.3. Improve Type System:**
-  + **2.3.1. Pydantic Integration:**
-    - ❌ Fix field validator implementation
-    - ❌ Add proper model validation
-    - ❌ Add custom error messages
-  + **2.3.2. Type Hints:**
-    - ✅ Use `typing_extensions`
-    - ✅ Update type imports
-    - ❌ Add proper generic constraints
-  + **2.3.3. Type Stubs:**
-    - ❌ Create stub directory
-    - ❌ Add stubs for optional backends
-    - ❌ Add type tests
-
-* **2.4. Configuration System:**
-  + **2.4.1. Validation:**
-    - ❌ Fix Pydantic model validation
+* **2.2. Enhance Configuration System:**
+  + **2.2.1. Fix CacheConfig Implementation:**
+    - ❌ Fix field validation
+    - ❌ Fix property access
+    - ❌ Fix initialization
+    - ❌ Add proper error messages
+  + **2.2.2. Fix GlobalConfig:**
+    - ❌ Fix cache directory handling
+    - ❌ Fix log file path handling
+    - ❌ Fix environment variable support
+  + **2.2.3. Add Validation:**
     - ❌ Add config schema validation
     - ❌ Add runtime checks
-  + **2.4.2. Environment Variables:**
-    - ❌ Add env var support
-    - ❌ Document in README.md
-    - ❌ Add validation
-  + **2.4.3. Default Values:**
-    - ✅ Review and update
-    - ✅ Add documentation
-    - ❌ Add validation tests
+    - ❌ Add type validation
 
-* **2.5. `ucache` Decorator Refinement:**
-  + **2.5.1. Simplified Interface:**
-    - ✅ Update documentation
-    - ✅ Add examples
-  + **2.5.2. Key Building:**
-    - ✅ Add custom key builders
-    - ✅ Add tests
-  + **2.5.3. Serialization:**
-    - ❌ Add serializer protocol
-    - ❌ Implement basic serializers
-    - ❌ Add tests
+* **2.3. Improve Cache Engine Implementation:**
+  + **2.3.1. Fix FunctoolsCacheEngine:**
+    - ❌ Fix stats tracking
+    - ❌ Fix maxsize enforcement
+    - ❌ Fix cache key generation
+    - ❌ Fix cache clearing
+  + **2.3.2. Add Error Handling:**
+    - ❌ Add proper exception handling
+    - ❌ Add fallback mechanisms
+    - ❌ Add retry logic
+  + **2.3.3. Add Performance Optimizations:**
+    - ❌ Add key serialization
+    - ❌ Add value compression
+    - ❌ Add memory monitoring
 
-* **2.6. Asynchronous Support:**
-  + **2.6.1. `aiocache` Integration:**
-    - ✅ Complete async methods
-    - ✅ Fix event loop handling
-  + **2.6.2. Async Tests:**
-    - ❌ Add pytest-asyncio tests
-    - ❌ Test error cases
-
-* **2.7. Error Handling:**
-  + **2.7.1. Consistent Exceptions:**
-    - ❌ Create exceptions.py
-    - ❌ Add custom exceptions
-  + **2.7.2. Graceful Degradation:**
-    - ✅ Add fallback mechanisms
-    - ❌ Add tests
-
-* **2.8. Documentation:**
-  + **2.8.1. API Reference:**
-    - ❌ Set up Sphinx
-    - ❌ Add docstrings
-  + **2.8.2. Examples:**
-    - ✅ Update README.md
-    - ✅ Add code examples
-  + **2.8.3. Configuration Guide:**
-    - ❌ Create guide
-    - ❌ Add examples
-
-* **2.9. Testing:**
-  + **2.9.1 Comprehensive Unit Tests:**
-    - ✅ Fix failing tests
-    - ❌ Add missing tests
-  + **2.9.2 Integration Tests:**
-    - ✅ Add engine interaction tests
-    - ✅ Add configuration tests
-  + **2.9.3 Benchmark Tests:**
-    - ❌ Set up pytest-benchmark
-    - ❌ Add performance tests
-    - ❌ Add comparison tests
+* **2.4. Documentation and Testing:**
+  + **2.4.1. Update Documentation:**
+    - ❌ Add configuration guide
+    - ❌ Add troubleshooting guide
+    - ❌ Add performance tips
+  + **2.4.2. Enhance Tests:**
+    - ❌ Add benchmark tests
+    - ❌ Add stress tests
+    - ❌ Add integration tests
+  + **2.4.3. Add Examples:**
+    - ❌ Add usage examples
+    - ❌ Add configuration examples
+    - ❌ Add performance examples

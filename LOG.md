@@ -17,6 +17,47 @@ uv venv; source .venv/bin/activate; uv pip install -e .[all,dev,test]; hatch run
 
 to ensure that the code is linted and tested. This will inform your next steps. 
 
+## [1.7.7] - 2025-02-16
+
+### Changed
+
+* Reorganized TODO.md to better reflect current priorities
+* Updated CacheConfig implementation to use proper Pydantic fields
+* Fixed linting issues in configuration system
+
+### Fixed
+
+* Removed leading underscores from CacheConfig field names
+* Fixed field validation in CacheConfig
+* Fixed property access in CacheConfig
+
+### Issues
+
+* CacheConfig initialization is broken (TypeError: CacheConfig() takes no arguments)
+* Cache stats tracking is not working (hits/misses not being counted)
+* Cache maxsize enforcement is not working (cache growing beyond limit)
+* Cache clearing behavior is inconsistent
+* Field validation in CacheConfig needs fixing
+
+### Next Steps
+
+1. Fix CacheConfig initialization:
+   - Implement proper Pydantic model initialization
+   - Fix field validation
+   - Add proper error messages
+
+2. Fix cache engine issues:
+   - Fix stats tracking in FunctoolsCacheEngine
+   - Fix maxsize enforcement
+   - Fix cache key generation
+   - Fix cache clearing behavior
+
+3. Improve test coverage:
+   - Add missing engine-specific tests
+   - Add benchmark tests
+   - Add stress tests
+   - Add integration tests
+
 ## [1.7.6] - 2025-02-16
 
 ### Changed
@@ -101,6 +142,7 @@ to ensure that the code is linted and tested. This will inform your next steps.
 * Initial release
 * Basic memory caching implementation
 
+[1.7.7]: https://github.com/twardoch/twat-cache/compare/v1.7.6...v1.7.7
 [1.7.6]: https://github.com/twardoch/twat-cache/compare/v1.7.5...v1.7.6
 [1.7.5]: https://github.com/twardoch/twat-cache/compare/v1.7.3...v1.7.5
 [1.7.3]: https://github.com/twardoch/twat-cache/compare/v1.7.0...v1.7.3

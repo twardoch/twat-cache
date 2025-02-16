@@ -66,16 +66,6 @@ class CacheConfig(BaseModel):
         "populate_by_name": True,
     }
 
-    def validate(self) -> None:
-        """Validate all configuration settings."""
-        if self.maxsize is not None:
-            self.validate_maxsize(self.maxsize)
-        if self.folder_name is not None:
-            self.validate_folder_name(self.folder_name)
-        if self.cache_type is not None:
-            self.validate_cache_type(self.cache_type)
-
-    @classmethod
     @field_validator("maxsize")
     def validate_maxsize(cls, v: int | None) -> int | None:
         """Validate maxsize setting."""
@@ -84,7 +74,6 @@ class CacheConfig(BaseModel):
             raise ValueError(msg)
         return v
 
-    @classmethod
     @field_validator("folder_name")
     def validate_folder_name(cls, v: str | None) -> str | None:
         """Validate folder name setting."""
@@ -93,7 +82,6 @@ class CacheConfig(BaseModel):
             raise ValueError(msg)
         return v
 
-    @classmethod
     @field_validator("cache_type")
     def validate_cache_type(cls, v: CacheType | None) -> CacheType | None:
         """Validate cache type setting."""
@@ -108,10 +96,40 @@ class CacheConfig(BaseModel):
         super().model_post_init(__context)
         self.validate()
 
+    def validate(self) -> None:
+        """Validate all configuration settings."""
+        if self.maxsize is not None:
+            self.validate_maxsize(self.maxsize)
+        if self.folder_name is not None:
+            self.validate_folder_name(self.folder_name)
+        if self.cache_type is not None:
+            self.validate_cache_type(self.cache_type)
+
     def __init__(self, **data: Any) -> None:
         """Initialize the cache configuration."""
         super().__init__(**data)
         self.validate()
+
+    # CacheConfigBase interface implementation
+    def get_maxsize(self) -> int | None:
+        """Get maximum cache size."""
+        return self.maxsize
+
+    def get_folder_name(self) -> str | None:
+        """Get cache folder name."""
+        return self.folder_name
+
+    def get_use_sql(self) -> bool:
+        """Get SQL storage setting."""
+        return self.use_sql
+
+    def get_preferred_engine(self) -> str | None:
+        """Get preferred cache engine."""
+        return self.preferred_engine
+
+    def get_cache_type(self) -> CacheType | None:
+        """Get cache type."""
+        return self.cache_type
 
 
 class GlobalConfig(BaseSettings):
