@@ -13,8 +13,7 @@
 """Test suite for Redis cache engine."""
 
 import os
-import time
-from typing import Any, Callable
+from typing import Any
 from collections.abc import Generator
 
 import pytest
@@ -235,7 +234,8 @@ def test_redis_error_handling(
 
     # Simulate Redis error
     def mock_get(*args: Any, **kwargs: Any) -> None:
-        raise redis.RedisError("Test error")
+        msg = "Test error"
+        raise redis.RedisError(msg)
 
     monkeypatch.setattr(redis_cache._redis, "get", mock_get)
 

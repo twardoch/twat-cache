@@ -12,9 +12,9 @@
 """Test suite for SQL cache engine."""
 
 import shutil
-import time
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
+from collections.abc import Generator
 
 import pytest
 from sqlalchemy import create_engine

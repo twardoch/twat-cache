@@ -19,7 +19,7 @@ from typing import Any, cast
 
 from loguru import logger
 
-from twat_cache.types import CacheConfig, CacheKey, P, R
+from twat_cache.types import CacheConfig, CacheKey, F, P, R
 from .base import BaseCacheEngine
 
 
@@ -44,12 +44,12 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
         self._cache = lru_cache(maxsize=self._maxsize)
         logger.debug(f"Initialized functools cache with maxsize: {self._maxsize}")
 
-    def _get_cached_value(self, key: CacheKey) -> R | None:
+    def _get_cached_value(self, _key: CacheKey) -> R | None:
         """
         Retrieve a value from the cache.
 
         Args:
-            key: The cache key to look up
+            _key: The cache key to look up (unused in functools implementation)
 
         Returns:
             The cached value if found, None otherwise
@@ -59,13 +59,13 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
         except AttributeError:
             return None
 
-    def _set_cached_value(self, key: CacheKey, value: R) -> None:
+    def _set_cached_value(self, _key: CacheKey, _value: R) -> None:
         """
         Store a value in the cache.
 
         Args:
-            key: The cache key to store under
-            value: The value to cache
+            _key: The cache key to store under (unused in functools implementation)
+            _value: The value to cache (unused in functools implementation)
         """
         # functools.lru_cache handles storage internally
         pass

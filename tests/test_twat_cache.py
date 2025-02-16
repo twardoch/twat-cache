@@ -27,6 +27,7 @@ from twat_cache.engines.joblib import JoblibEngine
 from twat_cache.engines.klepto import KleptoEngine
 from twat_cache.engines.aiocache import AioCacheEngine
 from twat_cache.types import CacheConfig, CacheKey
+from twat_cache.engines.functools import FunctoolsCacheEngine
 
 
 # Test configurations
@@ -199,3 +200,42 @@ def test_cachetools_operations(cachetools_engine: CacheToolsEngine) -> None:
 
     cachetools_engine.clear()
     assert cachetools_engine._get_cached_value(key) is None
+
+
+@pytest.fixture
+def functools_engine(base_config: CacheConfig) -> FunctoolsCacheEngine:
+    """Fixture for testing the functools cache engine."""
+    return FunctoolsCacheEngine(base_config)
+
+
+def test_functools_cache_get_set(functools_engine: FunctoolsCacheEngine) -> None:
+    """Test basic get/set operations with the functools cache."""
+    key: CacheKey = "test_key"
+    value = "test_value"
+
+    # Test cache miss
+    assert functools_engine._get_cached_value(key) is None
+
+    # Test cache hit
+    functools_engine._set_cached_value(key, value)
+    assert functools_engine._get_cached_value(key) == value
+
+
+def test_functools_cache_clear(functools_engine: FunctoolsCacheEngine) -> None:
+    """Test clearing the functools cache."""
+    key: CacheKey = "test_key"
+    value = "test_value"
+
+    functools_engine._set_cached_value(key, value)
+    functools_engine.clear()
+    assert functools_engine._get_cached_value(key) is None
+
+
+def test_functools_cache_maxsize(functools_engine: FunctoolsCacheEngine) -> None:
+    """Test maxsize enforcement in functools cache."""
+    for i in range(150):  # More than maxsize
+        functools_engine._set_cached_value(f"key_{i}", f"value_{i}")
+
+    # Oldest entries should be evicted
+    assert functools_engine._get_cached_value("key_0") is None
+    assert functools_engine._get_cached_value("key_149") is not None

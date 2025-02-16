@@ -16,14 +16,14 @@ registration, selection, and instantiation of appropriate cache backends
 based on configuration and availability.
 """
 
-from typing import Any, cast, ClassVar, Type, TypeVar
+from typing import Any, cast, ClassVar, TypeVar
 import os
 
 from loguru import logger
 
-from twat_cache.types import BackendType, CacheConfig, CacheEngine, P, R
+from twat_cache.types import BackendType, CacheConfig, CacheEngine
 from .base import BaseCacheEngine
-from .lru import LRUCacheEngine
+from .functools import FunctoolsCacheEngine
 
 # Try to import optional backends
 try:
@@ -108,7 +108,7 @@ class EngineManagerImpl:
     def _register_available_engines(self) -> None:
         """Register all available cache engines."""
         # Always register memory cache
-        self._register_engine("memory", LRUCacheEngine)
+        self._register_engine("memory", FunctoolsCacheEngine)
 
         # Register optional engines
         if HAS_CACHEBOX:

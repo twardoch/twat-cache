@@ -8,7 +8,6 @@
 
 """Tests for the main cache interface."""
 
-import time
 from typing import Any, TypedDict
 
 import pytest
@@ -106,7 +105,7 @@ def test_cache_stats() -> None:
         return x * x
 
     # Generate some cache activity
-    for i in range(3):
+    for _i in range(3):
         cached_function(TEST_INPUT)
         cached_function(TEST_INPUT_2)
 
