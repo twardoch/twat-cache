@@ -29,7 +29,7 @@ from .types import CacheConfig as CacheConfigBase
 CacheType = Literal["speed", "database", "filesystem"]
 
 
-class CacheConfig(BaseModel):
+class CacheConfig(BaseModel, CacheConfigBase):
     """
     Cache configuration model.
 
@@ -91,11 +91,6 @@ class CacheConfig(BaseModel):
             raise ValueError(msg)
         return v
 
-    def model_post_init(self, __context: Any) -> None:
-        """Post-initialization validation."""
-        super().model_post_init(__context)
-        self.validate()
-
     def validate(self) -> None:
         """Validate all configuration settings."""
         if self.maxsize is not None:
@@ -105,9 +100,9 @@ class CacheConfig(BaseModel):
         if self.cache_type is not None:
             self.validate_cache_type(self.cache_type)
 
-    def __init__(self, **data: Any) -> None:
-        """Initialize the cache configuration."""
-        super().__init__(**data)
+    def model_post_init(self, __context: Any) -> None:
+        """Post-initialization validation."""
+        super().model_post_init(__context)
         self.validate()
 
     # CacheConfigBase interface implementation
@@ -156,53 +151,53 @@ class GlobalConfig(BaseSettings):
     cache_dir: Path = Field(
         default_factory=get_cache_path,
         description="Base directory for cache storage",
-        env="CACHE_DIR",
+        validation_alias="CACHE_DIR",
     )
 
     # Default cache settings
     default_maxsize: int = Field(
         default=1000,
         description="Default maximum cache size",
-        env="DEFAULT_MAXSIZE",
+        validation_alias="DEFAULT_MAXSIZE",
     )
     default_use_sql: bool = Field(
         default=False,
         description="Default SQL storage setting",
-        env="DEFAULT_USE_SQL",
+        validation_alias="DEFAULT_USE_SQL",
     )
     default_engine: str = Field(
         default="lru",
         description="Default cache engine",
-        env="DEFAULT_ENGINE",
+        validation_alias="DEFAULT_ENGINE",
     )
     default_cache_type: CacheType | None = Field(
         default=None,
         description="Default cache type (speed, database, filesystem)",
-        env="DEFAULT_TYPE",
+        validation_alias="DEFAULT_TYPE",
     )
 
     # Performance settings
     enable_compression: bool = Field(
         default=True,
         description="Enable data compression",
-        env="ENABLE_COMPRESSION",
+        validation_alias="ENABLE_COMPRESSION",
     )
     compression_level: int = Field(
         default=6,
         description="Compression level (1-9)",
-        env="COMPRESSION_LEVEL",
+        validation_alias="COMPRESSION_LEVEL",
     )
 
     # Logging settings
     debug: bool = Field(
         default=False,
         description="Enable debug logging",
-        env="DEBUG",
+        validation_alias="DEBUG",
     )
     log_file: Path | None = Field(
         default=None,
         description="Log file path",
-        env="LOG_FILE",
+        validation_alias="LOG_FILE",
     )
 
     def get_cache_config(
@@ -226,7 +221,7 @@ class GlobalConfig(BaseSettings):
         Returns:
             CacheConfig: Cache configuration with defaults applied
         """
-        config = CacheConfig(
+        return CacheConfig(
             maxsize=maxsize if maxsize is not None else self.default_maxsize,
             folder_name=folder_name,
             use_sql=use_sql if use_sql is not None else self.default_use_sql,
@@ -237,10 +232,7 @@ class GlobalConfig(BaseSettings):
             if cache_type is not None
             else self.default_cache_type,
         )
-        config.validate()
-        return config
 
-    @classmethod
     @field_validator("compression_level")
     def validate_compression_level(cls, v: int) -> int:
         """Validate compression level."""
@@ -249,7 +241,6 @@ class GlobalConfig(BaseSettings):
             raise ValueError(msg)
         return v
 
-    @classmethod
     @field_validator("log_file")
     def validate_log_file(cls, v: Path | None | str) -> Path | None:
         """Validate log file path."""
