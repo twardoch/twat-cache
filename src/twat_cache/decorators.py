@@ -36,22 +36,15 @@ from typing import (
     cast,
     overload,
     Protocol,
-    Optional,
-    ParamSpec,
-    TypeVar,
-    Dict,
-    Callable,
-    Awaitable,
 )
-from collections.abc import Awaitable
+from collections.abc import Callable, Awaitable
 
 from loguru import logger
 
 from .config import create_cache_config, CacheConfig, EvictionPolicy
 from .engines.base import BaseCacheEngine
 from .engines.functools import FunctoolsCacheEngine
-from .paths import get_cache_path
-from .type_defs import P, R, AsyncR, CacheDecorator, CacheKey, CacheValue
+from .type_defs import P, R, AsyncR, CacheDecorator
 
 
 class CacheDecorator(Protocol[P, R]):
@@ -179,8 +172,8 @@ def make_key(
 
 
 def mcache(
-    maxsize: Optional[int] = None,
-    ttl: Optional[float] = None,
+    maxsize: int | None = None,
+    ttl: float | None = None,
     policy: str = "lru",
     *,  # Force remaining arguments to be keyword-only
     secure: bool = True,
@@ -223,9 +216,9 @@ def mcache(
 
 
 def bcache(
-    folder_name: Optional[str] = None,
-    maxsize: Optional[int] = None,
-    ttl: Optional[float] = None,
+    folder_name: str | None = None,
+    maxsize: int | None = None,
+    ttl: float | None = None,
     policy: str = "lru",
     *,  # Force remaining arguments to be keyword-only
     use_sql: bool = True,
@@ -270,9 +263,9 @@ def bcache(
 
 
 def fcache(
-    folder_name: Optional[str] = None,
-    maxsize: Optional[int] = None,
-    ttl: Optional[float] = None,
+    folder_name: str | None = None,
+    maxsize: int | None = None,
+    ttl: float | None = None,
     *,  # Force remaining arguments to be keyword-only
     compress: bool = False,
     secure: bool = True,
@@ -390,7 +383,7 @@ def acache(
         return decorator
 
 
-def _get_available_backends() -> Dict[str, bool]:
+def _get_available_backends() -> dict[str, bool]:
     """Get a mapping of available backends."""
     return {
         "aiocache": HAS_AIOCACHE,
@@ -404,7 +397,7 @@ def _get_available_backends() -> Dict[str, bool]:
 
 
 def _select_best_backend(
-    preferred: Optional[str] = None,
+    preferred: str | None = None,
     *,  # Force remaining arguments to be keyword-only
     is_async: bool = False,
     needs_disk: bool = False,
@@ -499,11 +492,11 @@ def _create_engine(config: CacheConfig, func: Callable[P, R]) -> BaseCacheEngine
 
 
 def ucache(
-    folder_name: Optional[str] = None,
-    maxsize: Optional[int] = None,
-    ttl: Optional[float] = None,
+    folder_name: str | None = None,
+    maxsize: int | None = None,
+    ttl: float | None = None,
     policy: str = "lru",
-    preferred_engine: Optional[str] = None,
+    preferred_engine: str | None = None,
     *,  # Force remaining arguments to be keyword-only
     use_sql: bool = False,
     compress: bool = False,

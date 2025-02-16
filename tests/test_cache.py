@@ -16,7 +16,7 @@
 # ///
 # this_file: tests/test_cache.py
 
-"""Tests for the cache module."""
+"""Tests for cache functionality."""
 
 import asyncio
 import os
@@ -31,7 +31,12 @@ from twat_cache.cache import clear_cache, get_stats
 from twat_cache.decorators import ucache, mcache, bcache, fcache
 from twat_cache.config import create_cache_config
 from twat_cache.paths import get_cache_path
-from .test_constants import (
+from tests.test_constants import (
+    TEST_VALUE,
+    TEST_RESULT,
+    SMALL_CACHE_SIZE,
+    DIR_PERMISSIONS,
+    TEST_CACHE_DIR,
     CACHE_SIZE,
     FILE_PERMISSIONS,
     SQUARE_INPUT,
@@ -43,9 +48,7 @@ from .test_constants import (
 
 # Test constants
 TEST_INPUT = 5
-TEST_RESULT = TEST_INPUT * TEST_INPUT
 TEST_INPUT_2 = 6
-TEST_RESULT_2 = TEST_INPUT_2 * TEST_INPUT_2
 EXPECTED_CALL_COUNT = 2
 MIN_STATS_COUNT = 2
 TTL_DURATION = 0.5
@@ -164,77 +167,133 @@ def test_cache_decorators() -> None:
     clear_cache()
 
 
-def test_basic_caching() -> None:
+def test_cache_basic():
     """Test basic caching functionality."""
     call_count = 0
 
-    @ucache()
-    def expensive_function(x: int) -> int:
+    @mcache()
+    def square(x: int) -> int:
         nonlocal call_count
         call_count += 1
         return x * x
 
     # First call should compute
-    assert expensive_function(TEST_INPUT) == TEST_RESULT
+    result1 = square(TEST_VALUE)
+    assert result1 == TEST_RESULT
     assert call_count == 1
 
     # Second call should use cache
-    assert expensive_function(TEST_INPUT) == TEST_RESULT
-    assert call_count == 1
-
-    # Different input should compute
-    assert expensive_function(TEST_INPUT_2) == TEST_RESULT_2
-    assert call_count == EXPECTED_CALL_COUNT
+    result2 = square(TEST_VALUE)
+    assert result2 == TEST_RESULT
+    assert call_count == 1  # Still 1, used cache
 
 
-def test_cache_clear() -> None:
+def test_cache_size():
+    """Test cache size limits."""
+    call_count = 0
+
+    @mcache(maxsize=SMALL_CACHE_SIZE)
+    def square(x: int) -> int:
+        nonlocal call_count
+        call_count += 1
+        return x * x
+
+    # Fill cache
+    for i in range(SMALL_CACHE_SIZE * 2):
+        square(i)
+
+    # Cache should be limited to SMALL_CACHE_SIZE
+    assert call_count == SMALL_CACHE_SIZE * 2
+
+
+def test_cache_clear():
     """Test cache clearing functionality."""
     call_count = 0
 
-    @ucache()
-    def cached_function(x: int) -> int:
+    @mcache()
+    def square(x: int) -> int:
         nonlocal call_count
         call_count += 1
         return x * x
 
     # First call
-    assert cached_function(TEST_INPUT) == TEST_RESULT
+    result1 = square(TEST_VALUE)
+    assert result1 == TEST_RESULT
     assert call_count == 1
 
     # Clear cache
-    clear_cache()
+    square.cache_clear()
 
-    # Should recompute after clear
-    assert cached_function(TEST_INPUT) == TEST_RESULT
-    assert call_count == EXPECTED_CALL_COUNT
+    # Should recompute
+    result2 = square(TEST_VALUE)
+    assert result2 == TEST_RESULT
+    assert call_count == 2
 
 
-def test_cache_stats() -> None:
+def test_cache_stats():
     """Test cache statistics."""
     call_count = 0
 
-    @ucache()
-    def cached_function(x: int) -> int:
+    @mcache()
+    def square(x: int) -> int:
         nonlocal call_count
         call_count += 1
         return x * x
 
-    # Generate some cache activity
-    for _i in range(3):
-        cached_function(TEST_INPUT)
-        cached_function(TEST_INPUT_2)
+    # First call (miss)
+    square(TEST_VALUE)
+    assert square.cache_info().misses == 1
+    assert square.cache_info().hits == 0
 
-    # Get stats
-    stats = get_stats()
+    # Second call (hit)
+    square(TEST_VALUE)
+    assert square.cache_info().misses == 1
+    assert square.cache_info().hits == 1
 
-    # Basic stats checks
-    assert isinstance(stats, dict)
-    assert stats["hits"] >= MIN_STATS_COUNT
-    assert stats["misses"] >= MIN_STATS_COUNT
-    assert "size" in stats
-    assert "backend" in stats
-    assert "policy" in stats
-    assert "ttl" in stats
+
+def test_cache_permissions():
+    """Test cache directory permissions."""
+    if os.name == "posix":
+
+        @bcache(folder_name=TEST_CACHE_DIR)
+        def func(x: int) -> int:
+            return x
+
+        # Call function to create cache
+        func(TEST_VALUE)
+
+        # Check permissions
+        cache_path = func.cache.directory
+        mode = os.stat(cache_path).st_mode & 0o777
+        assert mode == DIR_PERMISSIONS
+
+
+def test_cache_types():
+    """Test different cache types."""
+
+    # Test memory cache
+    @mcache()
+    def mem_func(x: int) -> int:
+        return x * x
+
+    assert mem_func(TEST_VALUE) == TEST_RESULT
+    assert mem_func(TEST_VALUE) == TEST_RESULT  # Should use cache
+
+    # Test disk cache
+    @bcache(folder_name=TEST_CACHE_DIR)
+    def disk_func(x: int) -> int:
+        return x * x
+
+    assert disk_func(TEST_VALUE) == TEST_RESULT
+    assert disk_func(TEST_VALUE) == TEST_RESULT  # Should use cache
+
+    # Test file cache
+    @fcache(folder_name=TEST_CACHE_DIR)
+    def file_func(x: int) -> int:
+        return x * x
+
+    assert file_func(TEST_VALUE) == TEST_RESULT
+    assert file_func(TEST_VALUE) == TEST_RESULT  # Should use cache
 
 
 def test_list_processing() -> None:

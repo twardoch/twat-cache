@@ -5,9 +5,8 @@ This module provides a cache engine implementation using the CacheBox library,
 which offers high-performance in-memory caching with advanced features.
 """
 
-from typing import Any, Dict, Optional, cast
+from typing import Any, cast
 
-from loguru import logger
 
 from twat_cache.type_defs import (
     F,
@@ -27,7 +26,7 @@ class CacheBoxEngine(BaseCacheEngine[P, R]):
         super().__init__(config)
         self._hits = 0
         self._misses = 0
-        self._cache: Dict[CacheKey, R] = {}
+        self._cache: dict[CacheKey, R] = {}
         self._maxsize = config.maxsize or None
         self._ttl = config.ttl
 
@@ -74,7 +73,7 @@ class CacheBoxEngine(BaseCacheEngine[P, R]):
             raise ValueError(msg)
 
     @property
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """
         Get cache statistics.
 

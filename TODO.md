@@ -165,103 +165,6 @@ CACHE_TTL = 0.5
 
 # TODO List for twat-cache
 
-## Critical Issues (Priority 1)
-
-### Missing Dependencies
-- [ ] Fix missing `aiocache` dependency causing test failures
-- [ ] Add proper dependency management in pyproject.toml
-- [ ] Add fallback behavior when optional dependencies are missing
-
-### Linter Errors
-- [ ] Fix boolean argument type issues in function definitions
-- [ ] Address magic number warnings in tests
-- [ ] Fix unused imports in engine availability checks
-- [ ] Reduce complexity in `ucache` function
-- [ ] Fix module naming conflict with `functools.py`
-
-### Type System
-- [ ] Add missing type stubs for external dependencies:
-  - [ ] aiocache
-  - [ ] diskcache
-  - [ ] joblib
-  - [ ] klepto
-  - [ ] redis
-  - [ ] pymemcache
-- [ ] Fix unbound type variables in async code
-- [ ] Update Union types to use | operator (Python 3.10+)
-
-## Important Improvements (Priority 2)
-
-### Code Quality
-- [ ] Refactor `ucache` to reduce complexity
-- [ ] Improve error handling in engine imports
-- [ ] Add proper cleanup in async code
-- [ ] Implement proper context managers for cache resources
-
-### Testing
-- [ ] Fix failing test suite
-- [ ] Add proper async test coverage
-- [ ] Add stress tests for race conditions
-- [ ] Add integration tests for all backends
-- [ ] Add performance benchmarks
-
-### Documentation
-- [ ] Add migration guide
-- [ ] Add performance comparison guide
-- [ ] Add troubleshooting section
-- [ ] Update type hints documentation
-
-## Future Enhancements (Priority 3)
-
-### Features
-- [ ] Add cache warming capability
-- [ ] Implement cache prefetching
-- [ ] Add compression options
-- [ ] Add encryption support
-
-### Security
-- [ ] Add access control
-- [ ] Implement audit logging
-- [ ] Add cache poisoning protection
-- [ ] Improve file permission handling
-
-### Performance
-- [ ] Add caching statistics
-- [ ] Optimize key generation
-- [ ] Improve memory usage
-- [ ] Add cache size estimation
-
-## Development Process
-
-1. First address critical dependency issues:
-   ```bash
-   uv pip install aiocache redis pymemcache
-   ```
-
-2. Then fix linter errors:
-   ```bash
-   hatch run lint:fix
-   ```
-
-3. Run tests to verify fixes:
-   ```bash
-   hatch test
-   ```
-
-4. Update documentation to reflect changes:
-   ```bash
-   hatch run docs:build
-   ```
-
-## Notes
-
-- Keep both sync and async interfaces consistent
-- Maintain backward compatibility
-- Follow PEP 8 and type hinting best practices
-- Document all changes in LOG.md
-
-# twat_cache TODO List
-
 ## Core Goals
 
 1. Provide simple, easy-to-use caching decorators with seamless fallback:
@@ -302,232 +205,75 @@ CACHE_TTL = 0.5
    - Provide direct access to underlying cache objects
    - Use simple kwargs for configuration
 
-5. Advanced Features:
-   - TTL support for bcache and fcache
-   - Multiple eviction policies for mcache
-   - Proper file permissions and security for disk caches
-   - Cache inspection and maintenance utilities
-   - Race condition handling in multi-process scenarios
+## Implementation Status
 
-## Detailed Implementation Plan
+### Completed ✅
+- Basic decorator interface
+- Type system with protocols
+- Configuration system
+- Basic test structure
+- Core cache engines integration
 
-### 1. Core API Structure
+### In Progress 🚧
+1. Fixing Linter Issues:
+   - [ ] Remove magic numbers from tests
+   - [ ] Fix boolean parameter warnings
+   - [ ] Address unused imports
+   - [ ] Fix function complexity issues
 
-#### src/twat_cache/__init__.py
-```python
-"""Flexible caching utilities for Python functions with multiple high-performance backends."""
+2. Improving Test Coverage:
+   - [ ] Add proper fallback tests
+   - [ ] Add async tests
+   - [ ] Add integration tests
+   - [ ] Add performance benchmarks
 
-from twat_cache.cache import clear_cache, get_stats
-from twat_cache.decorators import mcache, bcache, fcache, acache, ucache
-from twat_cache.utils import get_cache_path
+3. Documentation Updates:
+   - [ ] Add migration guide
+   - [ ] Add performance comparison
+   - [ ] Add troubleshooting section
+   - [ ] Update type hints documentation
 
-__version__ = "1.8.0"
-__all__ = ["__version__", "mcache", "bcache", "fcache", "acache", "ucache", 
-           "clear_cache", "get_stats", "get_cache_path"]
-```
+### Next Steps 📋
 
-#### src/twat_cache/decorators.py
-```python
-"""Core caching decorators."""
-from typing import Any, Callable, TypeVar, ParamSpec, Awaitable, Optional
-from collections.abc import Callable
+1. Core Functionality (Priority 1):
+   - [ ] Complete fallback mechanism implementation
+   - [ ] Add proper logging for fallback cases
+   - [ ] Implement cache stats collection
+   - [ ] Add cache inspection utilities
 
-P = ParamSpec("P")
-R = TypeVar("R")
-AsyncR = TypeVar("AsyncR")
+2. Testing (Priority 2):
+   - [ ] Add test constants for magic numbers
+   - [ ] Implement proper async testing
+   - [ ] Add stress tests for race conditions
+   - [ ] Add backend-specific tests
 
-def mcache(
-    maxsize: Optional[int] = None,
-    ttl: Optional[float] = None,
-    policy: str = "lru"
-) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+3. Documentation (Priority 3):
+   - [ ] Update README with new examples
+   - [ ] Add detailed configuration guide
+   - [ ] Document fallback behavior
+   - [ ] Add performance tips
 
-def bcache(
-    folder_name: Optional[str] = None,
-    maxsize: Optional[int] = None,
-    ttl: Optional[float] = None,
-    sql_backend: bool = True
-) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+## Implementation Notes
 
-def fcache(
-    folder_name: Optional[str] = None,
-    maxsize: Optional[int] = None,
-    ttl: Optional[float] = None,
-    compress: bool = False
-) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+1. Keep focus on simplicity:
+   - Don't try to replicate all features of underlying cache libraries
+   - Provide simple passthrough to advanced features when needed
+   - Keep our code minimal and maintainable
 
-def acache(
-    maxsize: Optional[int] = None,
-    ttl: Optional[float] = None,
-    backend: str = "aiocache"
-) -> Callable[[Callable[P, Awaitable[AsyncR]]], Callable[P, Awaitable[AsyncR]]]: ...
+2. Prioritize user experience:
+   - Make fallback behavior transparent
+   - Provide clear error messages
+   - Document common use cases
+   - Make configuration intuitive
 
-def ucache(
-    folder_name: Optional[str] = None,
-    maxsize: Optional[int] = None,
-    ttl: Optional[float] = None,
-    preferred_engine: Optional[str] = None,
-    use_async: bool = False
-) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
-```
+3. Testing strategy:
+   - Focus on behavior, not implementation
+   - Test fallback scenarios thoroughly
+   - Ensure proper async behavior
+   - Verify cache consistency
 
-#### src/twat_cache/config.py
-```python
-"""Cache configuration system."""
-from typing import Optional
-from pydantic import BaseModel, Field
-
-class CacheConfig(BaseModel):
-    """Cache configuration settings."""
-    maxsize: Optional[int] = Field(default=None, ge=1)
-    folder_name: Optional[str] = None
-    ttl: Optional[float] = Field(default=None, ge=0)
-    use_sql: bool = False
-    compress: bool = False
-    secure: bool = True
-    policy: str = "lru"
-    backend: Optional[str] = None
-    
-    class Config:
-        validate_assignment = True
-        extra = "forbid"
-
-def create_cache_config(**kwargs) -> CacheConfig: ...
-```
-
-#### src/twat_cache/engines/base.py
-```python
-"""Base cache engine implementation."""
-from abc import ABC, abstractmethod
-from typing import Generic, Optional, Any
-from ..type_defs import P, R, CacheKey
-
-class BaseCacheEngine(ABC, Generic[P, R]):
-    """Abstract base class for cache engines."""
-    
-    @abstractmethod
-    def __init__(self, config: CacheConfig) -> None: ...
-    
-    @abstractmethod
-    def cache(self, func: Callable[P, R]) -> Callable[P, R]: ...
-    
-    @abstractmethod
-    def get(self, key: CacheKey) -> Optional[R]: ...
-    
-    @abstractmethod
-    def set(self, key: CacheKey, value: R) -> None: ...
-    
-    @abstractmethod
-    def clear(self) -> None: ...
-    
-    @property
-    @abstractmethod
-    def stats(self) -> dict[str, Any]: ...
-    
-    @property
-    @abstractmethod
-    def is_available(self) -> bool: ...
-```
-
-#### src/twat_cache/engines/cachebox.py
-```python
-"""Rust-based high-performance cache engine."""
-from typing import Optional
-from ..type_defs import P, R, CacheKey
-from .base import BaseCacheEngine
-
-class CacheBoxEngine(BaseCacheEngine[P, R]):
-    """Cachebox-based caching engine."""
-    
-    def __init__(self, config: CacheConfig) -> None: ...
-    def cache(self, func: Callable[P, R]) -> Callable[P, R]: ...
-    def get(self, key: CacheKey) -> Optional[R]: ...
-    def set(self, key: CacheKey, value: R) -> None: ...
-    def clear(self) -> None: ...
-```
-
-[Similar signatures for other engine implementations...]
-
-#### src/twat_cache/type_defs.py
-```python
-"""Type definitions for the caching system."""
-from typing import TypeVar, ParamSpec, Union, Any
-
-P = ParamSpec("P")
-R = TypeVar("R")
-AsyncR = TypeVar("AsyncR")
-CacheKey = Union[str, tuple[Any, ...]]
-```
-
-### 2. Implementation Priorities
-
-1. Core Decorator Implementation:
-   - [ ] Implement `mcache` with backend priority system
-   - [ ] Implement `bcache` with SQL/disk backend selection
-   - [ ] Implement `fcache` with compression support
-   - [ ] Implement `acache` with async capabilities
-   - [ ] Enhance `ucache` with TTL and security features
-
-2. Engine Implementation:
-   - [ ] Complete CacheBoxEngine implementation
-   - [ ] Complete DiskCacheEngine with TTL
-   - [ ] Complete JobLibEngine with compression
-   - [ ] Complete AioCacheEngine for async
-   - [ ] Add security features to all disk-based engines
-
-3. Configuration System:
-   - [ ] Implement CacheConfig with all features
-   - [ ] Add validation for all config options
-   - [ ] Add secure defaults for disk caches
-   - [ ] Add TTL support across all engines
-
-4. Security Features:
-   - [ ] Implement secure file permissions
-   - [ ] Add key sanitization
-   - [ ] Add optional encryption
-   - [ ] Add secure cleanup
-
-5. Performance Features:
-   - [ ] Implement compression for large objects
-   - [ ] Add race condition protection
-   - [ ] Optimize key generation
-   - [ ] Add performance monitoring
-
-### 3. Testing Plan
-
-1. Unit Tests:
-   ```python
-   # test_decorators.py
-   def test_mcache_backends(): ...
-   def test_bcache_backends(): ...
-   def test_fcache_backends(): ...
-   async def test_acache_backends(): ...
-   def test_ucache_features(): ...
-   
-   # test_security.py
-   def test_file_permissions(): ...
-   def test_key_sanitization(): ...
-   def test_encryption(): ...
-   
-   # test_performance.py
-   def test_race_conditions(): ...
-   def test_compression(): ...
-   def test_key_generation(): ...
-   ```
-
-2. Integration Tests:
-   ```python
-   # test_integration.py
-   def test_backend_fallback(): ...
-   def test_ttl_behavior(): ...
-   def test_security_features(): ...
-   async def test_async_integration(): ...
-   ```
-
-3. Benchmark Tests:
-   ```python
-   # test_benchmarks.py
-   def test_memory_performance(): ...
-   def test_disk_performance(): ...
-   def test_async_performance(): ...
-   ```
+4. Documentation approach:
+   - Focus on common use cases
+   - Provide clear examples
+   - Document fallback behavior
+   - Include troubleshooting tips

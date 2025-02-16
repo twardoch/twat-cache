@@ -19,14 +19,27 @@ from functools import wraps
 import inspect
 import json
 from pathlib import Path
-from typing import Any, Generic, cast
+from typing import Any, Generic, cast, Optional
 from collections.abc import Callable
+from importlib import util
 
 from loguru import logger
 
 from twat_cache.config import CacheConfig
 from twat_cache.type_defs import CacheKey, P, R
 from twat_cache.paths import get_cache_path, validate_cache_path
+
+
+def is_package_available(package_name: str) -> bool:
+    """Check if a Python package is available.
+
+    Args:
+        package_name: Name of the package to check.
+
+    Returns:
+        bool: True if the package is available, False otherwise.
+    """
+    return bool(util.find_spec(package_name))
 
 
 class BaseCacheEngine(ABC, Generic[P, R]):

@@ -15,13 +15,11 @@ This module provides the CacheEngineManager class which handles registration,
 selection and management of cache engine implementations.
 """
 
-from typing import Any, Dict, List, Optional, Type, TypeVar, cast
-import os
+from typing import Any, TypeVar, cast
 
 from loguru import logger
 
 from twat_cache.type_defs import (
-    F,
     CacheConfig,
 )
 from .aiocache import AioCacheEngine
@@ -75,7 +73,7 @@ class CacheEngineManager:
 
     def __init__(self) -> None:
         """Initialize the cache engine manager."""
-        self._engines: Dict[str, Type[BaseCacheEngine[Any, Any]]] = {}
+        self._engines: dict[str, type[BaseCacheEngine[Any, Any]]] = {}
         self._register_builtin_engines()
 
     def _register_builtin_engines(self) -> None:
@@ -88,7 +86,7 @@ class CacheEngineManager:
         self.register_engine("joblib", JoblibEngine)
         self.register_engine("cachebox", CacheBoxEngine)
 
-    def register_engine(self, name: str, engine_cls: Type[E]) -> None:
+    def register_engine(self, name: str, engine_cls: type[E]) -> None:
         """
         Register a new cache engine implementation.
 
@@ -98,9 +96,9 @@ class CacheEngineManager:
         """
         if name in self._engines:
             logger.warning(f"Overwriting existing engine registration for {name}")
-        self._engines[name] = cast(Type[BaseCacheEngine[Any, Any]], engine_cls)
+        self._engines[name] = cast(type[BaseCacheEngine[Any, Any]], engine_cls)
 
-    def get_engine(self, name: str) -> Optional[Type[BaseCacheEngine[Any, Any]]]:
+    def get_engine(self, name: str) -> type[BaseCacheEngine[Any, Any]] | None:
         """
         Get a registered cache engine by name.
 
@@ -112,7 +110,7 @@ class CacheEngineManager:
         """
         return self._engines.get(name)
 
-    def list_engines(self) -> List[str]:
+    def list_engines(self) -> list[str]:
         """
         Get a list of all registered engine names.
 
@@ -121,7 +119,7 @@ class CacheEngineManager:
         """
         return list(self._engines.keys())
 
-    def get_available_engines(self) -> List[str]:
+    def get_available_engines(self) -> list[str]:
         """
         Get a list of registered engines that are available for use.
 
@@ -133,8 +131,8 @@ class CacheEngineManager:
     def select_engine(
         self,
         config: CacheConfig,
-        preferred: Optional[List[str]] = None,
-    ) -> Optional[Type[BaseCacheEngine[Any, Any]]]:
+        preferred: list[str] | None = None,
+    ) -> type[BaseCacheEngine[Any, Any]] | None:
         """
         Select an appropriate cache engine based on configuration and preferences.
 
@@ -155,14 +153,14 @@ class CacheEngineManager:
             # Try preferred engines in order
             for engine_name in preferred:
                 if engine_name in available:
-                    engine_cls: Optional[Type[BaseCacheEngine[Any, Any]]] = (
+                    engine_cls: type[BaseCacheEngine[Any, Any]] | None = (
                         self.get_engine(engine_name)
                     )
                     if engine_cls and engine_cls.is_available():
                         return engine_cls
 
         # Fall back to first available engine
-        fallback: Optional[Type[BaseCacheEngine[Any, Any]]] = self.get_engine(
+        fallback: type[BaseCacheEngine[Any, Any]] | None = self.get_engine(
             available[0]
         )
         if fallback and fallback.is_available():

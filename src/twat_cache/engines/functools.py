@@ -16,7 +16,8 @@ are available.
 
 import functools
 import time
-from typing import Any, Dict, Optional, Callable
+from typing import Any
+from collections.abc import Callable
 
 from loguru import logger
 
@@ -32,10 +33,10 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
         super().__init__(config)
         self._hits = 0
         self._misses = 0
-        self._cache: Dict[CacheKey, R] = {}
+        self._cache: dict[CacheKey, R] = {}
         self._maxsize = config.maxsize or None
         self._ttl = config.ttl
-        self._last_access: Dict[CacheKey, float] = {}
+        self._last_access: dict[CacheKey, float] = {}
 
     def cache(self, func: Callable[P, R]) -> Callable[P, R]:
         """
@@ -108,7 +109,7 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
             raise ValueError(msg)
 
     @property
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """
         Get cache statistics.
 

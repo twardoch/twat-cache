@@ -9,8 +9,9 @@
 
 """Cache configuration system."""
 
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Optional
+from dataclasses import field
+from typing import Any
+from collections.abc import Callable
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -22,14 +23,14 @@ CacheType = str | None
 class CacheConfig(BaseModel):
     """Cache configuration settings."""
 
-    maxsize: Optional[int] = Field(default=None, ge=1)
-    folder_name: Optional[str] = None
-    preferred_engine: Optional[str] = None
-    serializer: Optional[Callable[[Any], str]] = None
-    cache_type: Optional[CacheType] = None
-    ttl: Optional[float] = Field(default=None, ge=0)
+    maxsize: int | None = Field(default=None, ge=1)
+    folder_name: str | None = None
+    preferred_engine: str | None = None
+    serializer: Callable[[Any], str] | None = None
+    cache_type: CacheType | None = None
+    ttl: float | None = Field(default=None, ge=0)
     policy: EvictionPolicy = "lru"
-    cache_dir: Optional[str] = None  # For backward compatibility
+    cache_dir: str | None = None  # For backward compatibility
 
     # Keyword-only boolean fields
     use_sql: bool = field(default=False, kw_only=True)
@@ -44,18 +45,20 @@ class CacheConfig(BaseModel):
 
     @classmethod
     @field_validator("maxsize")
-    def validate_maxsize(cls, v: Optional[int]) -> Optional[int]:
+    def validate_maxsize(cls, v: int | None) -> int | None:
         """Validate maxsize field."""
         if v is not None and v <= 0:
-            raise ValueError("maxsize must be positive")
+            msg = "maxsize must be positive"
+            raise ValueError(msg)
         return v
 
     @classmethod
     @field_validator("ttl")
-    def validate_ttl(cls, v: Optional[float]) -> Optional[float]:
+    def validate_ttl(cls, v: float | None) -> float | None:
         """Validate ttl field."""
         if v is not None and v < 0:
-            raise ValueError("ttl must be non-negative")
+            msg = "ttl must be non-negative"
+            raise ValueError(msg)
         return v
 
     @classmethod
@@ -64,10 +67,11 @@ class CacheConfig(BaseModel):
         """Validate policy field."""
         valid_policies = {"lru", "lfu", "fifo", "rr", "ttl"}
         if v is not None and v not in valid_policies:
-            raise ValueError(f"policy must be one of {valid_policies}")
+            msg = f"policy must be one of {valid_policies}"
+            raise ValueError(msg)
         return v
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary."""
         return {
             "maxsize": self.maxsize,
@@ -84,20 +88,20 @@ class CacheConfig(BaseModel):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CacheConfig":
+    def from_dict(cls, data: dict[str, Any]) -> "CacheConfig":
         """Create configuration from dictionary."""
         return cls(**data)
 
 
 def create_cache_config(
-    maxsize: Optional[int] = None,
-    folder_name: Optional[str] = None,
-    preferred_engine: Optional[str] = None,
-    serializer: Optional[Callable[[Any], str]] = None,
-    cache_type: Optional[CacheType] = None,
-    ttl: Optional[float] = None,
+    maxsize: int | None = None,
+    folder_name: str | None = None,
+    preferred_engine: str | None = None,
+    serializer: Callable[[Any], str] | None = None,
+    cache_type: CacheType | None = None,
+    ttl: float | None = None,
     policy: EvictionPolicy = "lru",
-    cache_dir: Optional[str] = None,  # For backward compatibility
+    cache_dir: str | None = None,  # For backward compatibility
     *,  # Force remaining arguments to be keyword-only
     use_sql: bool = False,
     compress: bool = False,
