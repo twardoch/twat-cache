@@ -22,6 +22,11 @@ from twat_cache.type_defs import CacheKey, P, R
 class AioCacheEngine(BaseCacheEngine[P, R]):
     """Cache engine using aiocache."""
 
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if aiocache is available."""
+        return is_package_available("aiocache")
+
     def __init__(self, config: CacheConfig) -> None:
         """Initialize the aiocache engine.
 

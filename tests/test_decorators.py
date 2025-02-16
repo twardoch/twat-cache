@@ -25,7 +25,7 @@ import pytest
 import importlib.util
 
 from twat_cache.decorators import mcache, bcache, fcache, ucache, acache
-from .test_constants import (
+from tests.test_constants import (
     CACHE_SIZE,
     CACHE_TTL,
     EXPECTED_CALLS_SINGLE,

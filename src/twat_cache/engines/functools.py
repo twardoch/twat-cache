@@ -28,6 +28,11 @@ from twat_cache.type_defs import CacheConfig, P, R, CacheKey
 class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
     """Cache engine implementation using functools.lru_cache."""
 
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if functools is available."""
+        return True  # Always available as it's in the standard library
+
     def __init__(self, config: CacheConfig) -> None:
         """Initialize the cache engine with the given configuration."""
         super().__init__(config)
@@ -129,8 +134,3 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
             "policy": "lru" if self._maxsize else None,
             "ttl": self._ttl,
         }
-
-    @classmethod
-    def is_available(cls) -> bool:
-        """Check if this cache engine is available for use."""
-        return True  # Always available as it uses stdlib

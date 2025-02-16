@@ -18,6 +18,11 @@ from twat_cache.type_defs import CacheKey, P, R
 class CacheBoxEngine(BaseCacheEngine[P, R]):
     """Cache engine using cachebox."""
 
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if cachebox is available."""
+        return is_package_available("cachebox")
+
     def __init__(self, config: CacheConfig) -> None:
         """Initialize the cachebox engine.
 

@@ -14,7 +14,7 @@ from twat_cache.decorators import (
     acache,
     ucache,
 )
-from .test_constants import (
+from tests.test_constants import (
     CACHE_SIZE,
     EXPECTED_CALLS_SINGLE,
     SQUARE_INPUT,

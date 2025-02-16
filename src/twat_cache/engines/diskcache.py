@@ -32,6 +32,11 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
     with support for TTL, compression, and secure file permissions.
     """
 
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if diskcache is available."""
+        return is_package_available("diskcache")
+
     def __init__(self, config: CacheConfig) -> None:
         """Initialize the disk cache engine."""
         super().__init__(config)
@@ -160,11 +165,6 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
             self._disk_cache.close()
         except Exception as e:
             logger.warning(f"Error closing disk cache: {e}")
-
-    @property
-    def is_available(self) -> bool:
-        """Check if this cache engine is available for use."""
-        return is_package_available("diskcache")
 
     def cache(self, func: Callable[P, R]) -> Callable[P, R]:
         """Decorate a function with caching.

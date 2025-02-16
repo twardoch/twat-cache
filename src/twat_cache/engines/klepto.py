@@ -39,6 +39,11 @@ class KleptoEngine(BaseCacheEngine[P, R]):
     - Maxsize limitation
     """
 
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if klepto is available."""
+        return is_package_available("klepto")
+
     def __init__(self, config: CacheConfig) -> None:
         """Initialize the klepto engine.
 
@@ -188,15 +193,6 @@ class KleptoEngine(BaseCacheEngine[P, R]):
                 self._cache.close()
         except Exception as e:
             logger.warning(f"Error closing klepto cache: {e}")
-
-    @property
-    def is_available(self) -> bool:
-        """Check if this cache engine is available for use.
-
-        Returns:
-            bool: True if the engine is available, False otherwise.
-        """
-        return is_package_available("klepto")
 
     def cache(self, func: Callable[P, R]) -> Callable[P, R]:
         """Decorate a function with caching.

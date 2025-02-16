@@ -23,6 +23,11 @@ from twat_cache.type_defs import CacheKey, P, R
 class CacheToolsEngine(BaseCacheEngine[P, R]):
     """Cache engine using cachetools."""
 
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if cachetools is available."""
+        return is_package_available("cachetools")
+
     def __init__(self, config: CacheConfig) -> None:
         """Initialize the cachetools engine.
 
