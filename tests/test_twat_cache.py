@@ -25,6 +25,7 @@ from twat_cache.engines.joblib import JoblibEngine
 from twat_cache.engines.klepto import KleptoEngine
 from twat_cache.engines.aiocache import AioCacheEngine
 from twat_cache.types import CacheConfig, CacheKey
+from twat_cache.config import create_cache_config
 
 try:
     import numpy as np
@@ -38,7 +39,7 @@ except ImportError:
 @pytest.fixture
 def base_config() -> CacheConfig:
     """Provide a basic cache configuration."""
-    return CacheConfig(maxsize=100)
+    return create_cache_config(maxsize=100)
 
 
 @pytest.fixture
@@ -91,7 +92,7 @@ def test_lru_cache_maxsize(lru_engine: FunctoolsCacheEngine) -> None:
 @pytest.fixture
 def disk_engine(base_config: CacheConfig, temp_path: Path) -> DiskCacheEngine:
     """Create a disk cache engine instance."""
-    config = CacheConfig(maxsize=100, cache_dir=str(temp_path))
+    config = create_cache_config(maxsize=100, cache_dir=str(temp_path))
     return DiskCacheEngine(config)
 
 
@@ -113,7 +114,7 @@ def test_disk_cache_persistence(disk_engine: DiskCacheEngine) -> None:
 @pytest.fixture
 def joblib_engine(base_config: CacheConfig, temp_path: Path) -> JoblibEngine:
     """Create a joblib cache engine instance."""
-    config = CacheConfig(maxsize=100, cache_dir=str(temp_path))
+    config = create_cache_config(maxsize=100, cache_dir=str(temp_path))
     return JoblibEngine(config)
 
 
@@ -133,7 +134,7 @@ def test_joblib_numpy_array(joblib_engine: JoblibEngine) -> None:
 @pytest.fixture
 def klepto_engine(base_config: CacheConfig, temp_path: Path) -> KleptoEngine:
     """Create a klepto cache engine instance."""
-    config = CacheConfig(maxsize=100, cache_dir=str(temp_path))
+    config = create_cache_config(maxsize=100, cache_dir=str(temp_path))
     return KleptoEngine(config)
 
 

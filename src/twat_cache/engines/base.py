@@ -199,3 +199,117 @@ class BaseCacheEngine(ABC, Generic[P, R]):
             return value
 
         return cast(Callable[P, R], wrapper)
+
+
+class CacheEngine(BaseCacheEngine[P, R]):
+    """
+    Concrete implementation of the cache engine protocol.
+
+    This class provides a default implementation of the abstract methods
+    defined in BaseCacheEngine. It can be used directly or subclassed
+    for more specific caching needs.
+    """
+
+    def _get_cached_value(self, key: CacheKey) -> R | None:
+        """
+        Retrieve a value from the cache.
+
+        This default implementation always returns None, indicating a cache miss.
+        Subclasses should override this with actual caching logic.
+
+        Args:
+            key: The cache key to look up
+
+        Returns:
+            None, indicating a cache miss
+        """
+        return None
+
+    def _set_cached_value(self, key: CacheKey, value: R) -> None:
+        """
+        Store a value in the cache.
+
+        This default implementation does nothing.
+        Subclasses should override this with actual caching logic.
+
+        Args:
+            key: The cache key to store under
+            value: The value to cache
+        """
+        pass
+
+    def clear(self) -> None:
+        """
+        Clear all cached values.
+
+        This default implementation does nothing.
+        Subclasses should override this with actual cache clearing logic.
+        """
+        pass
+
+    def get(self, key: Any) -> R | None:
+        """
+        Get a value from the cache.
+
+        Args:
+            key: The key to look up
+
+        Returns:
+            The cached value if found, None otherwise
+        """
+        return self._get_cached_value(key)
+
+    def set(self, key: Any, value: R) -> None:
+        """
+        Set a value in the cache.
+
+        Args:
+            key: The key to store under
+            value: The value to cache
+        """
+        self._set_cached_value(key, value)
+
+    def cache(
+        self, func: Callable[P, R] | None = None
+    ) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
+        """
+        Decorate a function to cache its results.
+
+        This method can be used both as a decorator and as a decorator factory:
+
+        @engine.cache
+        def func(): ...
+
+        @engine.cache()
+        def func(): ...
+
+        Args:
+            func: The function to cache, or None if used as a decorator factory
+
+        Returns:
+            A wrapped function that caches its results, or a decorator
+        """
+
+        def decorator(f: Callable[P, R]) -> Callable[P, R]:
+            @wraps(f)
+            def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+                key = self._make_key(f, args, kwargs)
+                result = self._get_cached_value(key)
+                if result is None:
+                    try:
+                        result = f(*args, **kwargs)
+                        self._set_cached_value(key, result)
+                    except Exception as e:
+                        # Cache the exception to avoid recomputing
+                        # We know the exception is safe to cache in this context
+                        self._set_cached_value(key, cast(R, e))
+                        raise
+                elif isinstance(result, Exception):
+                    raise result
+                return result
+
+            return wrapper
+
+        if func is None:
+            return decorator
+        return decorator(func)

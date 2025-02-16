@@ -35,7 +35,7 @@ to ensure that the code is linted and tested. This will inform your next steps.
 * ✅ **1.1. Fix `aiocache.py` Linter Errors:**
   + ✅ **1.1.1. Correct Imports:**
   + ✅ **1.1.2. Add Type Hints:**
-  + ✅ **1.1.3 Add this\_file magic record:**
+  + ✅ **1.1.3 Add this_file magic record:**
 * ✅ **1.2. Review and Consolidate `CacheEngine` and `BaseCacheEngine`:**
   + ✅ **1.2.1.**
   + ✅ **1.2.2.** Update all imports.
@@ -45,65 +45,54 @@ to ensure that the code is linted and tested. This will inform your next steps.
 
 ## Phase 2: Core Functionality and Testing
 
-* **2.1. Fix Critical Issues:**
-  + ✅ **2.1.1.** Implement the abstract methods in engine classes.
-  + ✅ **2.1.2.** Add comprehensive docstrings to these methods.
-  + ✅ **2.1.3.** Rename `lru.py` to `functools.py` and update implementation.
-  + ✅ **2.1.4.** Remove custom SQL and Redis implementations.
-  + **2.1.5.** Fix failing tests and complete test coverage:
-    - ❌ Fix CacheConfig initialization (TypeError: CacheConfig() takes no arguments)
-    - ❌ Fix cache stats tracking (hits/misses not being counted)
-    - ❌ Fix maxsize enforcement (cache growing beyond limit)
-    - ❌ Fix cache clearing behavior
-    - ❌ Fix kwargs handling in cache keys
-  + **2.1.6.** Add missing engine-specific tests:
-    - ❌ Test cache eviction policies
-    - ❌ Test concurrent access
-    - ❌ Test error handling
-    - ❌ Test serialization/deserialization
-    - ❌ Test memory limits
-    - ❌ Test cache invalidation strategies
-
-* **2.2. Enhance Configuration System:**
-  + **2.2.1. Fix CacheConfig Implementation:**
-    - ❌ Fix field validation
-    - ❌ Fix property access
-    - ❌ Fix initialization
-    - ❌ Add proper error messages
-  + **2.2.2. Fix GlobalConfig:**
-    - ❌ Fix cache directory handling
-    - ❌ Fix log file path handling
-    - ❌ Fix environment variable support
-  + **2.2.3. Add Validation:**
+* **2.1. Fix Configuration System:**
+  + **2.1.1. Fix CacheConfig Implementation:**
+    - ✅ Update Pydantic field validators to use @classmethod
+    - ✅ Fix model_config settings
+    - ❌ Fix Pydantic model initialization (TypeError: CacheConfig() takes no arguments)
+    - ❌ Add proper error messages for field validation
+  + **2.1.2. Fix Cache Directory Management:**
+    - ❌ Implement proper cache directory creation
+    - ❌ Add directory cleanup on errors
+    - ❌ Add cache size monitoring
+  + **2.1.3. Add Validation:**
     - ❌ Add config schema validation
-    - ❌ Add runtime checks
-    - ❌ Add type validation
+    - ❌ Add runtime checks for backend availability
+    - ❌ Add type validation for cache keys
 
-* **2.3. Improve Cache Engine Implementation:**
-  + **2.3.1. Fix FunctoolsCacheEngine:**
-    - ❌ Fix stats tracking
+* **2.2. Fix Cache Engine Issues:**
+  + **2.2.1. Fix Core Engine Components:**
+    - ❌ Fix CacheEngine import in base.py (current blocker)
+    - ❌ Fix stats tracking in FunctoolsCacheEngine
     - ❌ Fix maxsize enforcement
-    - ❌ Fix cache key generation
-    - ❌ Fix cache clearing
-  + **2.3.2. Add Error Handling:**
-    - ❌ Add proper exception handling
-    - ❌ Add fallback mechanisms
-    - ❌ Add retry logic
-  + **2.3.3. Add Performance Optimizations:**
-    - ❌ Add key serialization
-    - ❌ Add value compression
-    - ❌ Add memory monitoring
+    - ❌ Implement proper cache key generation
+  + **2.2.2. Add Error Handling:**
+    - ❌ Add proper exception hierarchy
+    - ❌ Add fallback mechanisms for failed backends
+    - ❌ Add retry logic for transient failures
 
-* **2.4. Documentation and Testing:**
+
+* **2.3. Fix Test Suite:**
+  + **2.3.1. Fix Critical Test Failures:**
+    - ❌ Fix CacheEngine import in test_engines.py
+    - ❌ Fix CacheConfig initialization tests
+    - ❌ Fix cache stats tracking tests
+  + **2.3.2. Add Engine-specific Tests:**
+    - ❌ Add tests for each backend type
+    - ❌ Add concurrent access tests
+    - ❌ Add error handling tests
+  + **2.3.3. Add Performance Tests:**
+    - ❌ Add benchmark suite
+    - ❌ Add memory usage tests
+    - ❌ Add cache invalidation tests
+
+* **2.4. Documentation and Examples:**
   + **2.4.1. Update Documentation:**
     - ❌ Add configuration guide
-    - ❌ Add troubleshooting guide
-    - ❌ Add performance tips
-  + **2.4.2. Enhance Tests:**
-    - ❌ Add benchmark tests
-    - ❌ Add stress tests
-    - ❌ Add integration tests
-  + **2.4.3. Add Examples:**
-    - ❌ Add usage examples
-    - ❌ Add configuration examples
-    - ❌ Add performance examples
+    - ❌ Add backend selection guide
+    - ❌ Add performance optimization guide
+  + **2.4.2. Add Examples:**
+    - ❌ Add examples for each backend
+    - ❌ Add error handling examples
+    - ❌ Add performance optimization examples
+

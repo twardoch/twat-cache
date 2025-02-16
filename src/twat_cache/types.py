@@ -35,41 +35,47 @@ CacheKey = str | int | float | tuple[Any, ...]
 CacheValue = Any  # Consider constraining this in future versions
 
 
-class CacheConfig(ABC):
-    """Abstract base class defining the required configuration interface for cache engines."""
+@runtime_checkable
+class CacheConfig(Protocol):
+    """Protocol defining the required configuration interface for cache engines."""
 
-    @property
-    @abstractmethod
-    def maxsize(self) -> int | None:
-        """Maximum number of items to store in the cache."""
+    maxsize: int | None
+    folder_name: str | None
+    use_sql: bool
+    preferred_engine: str | None
+    cache_type: str | None
+
+    def get_maxsize(self) -> int | None:
+        """Get the maxsize value."""
         ...
 
-    @property
-    @abstractmethod
-    def folder_name(self) -> str | None:
-        """Name of the folder to store cache files in."""
+    def get_folder_name(self) -> str | None:
+        """Get the folder name."""
         ...
 
-    @property
-    @abstractmethod
-    def use_sql(self) -> bool:
-        """Whether to use SQL-based storage."""
+    def get_use_sql(self) -> bool:
+        """Get the use_sql value."""
         ...
 
-    @property
-    @abstractmethod
-    def preferred_engine(self) -> str | None:
-        """Preferred cache engine to use."""
+    def get_preferred_engine(self) -> str | None:
+        """Get the preferred engine."""
         ...
 
-    @abstractmethod
+    def get_cache_type(self) -> str | None:
+        """Get the cache type."""
+        ...
+
     def validate(self) -> None:
-        """Validate the configuration settings."""
+        """Validate the configuration."""
+        ...
+
+    def model_dump(self) -> dict[str, Any]:
+        """Convert the model to a dictionary."""
         ...
 
 
 class CacheStats(ABC):
-    """Base class defining the interface for cache statistics."""
+    """Abstract base class defining the required statistics interface for cache engines."""
 
     @property
     @abstractmethod
@@ -86,13 +92,13 @@ class CacheStats(ABC):
     @property
     @abstractmethod
     def size(self) -> int:
-        """Current cache size."""
+        """Current number of items in the cache."""
         ...
 
     @property
     @abstractmethod
     def maxsize(self) -> int | None:
-        """Maximum cache size."""
+        """Maximum number of items allowed in the cache."""
         ...
 
     @abstractmethod
@@ -102,23 +108,23 @@ class CacheStats(ABC):
 
 
 class CacheEngine(ABC, Generic[P, R]):
-    """
-    Abstract base class defining the required interface for cache engine implementations.
+    """Abstract base class defining the required interface for cache engines."""
 
-    This class provides the foundation for all cache backend implementations,
-    ensuring they provide the necessary functionality.
-    """
+    def __init__(self, config: CacheConfig) -> None:
+        """Initialize the cache engine with the given configuration."""
+        self._config = config
+        self.validate_config()
 
     @abstractmethod
     def cache(self, func: Callable[P, R]) -> Callable[P, R]:
         """
-        Decorate a function with caching capability.
+        Decorate a function to cache its results.
 
         Args:
             func: The function to cache
 
         Returns:
-            A wrapped function that will use the cache
+            A wrapped function that caches its results
         """
         ...
 
@@ -140,7 +146,18 @@ class CacheEngine(ABC, Generic[P, R]):
     @property
     @abstractmethod
     def stats(self) -> dict[str, Any]:
-        """Get cache statistics."""
+        """
+        Get cache statistics.
+
+        Returns:
+            A dictionary containing cache statistics:
+            - hits: Number of cache hits
+            - misses: Number of cache misses
+            - size: Current number of items in cache
+            - maxsize: Maximum number of items allowed
+            - current_size: Current size of cache in bytes (if available)
+            - memory_usage: Memory usage in bytes (if available)
+        """
         ...
 
 

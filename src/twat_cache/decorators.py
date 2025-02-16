@@ -8,7 +8,8 @@ from typing import Any, TypeVar
 from loguru import logger
 
 from twat_cache.engines.manager import get_engine_manager
-from twat_cache.config import CacheConfig
+from twat_cache.config import create_cache_config
+from twat_cache.types import CacheConfig
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -19,6 +20,7 @@ def ucache(
     use_sql: bool = False,
     preferred_engine: str | None = None,
     cache_type: str | None = None,
+    config: CacheConfig | None = None,
 ) -> Callable[[F], F]:
     """Universal cache decorator that can use any available cache engine.
 
@@ -35,6 +37,7 @@ def ucache(
         preferred_engine: Optional name of preferred engine
         use_sql: Whether to prefer SQL-based caching
         cache_type: Optional cache type hint ("speed", "database", "filesystem")
+        config: Optional pre-configured CacheConfig instance
 
     Returns:
         A decorator function that caches the decorated function's results
@@ -49,14 +52,15 @@ def ucache(
         result = expensive_computation(42)
         ```
     """
-    # Create configuration
-    config = CacheConfig(
-        maxsize=maxsize,
-        folder_name=folder_name,
-        use_sql=use_sql,
-        preferred_engine=preferred_engine,
-        cache_type=cache_type,
-    )
+    # Use provided config or create new one
+    if config is None:
+        config = create_cache_config(
+            maxsize=maxsize,
+            folder_name=folder_name,
+            use_sql=use_sql,
+            preferred_engine=preferred_engine,
+            cache_type=cache_type,
+        )
 
     # Get engine manager
     manager = get_engine_manager()

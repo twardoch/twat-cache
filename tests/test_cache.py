@@ -8,37 +8,13 @@
 
 """Tests for the main cache interface."""
 
-from typing import Any, TypedDict
+from typing import Any
 
 import pytest
 
 from twat_cache.cache import clear_cache, get_stats
 from twat_cache.decorators import ucache
-from twat_cache.config import CacheConfig
-
-
-class CacheConfig(TypedDict, total=False):
-    """Type definition for cache configuration."""
-
-    maxsize: int
-    folder_name: str
-    use_sql: bool
-
-
-def test_cache_settings_validation() -> None:
-    """Test validation of cache settings."""
-    # Valid settings
-    config = CacheConfig(maxsize=100)
-    config.validate()  # Should not raise
-
-    # Invalid maxsize
-    with pytest.raises(ValueError):
-        config = CacheConfig(maxsize=-1)
-        config.validate()
-
-    with pytest.raises(ValueError):
-        config = CacheConfig(maxsize=0)
-        config.validate()
+from twat_cache.config import create_cache_config
 
 
 # Test constants
@@ -49,6 +25,20 @@ TEST_RESULT_2 = TEST_INPUT_2 * TEST_INPUT_2
 EXPECTED_CALL_COUNT = 2
 MIN_STATS_COUNT = 2
 TEST_LIST_SUM = 15
+
+
+def test_cache_settings_validation() -> None:
+    """Test validation of cache settings."""
+    # Valid settings
+    config = create_cache_config(maxsize=100)
+    config.validate()  # Should not raise
+
+    # Invalid maxsize
+    with pytest.raises(ValueError):
+        create_cache_config(maxsize=-1)
+
+    with pytest.raises(ValueError):
+        create_cache_config(maxsize=0)
 
 
 def test_basic_caching() -> None:
@@ -147,15 +137,15 @@ def test_different_backends() -> None:
     results: list[Any] = []
 
     # Test with different configurations
-    configs: list[CacheConfig] = [
-        {"maxsize": 100},  # Memory cache
-        {"folder_name": "disk_test", "use_sql": True},  # SQL cache
-        {"folder_name": "disk_test", "use_sql": False},  # Disk cache
+    configs = [
+        create_cache_config(maxsize=100),  # Memory cache
+        create_cache_config(folder_name="disk_test", use_sql=True),  # SQL cache
+        create_cache_config(folder_name="disk_test", use_sql=False),  # Disk cache
     ]
 
     for config in configs:
 
-        @ucache(**config)
+        @ucache(config=config)
         def cached_function(x: int) -> int:
             return x * x
 

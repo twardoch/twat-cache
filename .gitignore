@@ -1,3 +1,4 @@
+.mypy_cache
 *_autogen/
 .DS_Store
 __version__.py

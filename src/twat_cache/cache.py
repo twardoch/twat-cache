@@ -17,7 +17,7 @@ from typing import Any, cast
 
 from loguru import logger
 
-from .config import CacheConfig
+from .config import create_cache_config
 from .engines.manager import get_engine_manager, EngineManager
 
 
@@ -42,7 +42,7 @@ def clear_cache(
         ```
     """
     # Create configuration
-    config = CacheConfig(
+    config = create_cache_config(
         folder_name=folder_name,
         preferred_engine=preferred_engine,
     )
@@ -80,7 +80,7 @@ def get_stats(
         ```
     """
     # Create configuration
-    config = CacheConfig(
+    config = create_cache_config(
         folder_name=folder_name,
         preferred_engine=preferred_engine,
     )

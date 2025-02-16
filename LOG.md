@@ -4,7 +4,7 @@ this_file: LOG.md
 
 # Changelog
 
-All notable changes to the `twat-cache` project will be documented in this file.
+All notable changes to the `twat_cache` project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -16,6 +16,151 @@ uv venv; source .venv/bin/activate; uv pip install -e .[all,dev,test]; hatch run
 ```
 
 to ensure that the code is linted and tested. This will inform your next steps. 
+
+## [1.7.9] - 2025-02-16
+
+### Changed
+
+* Updated TODO.md with clearer structure and priorities
+* Reorganized Phase 2 tasks to focus on critical issues first
+* Added more detailed subtasks for each component
+
+### Fixed
+
+* Fixed Pydantic field validators in CacheConfig
+* Updated model_config settings
+* Improved error messages
+
+### Issues
+
+* Critical: CacheEngine import failing in test_engines.py
+* CacheConfig initialization still broken (TypeError: CacheConfig() takes no arguments)
+* Cache stats tracking not working
+* Cache maxsize enforcement not working
+* Multiple linting issues identified:
+  - Magic numbers in comparisons
+  - Boolean argument type issues
+  - Module naming conflicts with stdlib
+  - Unused arguments in lambda functions
+  - Complex function (clear_cache)
+
+### Next Steps
+
+1. Fix Critical Engine Issues:
+   - Fix CacheEngine import in base.py
+   - Fix test_engines.py import error
+   - Fix CacheConfig initialization
+   - Address linting issues
+
+2. Fix Cache Engine Core:
+   - Implement proper stats tracking
+   - Fix maxsize enforcement
+   - Add proper cache key generation
+   - Add proper error handling
+
+3. Improve Test Coverage:
+   - Fix failing tests
+   - Add engine-specific tests
+   - Add performance benchmarks
+
+4. Documentation:
+   - Add configuration guide
+   - Add backend selection guide
+   - Add performance optimization guide
+
+# Development Log
+
+### Completed
+
+* Updated TODO.md with clearer structure and priorities
+* Fixed Pydantic field validators
+* Updated model_config settings
+* Identified critical import issue in test_engines.py
+
+### In Progress
+
+* Fixing CacheEngine import issue
+* Fixing CacheConfig initialization
+* Addressing linting issues
+* Improving test coverage
+
+### Next Steps
+
+1. Fix Critical Issues:
+   - Fix CacheEngine import
+   - Fix CacheConfig initialization
+   - Fix test failures
+   - Address linting issues
+
+2. Improve Core Functionality:
+   - Fix stats tracking
+   - Fix maxsize enforcement
+   - Improve cache key generation
+   - Add proper error handling
+
+3. Enhance Testing:
+   - Fix failing tests
+   - Add comprehensive test suite
+   - Add performance benchmarks
+
+# Critical Considerations
+
+1. Engine System:
+   - CacheEngine must be properly exported from base.py
+   - All engines must properly implement the base interface
+   - Stats tracking must be consistent across all engines
+
+2. Configuration System:
+   - CacheConfig must properly initialize with constructor arguments
+   - Field validation must be robust and informative
+   - Cache directory management must be reliable
+
+3. Testing System:
+   - All engines must be properly tested
+   - Performance benchmarks must be comprehensive
+   - Error handling must be thoroughly tested
+
+## [1.7.8] - 2025-02-16
+
+### Changed
+
+* Reorganized TODO.md with clearer structure and priorities
+* Added Phase 3 for advanced features
+* Updated test results analysis
+
+### Fixed
+
+* Fixed Pydantic field validators in CacheConfig
+* Updated field validator decorators to use @classmethod
+* Fixed model_config settings
+
+### Issues
+
+* CacheConfig initialization still broken (TypeError: CacheConfig() takes no arguments)
+* Cache stats tracking not working (hits/misses not being counted)
+* Cache maxsize enforcement not working (cache growing beyond limit)
+* Cache clearing behavior inconsistent
+* Field validation in CacheConfig needs fixing
+
+### Next Steps
+
+1. Fix CacheConfig initialization:
+   - Update Pydantic model to properly accept constructor arguments
+   - Fix field validation and property access
+   - Add proper error messages
+   - Update model_config for proper initialization
+
+2. Fix cache engine issues:
+   - Fix stats tracking in FunctoolsCacheEngine
+   - Fix maxsize enforcement
+   - Fix cache key generation
+   - Fix cache clearing behavior
+
+3. Fix failing tests:
+   - Fix CacheConfig initialization tests
+   - Fix cache stats tracking tests
+   - Fix maxsize enforcement tests
+   - Fix cache clearing tests
 
 ## [1.7.7] - 2025-02-16
 
@@ -142,6 +287,8 @@ to ensure that the code is linted and tested. This will inform your next steps.
 * Initial release
 * Basic memory caching implementation
 
+[1.7.9]: https://github.com/twardoch/twat-cache/compare/v1.7.8...v1.7.9
+[1.7.8]: https://github.com/twardoch/twat-cache/compare/v1.7.7...v1.7.8
 [1.7.7]: https://github.com/twardoch/twat-cache/compare/v1.7.6...v1.7.7
 [1.7.6]: https://github.com/twardoch/twat-cache/compare/v1.7.5...v1.7.6
 [1.7.5]: https://github.com/twardoch/twat-cache/compare/v1.7.3...v1.7.5
@@ -157,63 +304,69 @@ to ensure that the code is linted and tested. This will inform your next steps.
 
 ### Completed
 
-* Implemented multiple new cache backends:
-  + `cachebox` - Very fast Rust-based cache
-  + `cachetools` - Flexible in-memory caching
-  + `aiocache` - Async-capable caching
-  + `klepto` - Scientific computing caching
-* Updated engine manager with proper prioritization
-* Added comprehensive documentation in README.md
-* Added optional dependencies in pyproject.toml
-* Improved ucache decorator with better examples and documentation
-* Updated `pyproject.toml` to include `pyupgrade` and enhanced linting scripts.
-* Applied minor formatting fix to `README.md`.
-* Updated `LOG.md` with current changes and next steps.
-* __Addressed Linter Errors and Basic Integration (Phase 1.1):__
-    - Corrected imports and added type hints in `aiocache.py`.
-    - Implemented `_get_cached_value` and `_set_cached_value` in `aiocache.py`.
-    - Added `this_file` magic record to `aiocache.py`.
-    - Updated imports and implemented `_get_cached_value` and `_set_cached_value` in `cachebox.py`, `cachetools.py`, `diskcache.py`, and `joblib.py`.
-    - Added `super().__init__(config)` to all engine files.
-* __Major Refactoring (Phase 2.1):__
-    - Renamed `lru.py` to `functools.py` to better reflect its implementation
-    - Updated the engine to use `functools.lru_cache` instead of custom dict-based implementation
-    - Removed custom SQL and Redis cache implementations in favor of using `diskcache` and `aiocache`
-    - Removed obsolete test files
-    - Added comprehensive test suite for all engines
+* Fixed Pydantic field validators in CacheConfig:
+  - Updated validators to use @classmethod decorator
+  - Fixed model_config settings
+  - Improved error messages
+* Reorganized TODO.md:
+  - Added clearer structure
+  - Prioritized critical fixes
+  - Added Phase 3 for advanced features
+* Updated test suite:
+  - Added more comprehensive test cases
+  - Identified failing tests
+  - Added test categories
 
 ### In Progress
 
-* Fixing failing tests in test suite:
-  - CacheConfig instantiation issues
-  - Cache stats tracking problems
-  - List/unhashable type handling
-  - Cache clearing behavior
-* Implementing proper type hints and validation
-* Enhancing error handling and graceful degradation
+* Fixing CacheConfig initialization issues:
+  - Working on proper Pydantic model setup
+  - Fixing field validation and property access
+  - Adding proper error messages
+* Fixing cache engine issues:
+  - Implementing proper stats tracking
+  - Fixing maxsize enforcement
+  - Improving cache key generation
+  - Fixing cache clearing behavior
 
 ### Next Steps
 
-1. Fix Critical Test Issues:
-   - Fix CacheConfig instantiation to accept constructor arguments
-   - Implement proper stats tracking in FunctoolsCacheEngine
-   - Add support for unhashable types in cache keys
-   - Fix cache clearing mechanism
+1. Fix Critical Issues:
+   - Fix CacheConfig initialization
+   - Fix cache stats tracking
+   - Fix maxsize enforcement
+   - Fix cache clearing behavior
 
-2. Enhance Type System:
-   - Add typing_extensions dependency
-   - Update type hints throughout codebase
-   - Create type stubs for optional backends
+2. Enhance Test Coverage:
+   - Fix failing tests
+   - Add missing engine-specific tests
+   - Add performance tests
 
-3. Improve Configuration:
-   - Fix CacheConfig implementation
-   - Update engine constructors
-   - Add proper environment variable handling
+3. Improve Documentation:
+   - Update configuration guide
+   - Add troubleshooting guide
+   - Add performance tips
+   - Add examples
 
-4. Documentation and Testing:
-   - Update README with new changes
-   - Add missing tests
-   - Set up benchmark tests
+# Critical Considerations
+
+1. Configuration System:
+   - CacheConfig must properly initialize with constructor arguments
+   - Field validation must work correctly
+   - Property access must be reliable
+   - Error messages must be helpful
+
+2. Cache Engine Behavior:
+   - Stats tracking must be accurate
+   - Maxsize enforcement must be reliable
+   - Cache clearing must be consistent
+   - Key generation must handle all types
+
+3. Test Coverage:
+   - All critical functionality must be tested
+   - Edge cases must be covered
+   - Performance must be verified
+   - Error handling must be tested
 
 # Conslidation UI Project Analysis & Plan
 
