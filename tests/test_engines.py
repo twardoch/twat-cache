@@ -22,12 +22,11 @@ from typing import Any, Protocol
 import pytest
 
 from twat_cache.engines.base import BaseCacheEngine
-from twat_cache.engines.lru import LRUCacheEngine
-from twat_cache.engines.disk import DiskCacheEngine
+from twat_cache.engines.functools import FunctoolsCacheEngine
+from twat_cache.engines.diskcache import DiskCacheEngine
 from twat_cache.engines.manager import EngineManager, get_engine_manager
 from twat_cache.types import CacheConfig, CacheKey, P, R, CacheEngine
 from twat_cache.config import config as global_config
-from twat_cache.engines.functools import FunctoolsCacheEngine
 
 
 # Test fixtures and utilities
@@ -86,13 +85,13 @@ def base_config() -> TestCacheConfig:
 @pytest.fixture
 def test_engine(base_config: TestCacheConfig) -> BaseCacheEngine[Any, Any]:
     """Create a test engine instance."""
-    return LRUCacheEngine(base_config)
+    return FunctoolsCacheEngine(base_config)
 
 
 @pytest.fixture
-def lru_engine(base_config: TestCacheConfig) -> LRUCacheEngine[Any, Any]:
+def lru_engine(base_config: TestCacheConfig) -> FunctoolsCacheEngine[Any, Any]:
     """Create an LRU engine instance."""
-    return LRUCacheEngine(base_config)
+    return FunctoolsCacheEngine(base_config)
 
 
 @pytest.fixture
@@ -176,13 +175,13 @@ def test_base_engine_validation(test_config: TestConfig) -> None:
 # Test LRU cache implementation
 def test_lru_cache_initialization(test_config: TestConfig) -> None:
     """Test LRU cache initialization."""
-    engine = LRUCacheEngine(test_config)
+    engine = FunctoolsCacheEngine(test_config)
     assert engine.stats["type"] == "lru"
     assert engine.stats["maxsize"] == test_config.maxsize
     assert engine.stats["current_size"] == 0
 
 
-def test_lru_cache_maxsize_enforcement(lru_engine: LRUCacheEngine) -> None:
+def test_lru_cache_maxsize_enforcement(lru_engine: FunctoolsCacheEngine) -> None:
     """Test that LRU cache respects maxsize."""
     # Fill cache to maxsize
     for i in range(10):
@@ -197,7 +196,7 @@ def test_lru_cache_maxsize_enforcement(lru_engine: LRUCacheEngine) -> None:
     assert ("key", 10) in lru_engine._cache  # New item should be present
 
 
-def test_lru_cache_clear(lru_engine: LRUCacheEngine) -> None:
+def test_lru_cache_clear(lru_engine: FunctoolsCacheEngine) -> None:
     """Test cache clearing."""
     # Add some items
     for i in range(5):
@@ -213,7 +212,7 @@ def test_lru_cache_clear(lru_engine: LRUCacheEngine) -> None:
     assert lru_engine.stats["size"] == 0
 
 
-def test_lru_cache_with_complex_values(lru_engine: LRUCacheEngine) -> None:
+def test_lru_cache_with_complex_values(lru_engine: FunctoolsCacheEngine) -> None:
     """Test LRU cache with complex values."""
     # Test with various Python types
     values = [
@@ -232,7 +231,7 @@ def test_lru_cache_with_complex_values(lru_engine: LRUCacheEngine) -> None:
         assert lru_engine._get_cached_value(("complex", i)) == value
 
 
-def test_lru_cache_stats_accuracy(lru_engine: LRUCacheEngine) -> None:
+def test_lru_cache_stats_accuracy(lru_engine: FunctoolsCacheEngine) -> None:
     """Test that cache statistics are accurate."""
 
     @lru_engine.cache
@@ -293,7 +292,7 @@ def test_engine_selection(engine_manager: EngineManager) -> None:
     # Test default selection (should be LRU)
     config = global_config.get_cache_config()
     engine = engine_manager.get_engine(config)
-    assert isinstance(engine, LRUCacheEngine)
+    assert isinstance(engine, FunctoolsCacheEngine)
 
     # Test disk cache selection
     config = CacheConfig(folder_name="test_cache")
@@ -303,7 +302,7 @@ def test_engine_selection(engine_manager: EngineManager) -> None:
     # Test preferred engine selection
     config = CacheConfig(preferred_engine="lru")
     engine = engine_manager.get_engine(config)
-    assert isinstance(engine, LRUCacheEngine)
+    assert isinstance(engine, FunctoolsCacheEngine)
 
 
 def test_invalid_engine_registration(engine_manager: EngineManager) -> None:
@@ -332,7 +331,7 @@ def test_engine_configuration() -> None:
     # Test maxsize configuration
     config = CacheConfig(maxsize=100)
     engine = get_engine_manager().get_engine(config)
-    assert isinstance(engine, LRUCacheEngine)
+    assert isinstance(engine, FunctoolsCacheEngine)
 
     # Test invalid maxsize
     config = CacheConfig(maxsize=-1)
@@ -351,7 +350,7 @@ def test_unavailable_engine() -> None:
     config = CacheConfig(preferred_engine="nonexistent")
     engine = get_engine_manager().get_engine(config)
     # Should fall back to default engine
-    assert isinstance(engine, LRUCacheEngine)
+    assert isinstance(engine, FunctoolsCacheEngine)
 
 
 def test_engine_stats() -> None:
@@ -406,7 +405,7 @@ def test_engine_caching(test_engine: BaseCacheEngine[Any, Any]) -> None:
     assert test_engine.stats["misses"] == EXPECTED_CALL_COUNT
 
 
-def test_lru_maxsize(lru_engine: LRUCacheEngine[Any, Any]) -> None:
+def test_lru_maxsize(lru_engine: FunctoolsCacheEngine[Any, Any]) -> None:
     """Test LRU cache maxsize enforcement."""
     # Fill cache to maxsize
     for i in range(LRU_CACHE_SIZE):
@@ -421,7 +420,7 @@ def test_lru_maxsize(lru_engine: LRUCacheEngine[Any, Any]) -> None:
     assert ("key", LRU_CACHE_SIZE) in lru_engine._cache  # New item should be present
 
 
-def test_lru_clear(lru_engine: LRUCacheEngine[Any, Any]) -> None:
+def test_lru_clear(lru_engine: FunctoolsCacheEngine[Any, Any]) -> None:
     """Test LRU cache clear operation."""
     # Add some items
     for i in range(SMALL_CACHE_SIZE):
@@ -434,7 +433,7 @@ def test_lru_clear(lru_engine: LRUCacheEngine[Any, Any]) -> None:
     assert len(lru_engine._cache) == 0
 
 
-def test_lru_stats(lru_engine: LRUCacheEngine[Any, Any]) -> None:
+def test_lru_stats(lru_engine: FunctoolsCacheEngine[Any, Any]) -> None:
     """Test LRU cache statistics."""
     # Add some items and access them
     lru_engine._get_cached_value("key1")

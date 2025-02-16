@@ -19,29 +19,50 @@ from typing import (
     TypeVar,
     Literal,
     runtime_checkable,
+    ParamSpec,
 )
 from collections.abc import Callable
 from pathlib import Path
 
 # Type variables for generic cache types
 T = TypeVar("T")
-P = TypeVar("P")
+P = ParamSpec("P")
 R = TypeVar("R")
+F = TypeVar("F", bound=Callable[..., Any])
 
 # Cache key and value types
 CacheKey = str | int | float | tuple[Any, ...]
 CacheValue = Any  # Consider constraining this in future versions
 
 
-@runtime_checkable
-class CacheConfig(Protocol):
-    """Protocol defining the required configuration interface for cache engines."""
+class CacheConfig(ABC):
+    """Abstract base class defining the required configuration interface for cache engines."""
 
-    maxsize: int | None
-    folder_name: str | None
-    use_sql: bool
-    preferred_engine: str | None
+    @property
+    @abstractmethod
+    def maxsize(self) -> int | None:
+        """Maximum number of items to store in the cache."""
+        ...
 
+    @property
+    @abstractmethod
+    def folder_name(self) -> str | None:
+        """Name of the folder to store cache files in."""
+        ...
+
+    @property
+    @abstractmethod
+    def use_sql(self) -> bool:
+        """Whether to use SQL-based storage."""
+        ...
+
+    @property
+    @abstractmethod
+    def preferred_engine(self) -> str | None:
+        """Preferred cache engine to use."""
+        ...
+
+    @abstractmethod
     def validate(self) -> None:
         """Validate the configuration settings."""
         ...
@@ -171,6 +192,7 @@ __all__ = [
     "CachePathFactory",
     "CacheStats",
     "CacheValue",
+    "F",
     "KeyMaker",
     "P",
     "R",

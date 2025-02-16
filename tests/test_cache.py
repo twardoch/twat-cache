@@ -12,7 +12,9 @@ from typing import Any, TypedDict
 
 import pytest
 
-from twat_cache.cache import CacheSettings, clear_cache, get_stats, ucache
+from twat_cache.cache import clear_cache, get_stats
+from twat_cache.decorators import ucache
+from twat_cache.config import CacheConfig
 
 
 class CacheConfig(TypedDict, total=False):
@@ -26,17 +28,17 @@ class CacheConfig(TypedDict, total=False):
 def test_cache_settings_validation() -> None:
     """Test validation of cache settings."""
     # Valid settings
-    settings = CacheSettings(maxsize=100)
-    settings.validate()  # Should not raise
+    config = CacheConfig(maxsize=100)
+    config.validate()  # Should not raise
 
     # Invalid maxsize
     with pytest.raises(ValueError):
-        settings = CacheSettings(maxsize=-1)
-        settings.validate()
+        config = CacheConfig(maxsize=-1)
+        config.validate()
 
     with pytest.raises(ValueError):
-        settings = CacheSettings(maxsize=0)
-        settings.validate()
+        config = CacheConfig(maxsize=0)
+        config.validate()
 
 
 # Test constants

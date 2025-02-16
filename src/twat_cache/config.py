@@ -16,14 +16,14 @@ supporting both global settings and per-cache configuration.
 """
 
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Any
 
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings
 
-from .paths import get_cache_dir
-from .types import CacheConfig as CacheConfigProtocol
+from .paths import get_cache_path
+from .types import CacheConfig as CacheConfigBase
 
 
 CacheType = Literal["speed", "database", "filesystem"]
@@ -33,7 +33,7 @@ class CacheConfig(BaseModel):
     """
     Cache configuration model.
 
-    This class implements the CacheConfig protocol and provides validation
+    This class implements the CacheConfig base class and provides validation
     for cache configuration settings.
     """
 
@@ -58,16 +58,60 @@ class CacheConfig(BaseModel):
         description="Type of cache to use (speed, database, filesystem)",
     )
 
-    def validate(self) -> None:
-        """
-        Validate the configuration settings.
+    model_config = {
+        "validate_assignment": True,
+        "extra": "ignore",
+        "arbitrary_types_allowed": True,
+        "from_attributes": True,
+        "populate_by_name": True,
+    }
 
-        Raises:
-            ValueError: If any settings are invalid
-        """
-        if self.maxsize is not None and self.maxsize <= 0:
+    def validate(self) -> None:
+        """Validate all configuration settings."""
+        if self.maxsize is not None:
+            self.validate_maxsize(self.maxsize)
+        if self.folder_name is not None:
+            self.validate_folder_name(self.folder_name)
+        if self.cache_type is not None:
+            self.validate_cache_type(self.cache_type)
+
+    @classmethod
+    @field_validator("maxsize")
+    def validate_maxsize(cls, v: int | None) -> int | None:
+        """Validate maxsize setting."""
+        if v is not None and v <= 0:
             msg = "maxsize must be positive if specified"
             raise ValueError(msg)
+        return v
+
+    @classmethod
+    @field_validator("folder_name")
+    def validate_folder_name(cls, v: str | None) -> str | None:
+        """Validate folder name setting."""
+        if v is not None and not v.strip():
+            msg = "folder_name must not be empty if specified"
+            raise ValueError(msg)
+        return v
+
+    @classmethod
+    @field_validator("cache_type")
+    def validate_cache_type(cls, v: CacheType | None) -> CacheType | None:
+        """Validate cache type setting."""
+        valid_types = {"speed", "database", "filesystem", None}
+        if v not in valid_types:
+            msg = f"cache_type must be one of {valid_types}"
+            raise ValueError(msg)
+        return v
+
+    def model_post_init(self, __context: Any) -> None:
+        """Post-initialization validation."""
+        super().model_post_init(__context)
+        self.validate()
+
+    def __init__(self, **data: Any) -> None:
+        """Initialize the cache configuration."""
+        super().__init__(**data)
+        self.validate()
 
 
 class GlobalConfig(BaseSettings):
@@ -78,56 +122,69 @@ class GlobalConfig(BaseSettings):
     defaults and environment variable configuration.
     """
 
+    model_config = {
+        "env_prefix": "TWAT_CACHE_",
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "validate_assignment": True,
+        "extra": "ignore",
+        "arbitrary_types_allowed": True,
+        "from_attributes": True,
+        "use_enum_values": True,
+        "populate_by_name": True,
+    }
+
     # Cache directory settings
     cache_dir: Path = Field(
-        default_factory=get_cache_dir,
+        default_factory=get_cache_path,
         description="Base directory for cache storage",
+        env="CACHE_DIR",
     )
 
     # Default cache settings
     default_maxsize: int = Field(
         default=1000,
         description="Default maximum cache size",
-        env="TWAT_CACHE_DEFAULT_MAXSIZE",
+        env="DEFAULT_MAXSIZE",
     )
     default_use_sql: bool = Field(
         default=False,
         description="Default SQL storage setting",
-        env="TWAT_CACHE_DEFAULT_USE_SQL",
+        env="DEFAULT_USE_SQL",
     )
     default_engine: str = Field(
         default="lru",
         description="Default cache engine",
-        env="TWAT_CACHE_DEFAULT_ENGINE",
+        env="DEFAULT_ENGINE",
     )
     default_cache_type: CacheType | None = Field(
         default=None,
         description="Default cache type (speed, database, filesystem)",
-        env="TWAT_CACHE_DEFAULT_TYPE",
+        env="DEFAULT_TYPE",
     )
 
     # Performance settings
     enable_compression: bool = Field(
         default=True,
         description="Enable data compression",
-        env="TWAT_CACHE_ENABLE_COMPRESSION",
+        env="ENABLE_COMPRESSION",
     )
     compression_level: int = Field(
         default=6,
         description="Compression level (1-9)",
-        env="TWAT_CACHE_COMPRESSION_LEVEL",
+        env="COMPRESSION_LEVEL",
     )
 
     # Logging settings
     debug: bool = Field(
         default=False,
         description="Enable debug logging",
-        env="TWAT_CACHE_DEBUG",
+        env="DEBUG",
     )
     log_file: Path | None = Field(
         default=None,
         description="Log file path",
-        env="TWAT_CACHE_LOG_FILE",
+        env="LOG_FILE",
     )
 
     def get_cache_config(
@@ -137,7 +194,7 @@ class GlobalConfig(BaseSettings):
         use_sql: bool | None = None,
         preferred_engine: str | None = None,
         cache_type: CacheType | None = None,
-    ) -> CacheConfigProtocol:
+    ) -> CacheConfig:
         """
         Get cache configuration with defaults.
 
@@ -149,21 +206,42 @@ class GlobalConfig(BaseSettings):
             cache_type: Type of cache to use
 
         Returns:
-            Cache configuration object
+            CacheConfig: Cache configuration with defaults applied
         """
-        return CacheConfig(
+        config = CacheConfig(
             maxsize=maxsize if maxsize is not None else self.default_maxsize,
             folder_name=folder_name,
             use_sql=use_sql if use_sql is not None else self.default_use_sql,
-            preferred_engine=(
-                preferred_engine
-                if preferred_engine is not None
-                else self.default_engine
-            ),
-            cache_type=(
-                cache_type if cache_type is not None else self.default_cache_type
-            ),
+            preferred_engine=preferred_engine
+            if preferred_engine is not None
+            else self.default_engine,
+            cache_type=cache_type
+            if cache_type is not None
+            else self.default_cache_type,
         )
+        config.validate()
+        return config
+
+    @classmethod
+    @field_validator("compression_level")
+    def validate_compression_level(cls, v: int) -> int:
+        """Validate compression level."""
+        if not 1 <= v <= 9:
+            msg = "compression_level must be between 1 and 9"
+            raise ValueError(msg)
+        return v
+
+    @classmethod
+    @field_validator("log_file")
+    def validate_log_file(cls, v: Path | None | str) -> Path | None:
+        """Validate log file path."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            v = Path(v)
+        if not v.parent.exists():
+            v.parent.mkdir(parents=True, exist_ok=True)
+        return v
 
     def configure_logging(self) -> None:
         """Configure logging based on settings."""

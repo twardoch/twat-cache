@@ -16,7 +16,7 @@ registration, selection, and instantiation of appropriate cache backends
 based on configuration and availability.
 """
 
-from typing import Any, cast, ClassVar, TypeVar
+from typing import Any, cast, ClassVar
 import os
 
 from loguru import logger
@@ -78,11 +78,8 @@ except ImportError:
 # Type alias for concrete cache engine class
 EngineType = type[BaseCacheEngine[Any, Any]]
 
-# Forward reference for type hints
-EngineManager = TypeVar("EngineManager", bound="EngineManagerImpl")
 
-
-class EngineManagerImpl:
+class EngineManager:
     """
     Singleton manager for cache engine selection and instantiation.
 
@@ -90,9 +87,9 @@ class EngineManagerImpl:
     configuration and availability. It ensures only one instance exists.
     """
 
-    _instance: ClassVar["EngineManagerImpl | None"] = None
+    _instance: ClassVar["EngineManager | None"] = None
 
-    def __new__(cls) -> "EngineManagerImpl":
+    def __new__(cls) -> "EngineManager":
         """Create or return the singleton instance."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)

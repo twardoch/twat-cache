@@ -17,7 +17,7 @@ from collections.abc import Generator
 import pytest
 
 from twat_cache.config import CacheConfig, GlobalConfig
-from twat_cache.paths import get_cache_dir
+from twat_cache.paths import get_cache_path
 
 # Test constants
 DEFAULT_MAXSIZE = 1000
@@ -69,7 +69,7 @@ def test_default_config() -> None:
     config = GlobalConfig()
 
     # Check default values
-    assert config.cache_dir == get_cache_dir()
+    assert config.cache_dir == get_cache_path()
     assert config.default_maxsize == DEFAULT_MAXSIZE
     assert config.default_use_sql is False
     assert config.default_engine == "lru"

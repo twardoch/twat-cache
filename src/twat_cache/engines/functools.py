@@ -14,12 +14,12 @@ built-in functools.lru_cache. This is the always-available fallback cache
 backend that requires no external dependencies.
 """
 
-from functools import lru_cache
 from typing import Any, cast
+import json
 
 from loguru import logger
 
-from twat_cache.types import CacheConfig, CacheKey, F, P, R
+from twat_cache.types import CacheConfig, F, P, R
 from .base import BaseCacheEngine
 
 
@@ -39,61 +39,121 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
         super().__init__(config)
 
         # Initialize the cache storage
-        maxsize = getattr(config, "maxsize", None)
+        maxsize = config.maxsize
         self._maxsize = maxsize if maxsize is not None else 128
-        self._cache = lru_cache(maxsize=self._maxsize)
+        self._hits = 0
+        self._misses = 0
+        self._cache: dict[str, R] = {}  # Use str keys for hashability
+        self._cache_order: list[str] = []  # Track LRU order
         logger.debug(f"Initialized functools cache with maxsize: {self._maxsize}")
 
-    def _get_cached_value(self, _key: CacheKey) -> R | None:
+    def _make_key(self, *args: Any, **kwargs: Any) -> str:
+        """
+        Create a hashable key from function arguments.
+
+        Args:
+            *args: Positional arguments
+            **kwargs: Keyword arguments
+
+        Returns:
+            A string key that uniquely identifies the arguments
+        """
+        try:
+            # Try to create a JSON-serializable representation
+            key_dict = {
+                "args": [
+                    str(arg)
+                    if not isinstance(arg, int | float | str | bool | type(None))
+                    else arg
+                    for arg in args
+                ],
+                "kwargs": {
+                    k: str(v)
+                    if not isinstance(v, int | float | str | bool | type(None))
+                    else v
+                    for k, v in sorted(kwargs.items())
+                },
+            }
+            return json.dumps(key_dict, sort_keys=True)
+        except (TypeError, ValueError):
+            # Fallback to string representation if JSON serialization fails
+            args_str = ",".join(str(arg) for arg in args)
+            kwargs_str = ",".join(f"{k}={v}" for k, v in sorted(kwargs.items()))
+            return f"args[{args_str}]kwargs[{kwargs_str}]"
+
+    def _get_cached_value(self, key: Any) -> R | None:
         """
         Retrieve a value from the cache.
 
         Args:
-            _key: The cache key to look up (unused in functools implementation)
+            key: The cache key to look up
 
         Returns:
             The cached value if found, None otherwise
         """
-        try:
-            return cast(R, self._cache.cache_info().hits)  # type: ignore
-        except AttributeError:
-            return None
+        str_key = self._make_key(key) if not isinstance(key, str) else key
+        value = self._cache.get(str_key)
+        if value is not None:
+            self._hits += 1
+            # Move to end (most recently used)
+            if str_key in self._cache_order:
+                self._cache_order.remove(str_key)
+                self._cache_order.append(str_key)
+            return value
+        self._misses += 1
+        return None
 
-    def _set_cached_value(self, _key: CacheKey, _value: R) -> None:
+    def _set_cached_value(self, key: Any, value: R) -> None:
         """
         Store a value in the cache.
 
         Args:
-            _key: The cache key to store under (unused in functools implementation)
-            _value: The value to cache (unused in functools implementation)
+            key: The cache key to store under
+            value: The value to cache
         """
-        # functools.lru_cache handles storage internally
-        pass
+        str_key = self._make_key(key) if not isinstance(key, str) else key
+
+        # If key exists, update it
+        if str_key in self._cache:
+            self._cache[str_key] = value
+            if str_key in self._cache_order:
+                self._cache_order.remove(str_key)
+                self._cache_order.append(str_key)
+            return
+
+        # If cache is full, remove oldest items until we have space
+        while len(self._cache) >= self._maxsize and self._cache_order:
+            oldest_key = self._cache_order.pop(0)
+            self._cache.pop(oldest_key, None)
+
+        # Add new item
+        self._cache[str_key] = value
+        self._cache_order.append(str_key)
 
     def clear(self) -> None:
         """Clear all cached values."""
-        if hasattr(self._cache, "cache_clear"):
-            self._cache.cache_clear()  # type: ignore
+        self._cache.clear()
+        self._cache_order.clear()
         self._hits = 0
         self._misses = 0
         logger.debug("Cleared functools cache")
 
     @property
     def stats(self) -> dict[str, Any]:
-        """Get cache statistics."""
-        stats = super().stats
-        if hasattr(self._cache, "cache_info"):
-            info = self._cache.cache_info()  # type: ignore
-            stats.update(
-                {
-                    "type": "functools",
-                    "maxsize": self._maxsize,
-                    "current_size": info.currsize,
-                    "hits": info.hits,
-                    "misses": info.misses,
-                }
-            )
-        return stats
+        """
+        Get cache statistics.
+
+        Returns:
+            dict: A dictionary containing cache statistics
+        """
+        return {
+            "type": "functools",
+            "maxsize": self._maxsize,
+            "current_size": len(self._cache),
+            "hits": self._hits,
+            "misses": self._misses,
+            "size": len(self._cache),
+        }
 
     def validate_config(self) -> None:
         """
@@ -105,7 +165,7 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
         super().validate_config()
 
         # Additional functools-specific validation
-        maxsize = getattr(self._config, "maxsize", None)
+        maxsize = self._config.maxsize
         if maxsize is not None and not isinstance(maxsize, int):
             msg = "maxsize must be an integer or None"
             raise ValueError(msg)
@@ -115,12 +175,33 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
         return ["functools"]  # Add backend type to key to avoid conflicts
 
     def cache(self, func: F) -> F:
-        """Apply functools caching to the function.
+        """
+        Decorate a function with caching behavior.
 
         Args:
-            func: Function to be cached
+            func: The function to cache
 
         Returns:
-            Cached function wrapper
+            A wrapped function with caching behavior
         """
-        return cast(F, self._cache(func))
+
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            key = self._make_key(*args, **kwargs)
+            result = self._get_cached_value(key)
+            if result is None:
+                try:
+                    result = func(*args, **kwargs)
+                    self._set_cached_value(key, result)
+                except Exception as e:
+                    # Cache the exception to avoid recomputing
+                    self._set_cached_value(key, e)
+                    raise
+            elif isinstance(result, Exception):
+                raise result
+            return result
+
+        # Preserve function metadata
+        wrapper.__name__ = func.__name__
+        wrapper.__doc__ = func.__doc__
+        wrapper.__module__ = func.__module__
+        return cast(F, wrapper)

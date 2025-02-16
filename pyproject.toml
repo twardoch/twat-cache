@@ -17,13 +17,22 @@ path = 'src/twat_cache/__version__.py'
 version_scheme = 'post-release'
 [tool.hatch.envs.default]
 dependencies = [
-    'pytest',
-    'pytest-cov',
-    'mypy>=1.15.0',
-    'ruff>=0.9.6',
     'pytest>=8.3.4',
     'pytest-cov>=6.0.0',
-    "numpy",
+    'pytest-xdist>=3.6.1',
+    'pytest-benchmark[histogram]>=5.1.0',
+    'pytest-asyncio>=0.25.3',
+    'mypy>=1.15.0',
+    'ruff>=0.9.6',
+    'loguru>=0.7.3',
+    'numpy>=2.2.3',
+    'platformdirs>=4.3.6',
+    'cachebox>=4.5.1',
+    'cachetools>=5.5.1',
+    'aiocache>=0.12.3',
+    'klepto>=0.2.6',
+    'diskcache>=5.6.3',
+    'joblib>=1.4.2',
 ]
 
 [tool.hatch.envs.default.scripts]
@@ -58,7 +67,16 @@ dependencies = [
     'pytest-cov>=6.0.0',
     'pytest-xdist>=3.6.1',
     'pytest-benchmark[histogram]>=5.1.0',
-    "numpy",
+    'pytest-asyncio>=0.25.3',
+    'loguru>=0.7.3',
+    'numpy>=2.2.3',
+    'platformdirs>=4.3.6',
+    'cachebox>=4.5.1',
+    'cachetools>=5.5.1',
+    'aiocache>=0.12.3',
+    'klepto>=0.2.6',
+    'diskcache>=5.6.3',
+    'joblib>=1.4.2',
 ]
 
 [tool.hatch.envs.test.scripts]
@@ -185,7 +203,12 @@ classifiers = [
     'Programming Language :: Python :: 3.12',
     'Topic :: Software Development :: Libraries :: Python Modules',
 ]
-dependencies = []
+dependencies = [
+    'loguru>=0.7.3',
+    'platformdirs>=4.3.6',
+    'pydantic>=2.10.6',
+    'pydantic-settings>=2.7.1',
+]
 
 [[project.authors]]
 name = 'Adam Twardoch'
@@ -203,13 +226,13 @@ Source = 'https://github.com/twardoch/twat-cache'
 cache = 'twat_cache'
 
 [project.optional-dependencies]
-platformdirs = ['platformdirs>=3.0.0']
-cachebox = ['cachebox>=0.1.0']
-cachetools = ['cachetools>=5.0.0']
-aiocache = ['aiocache>=0.12.0']
-klepto = ['klepto>=0.2.3']
-diskcache = ['diskcache>=5.0.0']
-joblib = ['joblib>=1.0.0']
+platformdirs = ['platformdirs>=4.3.0']
+cachebox = ['cachebox>=4.5.1']
+cachetools = ['cachetools>=5.5.1']
+aiocache = ['aiocache>=0.12.3']
+klepto = ['klepto>=0.2.6']
+diskcache = ['diskcache>=5.6.3']
+joblib = ['joblib>=1.4.2']
 all = [
     'platformdirs>=4.3.6',
     'cachebox>=4.5.1',
@@ -218,4 +241,23 @@ all = [
     'klepto>=0.2.6',
     'diskcache>=5.6.3',
     'joblib>=1.4.2',
+]
+dev = [
+    'pytest>=8.3.4',
+    'pytest-cov>=6.0.0',
+    'pytest-xdist>=3.6.1',
+    'pytest-benchmark[histogram]>=5.1.0',
+    'pytest-asyncio>=0.25.3',
+    'mypy>=1.15.0',
+    'ruff>=0.9.6',
+    'loguru>=0.7.3',
+    'numpy>=2.2.3',
+]
+test = [
+    'pytest>=8.3.4',
+    'pytest-cov>=6.0.0',
+    'pytest-xdist>=3.6.1',
+    'pytest-benchmark[histogram]>=5.1.0',
+    'pytest-asyncio>=0.25.3',
+    'numpy>=2.2.3',
 ]

@@ -3,7 +3,6 @@
 # dependencies = [
 #   "pytest",
 #   "pytest-asyncio",
-#   "numpy",
 #   "loguru",
 # ]
 # ///
@@ -16,10 +15,9 @@ focusing on the core _get, _set, and clear methods.
 """
 
 from pathlib import Path
-import numpy as np
 import pytest
 
-from twat_cache.engines.lru import LRUCacheEngine
+from twat_cache.engines.functools import FunctoolsCacheEngine
 from twat_cache.engines.cachebox import CacheBoxEngine
 from twat_cache.engines.cachetools import CacheToolsEngine
 from twat_cache.engines.diskcache import DiskCacheEngine
@@ -27,7 +25,13 @@ from twat_cache.engines.joblib import JoblibEngine
 from twat_cache.engines.klepto import KleptoEngine
 from twat_cache.engines.aiocache import AioCacheEngine
 from twat_cache.types import CacheConfig, CacheKey
-from twat_cache.engines.functools import FunctoolsCacheEngine
+
+try:
+    import numpy as np
+
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
 
 
 # Test configurations
@@ -45,12 +49,12 @@ def temp_path(tmp_path: Path) -> Path:
 
 # LRU Cache Tests
 @pytest.fixture
-def lru_engine(base_config: CacheConfig) -> LRUCacheEngine:
+def lru_engine(base_config: CacheConfig) -> FunctoolsCacheEngine:
     """Create an LRU cache engine instance."""
-    return LRUCacheEngine(base_config)
+    return FunctoolsCacheEngine(base_config)
 
 
-def test_lru_cache_get_set(lru_engine: LRUCacheEngine) -> None:
+def test_lru_cache_get_set(lru_engine: FunctoolsCacheEngine) -> None:
     """Test basic get/set operations for LRU cache."""
     key: CacheKey = "test_key"
     value = "test_value"
@@ -63,7 +67,7 @@ def test_lru_cache_get_set(lru_engine: LRUCacheEngine) -> None:
     assert lru_engine._get_cached_value(key) == value
 
 
-def test_lru_cache_clear(lru_engine: LRUCacheEngine) -> None:
+def test_lru_cache_clear(lru_engine: FunctoolsCacheEngine) -> None:
     """Test clear operation for LRU cache."""
     key: CacheKey = "test_key"
     value = "test_value"
@@ -73,7 +77,7 @@ def test_lru_cache_clear(lru_engine: LRUCacheEngine) -> None:
     assert lru_engine._get_cached_value(key) is None
 
 
-def test_lru_cache_maxsize(lru_engine: LRUCacheEngine) -> None:
+def test_lru_cache_maxsize(lru_engine: FunctoolsCacheEngine) -> None:
     """Test maxsize enforcement for LRU cache."""
     for i in range(150):  # More than maxsize
         lru_engine._set_cached_value(f"key_{i}", f"value_{i}")
@@ -113,6 +117,7 @@ def joblib_engine(base_config: CacheConfig, temp_path: Path) -> JoblibEngine:
     return JoblibEngine(config)
 
 
+@pytest.mark.skipif(not HAS_NUMPY, reason="numpy not available")
 def test_joblib_numpy_array(joblib_engine: JoblibEngine) -> None:
     """Test joblib cache with NumPy arrays."""
     key: CacheKey = "array_key"

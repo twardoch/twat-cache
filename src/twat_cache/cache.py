@@ -13,12 +13,12 @@ This module provides a simple interface for managing caches and retrieving
 cache statistics. For the main caching decorators, see the decorators module.
 """
 
-from typing import Any
+from typing import Any, cast
 
 from loguru import logger
 
 from .config import CacheConfig
-from .engines.manager import get_engine_manager
+from .engines.manager import get_engine_manager, EngineManager
 
 
 def clear_cache(
@@ -86,11 +86,11 @@ def get_stats(
     )
 
     # Get engine manager
-    manager = get_engine_manager()
+    manager: EngineManager = get_engine_manager()
 
     # Get appropriate engine
     engine = manager.get_engine(config)
     logger.debug(f"Getting stats for engine: {engine.__class__.__name__}")
 
     # Get stats
-    return engine.stats
+    return cast(dict[str, Any], engine.stats)
