@@ -11,14 +11,11 @@
 
 import time
 from typing import Any, cast
-import importlib.util
 from collections.abc import Callable
 
 from klepto import lru_cache, lfu_cache, rr_cache
 from klepto.archives import (
     dir_archive,
-    sqltable_archive,
-    file_archive,
     sql_archive,
 )
 from loguru import logger
@@ -48,7 +45,6 @@ class KleptoEngine(BaseCacheEngine[P, R]):
             raise ImportError(msg)
 
         # Import here to avoid loading if not used
-        from klepto import keyed_cache
 
         # Create cache based on policy
         maxsize = config.maxsize or float("inf")

@@ -23,9 +23,6 @@ from typing import Any
 
 import pytest
 import importlib.util
-import os
-import tempfile
-from pathlib import Path
 
 from twat_cache.decorators import mcache, bcache, fcache, ucache, acache
 from .test_constants import (
@@ -42,10 +39,7 @@ from .test_constants import (
     TEST_INT,
     TEST_VALUE,
     TEST_RESULT,
-    SMALL_CACHE_SIZE,
-    DEFAULT_CACHE_SIZE,
     TEST_FOLDER,
-    TEST_PERMISSIONS,
 )
 
 # Check optional backend availability

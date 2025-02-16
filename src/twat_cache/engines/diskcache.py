@@ -12,7 +12,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import time
 from typing import Any, cast
 from collections.abc import Callable

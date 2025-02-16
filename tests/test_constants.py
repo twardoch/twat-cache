@@ -1,4 +1,59 @@
 # this_file: tests/test_constants.py
+"""Constants used in tests."""
+
+# Cache sizes
+SMALL_CACHE_SIZE = 10
+DEFAULT_CACHE_SIZE = 100
+LARGE_CACHE_SIZE = 1000
+
+# TTL values
+SHORT_TTL = 1
+DEFAULT_TTL = 60
+LONG_TTL = 3600
+
+# Test values
+TEST_VALUE = 5
+TEST_RESULT = TEST_VALUE * TEST_VALUE
+TEST_LIST = [1, 2, 3, 4, 5]
+TEST_LIST_SUM = 15
+TEST_CALL_COUNT = 2
+
+# File permissions
+TEST_PERMISSIONS = 0o700
+
+# Compression levels
+DEFAULT_COMPRESSION = 6
+NO_COMPRESSION = 0
+
+# Cache stats
+INITIAL_HITS = 0
+INITIAL_MISSES = 0
+
+# Test data sizes
+SMALL_DATA_SIZE = 1024  # 1KB
+DEFAULT_DATA_SIZE = 1024 * 1024  # 1MB
+LARGE_DATA_SIZE = 10 * 1024 * 1024  # 10MB
+
+# Timeouts
+SHORT_TIMEOUT = 0.1
+DEFAULT_TIMEOUT = 1.0
+LONG_TIMEOUT = 5.0
+
+# File paths
+TEST_FOLDER = "test_cache"
+TEST_FILE = "test_data.cache"
+TEST_DB = "test_cache.db"
+
+# Test data
+TEST_KEY = "test_key"
+TEST_BOOL = True
+TEST_INT = 123
+
+# Call counts
+EXPECTED_CALLS_SINGLE = 1
+EXPECTED_CALLS_DOUBLE = 2
+EXPECTED_CALLS_TRIPLE = 3
+# this_file: tests/test_constants.py
 """Constants used in test files to avoid magic numbers."""
 
 # Cache sizes

@@ -40,7 +40,6 @@ from typing import (
 from collections.abc import Callable, Awaitable
 import importlib.util
 
-from loguru import logger
 
 from .config import create_cache_config, CacheConfig, EvictionPolicy
 from .engines.base import BaseCacheEngine
@@ -445,7 +444,6 @@ def _create_engine(config: CacheConfig, func: Callable[P, R]) -> BaseCacheEngine
         return KleptoEngine(config)
 
     # Default to functools
-    from .engines.functools import FunctoolsCacheEngine
 
     return FunctoolsCacheEngine(config)
 
