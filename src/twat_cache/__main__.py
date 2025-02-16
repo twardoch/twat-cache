@@ -22,9 +22,12 @@ from __future__ import annotations
 import inspect
 import uuid
 from collections.abc import Callable
-from functools import cache, lru_cache
+from functools import cache
 from pathlib import Path
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar
+
+from twat_cache.cache import cache as twat_cache
+from twat_cache.config import CacheConfig
 
 T = TypeVar("T")
 
@@ -49,20 +52,12 @@ def get_cache_path(folder_name: str | None = None) -> Path:
         caller_path = Path(caller_file).resolve()
         return str(uuid.uuid5(uuid.NAMESPACE_URL, str(caller_path)))
 
-    try:
-        import platformdirs
-
-        root_cache_dir = Path(platformdirs.user_cache_dir())
-    except ImportError:
-        root_cache_dir = Path.home() / ".cache"
-
-    if not folder_name:
+    if folder_name is None:
         folder_name = generate_uuid()
 
-    cache_path = root_cache_dir / folder_name
-    cache_path.mkdir(parents=True, exist_ok=True)
-
-    return cache_path
+    cache_dir = Path.home() / ".cache" / "twat_cache" / str(folder_name)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    return cache_dir
 
 
 # Initialize optional caching backends
@@ -83,45 +78,41 @@ except ImportError:
 
 def ucache(
     folder_name: str | None = None,
+    *,
     use_sql: bool = False,
     maxsize: int | None = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """
-    A decorator for caching function results with various backends.
+    Decorator for caching function results with user-specific storage.
 
-    This decorator provides a unified interface for caching function results using
-    different backends based on availability and requirements:
-    - SQL-based caching using diskcache (if use_sql=True and available)
-    - Joblib caching for numpy arrays and large objects (if available)
-    - LRU caching in memory as fallback
+    This decorator provides a way to cache function results in a user-specific
+    location, with optional SQL-based persistent storage.
 
     Args:
-        folder_name: Optional name for the cache folder
-        use_sql: Whether to use SQL-based caching (requires diskcache)
-        maxsize: Maximum size for LRU cache (None means unlimited)
+        folder_name: Optional name for the cache folder. If not provided,
+            a default location will be used.
+        use_sql: Whether to use SQL-based persistent storage instead of
+            in-memory caching. Defaults to False.
+        maxsize: Maximum size of the cache. If None, the cache size is
+            unlimited. Defaults to None.
 
     Returns:
-        A decorator function that wraps the target function with caching
+        A decorator function that will cache the results of the decorated
+        function.
 
     Example:
-        @ucache(folder_name="my_cache")
-        def expensive_function(x):
-            return x * x
+        >>> @ucache(folder_name="my_cache", use_sql=True)
+        ... def expensive_function(x: int) -> int:
+        ...     return x * x
     """
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
-        if use_sql and DISK_CACHE is not None:
-            return cast(Callable[..., T], DISK_CACHE.memoize()(func))
-
-        elif JOBLIB_MEMORY is not None:
-            memory: Any = (
-                JOBLIB_MEMORY
-                if folder_name is None
-                else Memory(get_cache_path(folder_name), verbose=0)  # type: ignore
-            )
-            return cast(Callable[..., T], memory.cache(func))
-
-        else:
-            return cast(Callable[..., T], lru_cache(maxsize=maxsize)(func))
+        """Create a caching wrapper for the function."""
+        config = CacheConfig(
+            maxsize=maxsize,
+            folder_name=folder_name,
+            use_sql=use_sql,
+        )
+        return twat_cache(config)(func)
 
     return decorator

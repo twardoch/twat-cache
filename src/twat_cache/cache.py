@@ -1,71 +1,97 @@
-"""Core caching functionality for the twat_cache package."""
+#!/usr/bin/env -S uv run
+# /// script
+# dependencies = [
+#   "loguru",
+# ]
+# ///
+# this_file: src/twat_cache/cache.py
 
-from __future__ import annotations
+"""
+Main cache interface.
 
-from collections.abc import Callable
-from pathlib import Path
-from typing import TypeVar, cast
+This module provides a simple interface for managing caches and retrieving
+cache statistics. For the main caching decorators, see the decorators module.
+"""
 
-from twat_cache.engines import DiskCacheEngine, JoblibEngine, LRUEngine
+from typing import Any
 
-F = TypeVar("F", bound=Callable[..., object])
+from loguru import logger
 
-
-def get_cache_path(folder_name: str | None = None) -> Path:
-    """Get the path to the cache directory.
-
-    Args:
-        folder_name: Optional name for the cache folder
-
-    Returns:
-        Path to the cache directory
-    """
-    base_path = Path.home() / ".cache" / "twat_cache"
-    if folder_name:
-        return base_path / folder_name
-    return base_path
+from .decorators import ucache
+from .config import CacheConfig
+from .engines.manager import get_engine_manager
 
 
-def ucache(
+def clear_cache(
     folder_name: str | None = None,
-    use_sql: bool = False,
-    maxsize: int | None = None,
-) -> Callable[[F], F]:
-    """A universal caching decorator that supports multiple backends.
-
-    This decorator provides a unified interface for caching function results using
-    different backends based on availability and requirements:
-    - SQL-based caching using diskcache (if use_sql=True and available)
-    - Joblib caching for numpy arrays and large objects (if available)
-    - LRU caching in memory as fallback
+    preferred_engine: str | None = None,
+) -> None:
+    """
+    Clear the cache for the given configuration.
 
     Args:
-        folder_name: Optional name for the cache folder
-        use_sql: Whether to use SQL-based caching (requires diskcache)
-        maxsize: Maximum size for LRU cache (None means unlimited)
-
-    Returns:
-        A decorator function that wraps the target function with caching
+        folder_name: Optional name of the cache folder to clear
+        preferred_engine: Optional name of the cache engine to clear
 
     Example:
-        @ucache(folder_name="my_cache")
-        def expensive_function(x):
-            return x * x
-    """
-    # Initialize engines with configuration
-    engines = [
-        DiskCacheEngine(folder_name) if use_sql else None,
-        JoblibEngine(folder_name),
-        LRUEngine(maxsize),
-    ]
+        ```python
+        # Clear specific cache
+        clear_cache(folder_name="my_cache")
 
-    # Select first available engine
-    engine = next(
-        (eng for eng in engines if eng is not None and eng.is_available),
-        LRUEngine(maxsize),  # Fallback to LRU cache
+        # Clear all caches
+        clear_cache()
+        ```
+    """
+    # Create configuration
+    config = CacheConfig(
+        folder_name=folder_name,
+        preferred_engine=preferred_engine,
     )
 
-    def decorator(func: F) -> F:
-        return cast(F, engine.cache(func))
+    # Get engine manager
+    manager = get_engine_manager()
 
-    return decorator
+    # Get appropriate engine
+    engine = manager.get_engine(config)
+    logger.debug(f"Clearing cache for engine: {engine.__class__.__name__}")
+
+    # Clear cache
+    engine.clear()
+
+
+def get_stats(
+    folder_name: str | None = None,
+    preferred_engine: str | None = None,
+) -> dict[str, Any]:
+    """
+    Get cache statistics for the given configuration.
+
+    Args:
+        folder_name: Optional name of the cache folder
+        preferred_engine: Optional name of the cache engine
+
+    Returns:
+        Dictionary containing cache statistics
+
+    Example:
+        ```python
+        # Get stats for specific cache
+        stats = get_stats(folder_name="my_cache")
+        print(f"Cache hits: {stats['hits']}")
+        ```
+    """
+    # Create configuration
+    config = CacheConfig(
+        folder_name=folder_name,
+        preferred_engine=preferred_engine,
+    )
+
+    # Get engine manager
+    manager = get_engine_manager()
+
+    # Get appropriate engine
+    engine = manager.get_engine(config)
+    logger.debug(f"Getting stats for engine: {engine.__class__.__name__}")
+
+    # Get stats
+    return engine.stats

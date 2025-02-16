@@ -1,20 +1,14 @@
-"""
-twat_cache - Flexible caching utilities for Python functions.
+"""Flexible caching utilities for Python functions with multiple high-performance backends."""
 
-This package provides a unified interface for caching function results using various
-backends (memory, disk, SQL). It automatically handles cache directory management
-and offers a simple decorator interface.
-"""
+# this_file: src/twat_cache/__init__.py
 
-from collections.abc import Callable
-from importlib import metadata
-from pathlib import Path
-from typing import Optional, TypeVar
+from twat_cache.cache import ucache
+from twat_cache.decorators import bcache, fcache, scache
+from twat_cache.utils import get_cache_path
 
-from twat_cache.__version__ import version as __version__
+try:
+    from twat_cache.__version__ import __version__
+except ImportError:
+    __version__ = "0.0.0"
 
-T = TypeVar("T")
-
-from twat_cache.cache import get_cache_path, ucache
-
-__all__ = ["__version__", "get_cache_path", "ucache"]
+__all__ = ["__version__", "bcache", "fcache", "get_cache_path", "scache", "ucache"]
