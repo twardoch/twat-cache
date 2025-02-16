@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import importlib.util
-from collections.abc import Sequence
+
+# Import base engine and always available engines
+from twat_cache.engines.base import BaseCacheEngine
+from twat_cache.engines.functools import FunctoolsCacheEngine
 
 # Check optional backend availability
 HAS_AIOCACHE = bool(importlib.util.find_spec("aiocache"))
@@ -13,20 +16,16 @@ HAS_DISKCACHE = bool(importlib.util.find_spec("diskcache"))
 HAS_JOBLIB = bool(importlib.util.find_spec("joblib"))
 HAS_KLEPTO = bool(importlib.util.find_spec("klepto"))
 
-# Import base engine and always available engines
-from twat_cache.engines.base import BaseCacheEngine
-from twat_cache.engines.functools import FunctoolsCacheEngine
-
 # Define base exports
 __all__ = [
-    "BaseCacheEngine",
-    "FunctoolsCacheEngine",
     "HAS_AIOCACHE",
     "HAS_CACHEBOX",
     "HAS_CACHETOOLS",
     "HAS_DISKCACHE",
     "HAS_JOBLIB",
     "HAS_KLEPTO",
+    "BaseCacheEngine",
+    "FunctoolsCacheEngine",
 ]
 
 # Import and export optional engines if available

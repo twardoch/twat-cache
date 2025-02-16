@@ -24,7 +24,7 @@ from twat_cache.engines.diskcache import DiskCacheEngine
 from twat_cache.engines.joblib import JoblibEngine
 from twat_cache.engines.klepto import KleptoEngine
 from twat_cache.engines.aiocache import AioCacheEngine
-from twat_cache.types import CacheConfig, CacheKey
+from twat_cache.type_defs import CacheConfig, CacheKey
 from twat_cache.config import create_cache_config
 
 try:

@@ -5,8 +5,9 @@ from __future__ import annotations
 from typing import cast
 
 from twat_cache.engines.base import BaseCacheEngine
-from twat_cache.types import F, CacheKey, P, R
+from twat_cache.type_defs import F, CacheKey, P, R
 from twat_cache.paths import get_cache_path
+from twat_cache.config import CacheConfig
 
 
 class DummyMemory:
@@ -31,7 +32,7 @@ except ImportError:
 class JoblibEngine(BaseCacheEngine[P, R]):
     """Cache engine using joblib for disk caching of numpy arrays and large objects."""
 
-    def __init__(self, config):
+    def __init__(self, config: CacheConfig) -> None:
         """Initialize joblib cache engine.
 
         Args:
@@ -73,8 +74,8 @@ class JoblibEngine(BaseCacheEngine[P, R]):
         """Clear all cached values."""
         self._memory.clear()
 
-    @property
-    def is_available(self) -> bool:
+    @classmethod
+    def is_available(cls) -> bool:
         """Check if joblib is available."""
         return HAS_JOBLIB
 

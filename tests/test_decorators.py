@@ -64,12 +64,12 @@ def test_basic_memory_cache():
     # First call should compute
     result1 = square(TEST_VALUE)
     assert result1 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
     # Second call should use cache
     result2 = square(TEST_VALUE)
     assert result2 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
 
 @pytest.mark.skipif(not HAS_CACHEBOX, reason="cachebox not available")
@@ -86,12 +86,12 @@ def test_cachebox_memory():
     # First call should compute
     result1 = square(TEST_VALUE)
     assert result1 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
     # Second call should use cache
     result2 = square(TEST_VALUE)
     assert result2 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
 
 @pytest.mark.skipif(not HAS_CACHETOOLS, reason="cachetools not available")
@@ -108,12 +108,12 @@ def test_cachetools_memory():
     # First call should compute
     result1 = square(TEST_VALUE)
     assert result1 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
     # Second call should use cache
     result2 = square(TEST_VALUE)
     assert result2 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
 
 @pytest.mark.skipif(not HAS_DISKCACHE, reason="diskcache not available")
@@ -130,12 +130,12 @@ def test_diskcache_basic():
     # First call should compute
     result1 = square(TEST_VALUE)
     assert result1 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
     # Second call should use cache
     result2 = square(TEST_VALUE)
     assert result2 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
 
 @pytest.mark.skipif(not HAS_KLEPTO, reason="klepto not available")
@@ -152,12 +152,12 @@ def test_klepto_sql():
     # First call should compute
     result1 = square(TEST_VALUE)
     assert result1 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
     # Second call should use cache
     result2 = square(TEST_VALUE)
     assert result2 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
 
 @pytest.mark.skipif(not HAS_JOBLIB, reason="joblib not available")
@@ -174,12 +174,12 @@ def test_joblib_file():
     # First call should compute
     result1 = square(TEST_VALUE)
     assert result1 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
     # Second call should use cache
     result2 = square(TEST_VALUE)
     assert result2 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
 
 @pytest.mark.skipif(not HAS_KLEPTO, reason="klepto not available")
@@ -196,12 +196,12 @@ def test_klepto_file():
     # First call should compute
     result1 = square(TEST_VALUE)
     assert result1 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
     # Second call should use cache
     result2 = square(TEST_VALUE)
     assert result2 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
 
 @pytest.mark.skipif(not HAS_AIOCACHE, reason="aiocache not available")
@@ -218,12 +218,12 @@ def test_aiocache_memory():
     # First call should compute
     result1 = square(TEST_VALUE)
     assert result1 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
     # Second call should use cache
     result2 = square(TEST_VALUE)
     assert result2 == TEST_RESULT
-    assert call_count == 1
+    assert call_count == EXPECTED_CALLS_SINGLE
 
 
 def test_memory_cache_cachebox() -> None:

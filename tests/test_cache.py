@@ -43,10 +43,7 @@ from tests.test_constants import (
     SQUARE_RESULT,
     TEST_LIST,
     TEST_LIST_SUM,
-    TEST_PERMISSIONS,
-    TEST_FOLDER,
     EXPECTED_CALLS_SINGLE,
-    EXPECTED_CALLS_DOUBLE,
 )
 
 

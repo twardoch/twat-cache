@@ -7,7 +7,9 @@
 # ///
 # this_file: src/twat_cache/engines/klepto.py
 
-"""Flexible cache engine using klepto."""
+"""Cache engine using klepto."""
+
+from __future__ import annotations
 
 import time
 from typing import Any, cast
@@ -15,10 +17,11 @@ from collections.abc import Callable
 
 from klepto import lru_cache, lfu_cache, rr_cache
 from klepto.archives import (
-    dir_archive,
     sql_archive,
+    file_archive,
 )
 from loguru import logger
+from klepto import keyed_cache
 
 from twat_cache.config import CacheConfig
 from twat_cache.type_defs import CacheKey, P, R
@@ -37,8 +40,14 @@ class KleptoEngine(BaseCacheEngine[P, R]):
     """
 
     def __init__(self, config: CacheConfig) -> None:
-        """Initialize the klepto cache engine."""
+        """Initialize the klepto engine.
+
+        Args:
+            config: Cache configuration settings.
+        """
         super().__init__(config)
+        self._config = config
+        self._cache = None
 
         if not self.is_available:
             msg = "klepto is not available"
@@ -59,35 +68,23 @@ class KleptoEngine(BaseCacheEngine[P, R]):
             self._cache = lru_cache(maxsize=maxsize)
 
         # Create archive if folder specified
-        if self._cache_path:
-            if config.use_sql:
-                # Use SQL archive
-                self._archive = sql_archive(
-                    str(self._cache_path / "cache.db"),
-                    maxsize=maxsize,
-                    timeout=config.ttl,
-                )
-            else:
-                # Use directory archive
-                self._archive = dir_archive(
-                    dirname=str(self._cache_path),
-                    maxsize=maxsize,
-                    timeout=config.ttl,
-                )
-
-            # Set secure permissions if requested
-            if config.secure:
-                self._cache_path.chmod(0o700)
-                for path in self._cache_path.glob("**/*"):
-                    if path.is_file():
-                        path.chmod(0o600)
-
-            # Load existing cache
-            self._archive.load()
-            self._cache.update(self._archive)
-
+        if config.folder_name:
+            # Use SQL backend for disk caching
+            self._cache = sql_archive(
+                str(config.cache_dir / "cache.db"),
+                maxsize=config.maxsize or None,
+                timeout=config.ttl,
+            )
         else:
-            self._archive = None
+            # Use file backend for memory caching
+            self._cache = file_archive(
+                str(config.cache_dir),
+                maxsize=config.maxsize or None,
+                timeout=config.ttl,
+            )
+
+        self._cache.load()
+        self._keyed_cache = keyed_cache
 
         # Initialize TTL tracking
         self._expiry: dict[CacheKey, float] = {}
@@ -112,9 +109,8 @@ class KleptoEngine(BaseCacheEngine[P, R]):
             if key in self._expiry:
                 if time.time() >= self._expiry[key]:
                     del self._cache[key]
-                    if self._archive:
-                        del self._archive[key]
-                        self._archive.sync()
+                    if self._cache:
+                        self._cache.sync()
                     del self._expiry[key]
                     return None
 
@@ -139,9 +135,8 @@ class KleptoEngine(BaseCacheEngine[P, R]):
         try:
             # Store in cache
             self._cache[key] = value
-            if self._archive:
-                self._archive[key] = value
-                self._archive.sync()
+            if self._cache:
+                self._cache.sync()
 
             # Set TTL if configured
             if self._config.ttl is not None:
@@ -157,9 +152,8 @@ class KleptoEngine(BaseCacheEngine[P, R]):
         """Clear all cached values."""
         try:
             self._cache.clear()
-            if self._archive:
-                self._archive.clear()
-                self._archive.sync()
+            if self._cache:
+                self._cache.sync()
             self._expiry.clear()
             self._hits = 0
             self._misses = 0
@@ -178,7 +172,7 @@ class KleptoEngine(BaseCacheEngine[P, R]):
                     "maxsize": self._cache.maxsize,  # type: ignore
                     "policy": self._config.policy,
                     "archive_type": (
-                        type(self._archive).__name__ if self._archive else None
+                        type(self._cache).__name__ if self._cache else None
                     ),
                 }
             )
@@ -189,15 +183,19 @@ class KleptoEngine(BaseCacheEngine[P, R]):
     def __del__(self) -> None:
         """Clean up resources."""
         try:
-            if self._archive:
-                self._archive.sync()
-                self._archive.close()
+            if self._cache:
+                self._cache.sync()
+                self._cache.close()
         except Exception as e:
             logger.warning(f"Error closing klepto cache: {e}")
 
     @property
     def is_available(self) -> bool:
-        """Check if this cache engine is available for use."""
+        """Check if this cache engine is available for use.
+
+        Returns:
+            bool: True if the engine is available, False otherwise.
+        """
         return is_package_available("klepto")
 
     def cache(self, func: Callable[P, R]) -> Callable[P, R]:
@@ -215,7 +213,7 @@ class KleptoEngine(BaseCacheEngine[P, R]):
 
         return cast(
             Callable[P, R],
-            keyed_cache(
+            self._keyed_cache(
                 cache=self._cache,
                 typed=True,
             )(func),
