@@ -1,6 +1,6 @@
 """Cache engine implementations."""
 
-from typing import Sequence
+from collections.abc import Sequence
 
 try:
     from twat_cache.engines.aiocache import AioCacheEngine

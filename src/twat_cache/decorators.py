@@ -40,13 +40,14 @@ from typing import (
     ParamSpec,
     TypeVar,
     Dict,
+    Callable,
+    Awaitable,
 )
 from collections.abc import Awaitable
-from collections.abc import Callable
 
 from loguru import logger
 
-from .config import create_cache_config, EvictionPolicy
+from .config import create_cache_config, CacheConfig, EvictionPolicy
 from .engines.base import BaseCacheEngine
 from .engines.functools import FunctoolsCacheEngine
 from .paths import get_cache_path
@@ -215,7 +216,7 @@ def mcache(
         engine = CacheToolsEngine(config)
         return cast(CacheDecorator[P, R], engine.cache)
     else:
-        from .engines.functools_engine import FunctoolsCacheEngine
+        from .engines.functools import FunctoolsCacheEngine
 
         engine = FunctoolsCacheEngine(config)
         return cast(CacheDecorator[P, R], engine.cache)
@@ -404,6 +405,7 @@ def _get_available_backends() -> Dict[str, bool]:
 
 def _select_best_backend(
     preferred: Optional[str] = None,
+    *,  # Force remaining arguments to be keyword-only
     is_async: bool = False,
     needs_disk: bool = False,
 ) -> str:

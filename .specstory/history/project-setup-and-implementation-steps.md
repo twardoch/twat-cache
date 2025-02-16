@@ -3688,6 +3688,1076 @@ _****_
 
 ---
 
+_**User**_
+
+1. Read @README.md to understand again what the project is about. 
+
+2. Run: 
+uv venv; source .venv/bin/activate; uv pip install -e .[all,dev,test]; hatch run lint:fix; hatch test;
+
+3. Read @TODO.md and start implementing the TODO steps. Periodically move the accomplished changes into @LOG.md and remove them from @TODO.md to keep it focused.
+
+---
+
+_**Assistant**_
+
+I'll help you with this. Let me break it down step by step.
+
+1. First, let me understand the project from README.md:
+The project appears to be `twat_cache`, a flexible caching utility for Python functions that supports multiple high-performance backends. It provides several caching decorators:
+- `mcache`: Memory-based caching
+- `bcache`: Basic disk caching 
+- `fcache`: Fast file-based caching
+- `acache`: Async-capable caching
+- `ucache`: Universal caching with automatic backend selection
+
+2. Let's run the development setup command:
+
+---
+
+_****_
+
+```bash
+uv venv; source .venv/bin/activate; uv pip install -e .[all,dev,test]; hatch run lint:fix; hatch test
+```
+
+```
+Using CPython 3.12.8 interpreter at: /usr/local/bin/python3.12
+Creating virtual environment at: .venv
+Activate with: source .venv/bin/activate
+zsh: no matches found: .[all,dev,test]
+Rewriting tests/test_cache.py
+Rewriting src/twat_cache/config.py
+Rewriting src/twat_cache/type_defs.py
+Rewriting src/twat_cache/decorators.py
+Rewriting src/twat_cache/engines/__init__.py
+warning: The top-level linter settings are deprecated in favour of their c
+ounterparts in the `lint` section. Please update the following options in
+`pyproject.toml`:
+  - 'per-file-ignores' -> 'lint.per-file-ignores'
+src/twat_cache/config.py:19:18: UP007 Use `X | Y` for type annotations
+   |
+18 | # Type aliases
+19 | EvictionPolicy = Union[str, None]
+   |                  ^^^^^^^^^^^^^^^^ UP007
+20 | CacheType = Union[str, None]
+   |
+   = help: Convert to `X | Y`
+
+src/twat_cache/config.py:20:13: UP007 Use `X | Y` for type annotations
+   |
+18 | # Type aliases
+19 | EvictionPolicy = Union[str, None]
+20 | CacheType = Union[str, None]
+   |             ^^^^^^^^^^^^^^^^ UP007
+   |
+   = help: Convert to `X | Y`
+
+src/twat_cache/config.py:94:5: PLR0913 Too many arguments in function defi
+nition (11 > 5)
+   |
+94 | def create_cache_config(
+   |     ^^^^^^^^^^^^^^^^^^^ PLR0913
+95 |     maxsize: int | None = None,
+96 |     folder_name: str | None = None,
+   |
+
+src/twat_cache/decorators.py:51:7: F811 Redefinition of unused `CacheDecor
+ator` from line 48
+   |
+51 | class CacheDecorator(Protocol[P, R]):
+   |       ^^^^^^^^^^^^^^ F811
+52 |     """Protocol for cache decorators."""
+   |
+   = help: Remove definition: `CacheDecorator`
+
+src/twat_cache/decorators.py:67:12: F401 `aiocache` imported but unused; c
+onsider using `importlib.util.find_spec` to test for availability
+   |
+65 | # Try to import optional backends
+66 | try:
+67 |     import aiocache  # type: ignore
+   |            ^^^^^^^^ F401
+68 |
+69 |     HAS_AIOCACHE = True
+   |
+   = help: Remove unused import: `aiocache`
+
+src/twat_cache/decorators.py:75:12: F401 `cachebox` imported but unused; c
+onsider using `importlib.util.find_spec` to test for availability
+   |
+74 | try:
+75 |     import cachebox  # type: ignore
+   |            ^^^^^^^^ F401
+76 |
+77 |     HAS_CACHEBOX = True
+   |
+   = help: Remove unused import: `cachebox`
+
+src/twat_cache/decorators.py:83:12: F401 `cachetools` imported but unused;
+ consider using `importlib.util.find_spec` to test for availability
+   |
+82 | try:
+83 |     import cachetools  # type: ignore
+   |            ^^^^^^^^^^ F401
+84 |
+85 |     HAS_CACHETOOLS = True
+   |
+   = help: Remove unused import: `cachetools`
+
+src/twat_cache/decorators.py:91:12: F401 `diskcache` imported but unused; 
+consider using `importlib.util.find_spec` to test for availability
+   |
+90 | try:
+91 |     import diskcache  # type: ignore
+   |            ^^^^^^^^^ F401
+92 |
+93 |     HAS_DISKCACHE = True
+   |
+   = help: Remove unused import: `diskcache`
+
+src/twat_cache/decorators.py:99:12: F401 `joblib` imported but unused; con
+sider using `importlib.util.find_spec` to test for availability
+    |
+ 98 | try:
+ 99 |     import joblib  # type: ignore
+    |            ^^^^^^ F401
+100 |
+101 |     HAS_JOBLIB = True
+    |
+    = help: Remove unused import: `joblib`
+
+src/twat_cache/decorators.py:107:12: F401 `klepto` imported but unused; co
+nsider using `importlib.util.find_spec` to test for availability
+    |
+106 | try:
+107 |     import klepto  # type: ignore
+    |            ^^^^^^ F401
+108 |
+109 |     HAS_KLEPTO = True
+    |
+    = help: Remove unused import: `klepto`
+
+src/twat_cache/decorators.py:219:5: PLR0913 Too many arguments in function
+ definition (6 > 5)
+    |
+219 | def bcache(
+    |     ^^^^^^ PLR0913
+220 |     folder_name: str | None = None,
+221 |     maxsize: int | None = None,
+    |
+
+src/twat_cache/decorators.py:402:5: FBT001 Boolean-typed positional argume
+nt in function definition
+    |
+400 | def _select_best_backend(
+401 |     preferred: str | None = None,
+402 |     is_async: bool = False,
+    |     ^^^^^^^^ FBT001
+403 |     needs_disk: bool = False,
+404 | ) -> str:
+    |
+
+src/twat_cache/decorators.py:402:5: FBT002 Boolean default positional argu
+ment in function definition
+    |
+400 | def _select_best_backend(
+401 |     preferred: str | None = None,
+402 |     is_async: bool = False,
+    |     ^^^^^^^^ FBT002
+403 |     needs_disk: bool = False,
+404 | ) -> str:
+    |
+
+src/twat_cache/decorators.py:403:5: FBT001 Boolean-typed positional argume
+nt in function definition
+    |
+401 |     preferred: str | None = None,
+402 |     is_async: bool = False,
+403 |     needs_disk: bool = False,
+    |     ^^^^^^^^^^ FBT001
+404 | ) -> str:
+405 |     """Select the best available backend based on requirements.
+    |
+
+src/twat_cache/decorators.py:403:5: FBT002 Boolean default positional argu
+ment in function definition
+    |
+401 |     preferred: str | None = None,
+402 |     is_async: bool = False,
+403 |     needs_disk: bool = False,
+    |     ^^^^^^^^^^ FBT002
+404 | ) -> str:
+405 |     """Select the best available backend based on requirements.
+    |
+
+src/twat_cache/decorators.py:442:5: PLR0911 Too many return statements (8 
+> 6)
+    |
+442 | def _create_engine(config: CacheConfig, func: Callable[P, R]) -> Bas
+eCacheEngine[P, R]:
+    |     ^^^^^^^^^^^^^^ PLR0911
+443 |     """Create a cache engine based on configuration and function.
+    |
+
+src/twat_cache/decorators.py:442:28: F821 Undefined name `CacheConfig`
+    |
+442 | def _create_engine(config: CacheConfig, func: Callable[P, R]) -> Bas
+eCacheEngine[P, R]:
+    |                            ^^^^^^^^^^^ F821
+443 |     """Create a cache engine based on configuration and function.
+    |
+
+src/twat_cache/decorators.py:494:5: PLR0913 Too many arguments in function
+ definition (8 > 5)
+    |
+494 | def ucache(
+    |     ^^^^^^ PLR0913
+495 |     folder_name: str | None = None,
+496 |     maxsize: int | None = None,
+    |
+
+src/twat_cache/engines/__init__.py:6:45: F401 `twat_cache.engines.aiocache
+.AioCacheEngine` imported but unused; consider using `importlib.util.find_
+spec` to test for availability
+  |
+5 | try:
+6 |     from twat_cache.engines.aiocache import AioCacheEngine
+  |                                             ^^^^^^^^^^^^^^ F401
+7 |
+8 |     HAS_AIOCACHE = True
+  |
+  = help: Remove unused import: `twat_cache.engines.aiocache.AioCacheEngin
+e`
+
+src/twat_cache/engines/__init__.py:13:45: F401 `twat_cache.engines.cachebo
+x.CacheBoxEngine` imported but unused; consider using `importlib.util.find
+_spec` to test for availability
+   |
+12 | try:
+13 |     from twat_cache.engines.cachebox import CacheBoxEngine
+   |                                             ^^^^^^^^^^^^^^ F401
+14 |
+15 |     HAS_CACHEBOX = True
+   |
+   = help: Remove unused import: `twat_cache.engines.cachebox.CacheBoxEngi
+ne`
+
+src/twat_cache/engines/__init__.py:20:47: F401 `twat_cache.engines.cacheto
+ols.CacheToolsEngine` imported but unused; consider using `importlib.util.
+find_spec` to test for availability
+   |
+19 | try:
+20 |     from twat_cache.engines.cachetools import CacheToolsEngine
+   |                                               ^^^^^^^^^^^^^^^^ F401
+21 |
+22 |     HAS_CACHETOOLS = True
+   |
+   = help: Remove unused import: `twat_cache.engines.cachetools.CacheTools
+Engine`
+
+src/twat_cache/engines/__init__.py:27:46: F401 `twat_cache.engines.diskcac
+he.DiskCacheEngine` imported but unused; consider using `importlib.util.fi
+nd_spec` to test for availability
+   |
+26 | try:
+27 |     from twat_cache.engines.diskcache import DiskCacheEngine
+   |                                              ^^^^^^^^^^^^^^^ F401
+28 |
+29 |     HAS_DISKCACHE = True
+   |
+   = help: Remove unused import: `twat_cache.engines.diskcache.DiskCacheEn
+gine`
+
+src/twat_cache/engines/__init__.py:34:43: F401 `twat_cache.engines.joblib.
+JoblibEngine` imported but unused; consider using `importlib.util.find_spe
+c` to test for availability
+   |
+33 | try:
+34 |     from twat_cache.engines.joblib import JoblibEngine
+   |                                           ^^^^^^^^^^^^ F401
+35 |
+36 |     HAS_JOBLIB = True
+   |
+   = help: Remove unused import: `twat_cache.engines.joblib.JoblibEngine`
+
+src/twat_cache/engines/__init__.py:41:43: F401 `twat_cache.engines.klepto.
+KleptoEngine` imported but unused; consider using `importlib.util.find_spe
+c` to test for availability
+   |
+40 | try:
+41 |     from twat_cache.engines.klepto import KleptoEngine
+   |                                           ^^^^^^^^^^^^ F401
+42 |
+43 |     HAS_KLEPTO = True
+   |
+   = help: Remove unused import: `twat_cache.engines.klepto.KleptoEngine`
+
+src/twat_cache/engines/__init__.py:47:42: F401 `twat_cache.engines.functoo
+ls.FunctoolsCacheEngine` imported but unused; consider removing, adding to
+ `__all__`, or using a redundant alias
+   |
+45 |     HAS_KLEPTO = False
+46 |
+47 | from twat_cache.engines.functools import FunctoolsCacheEngine
+   |                                          ^^^^^^^^^^^^^^^^^^^^ F401
+48 |
+49 | _all_engines = [
+   |
+   = help: Add unused import `FunctoolsCacheEngine` to __all__
+
+src/twat_cache/engines/aiocache.py:39:20: F401 `redis` imported but unused
+; consider using `importlib.util.find_spec` to test for availability
+   |
+37 |         # Select backend based on availability
+38 |         try:
+39 |             import redis
+   |                    ^^^^^ F401
+40 |
+41 |             self._cache: Cache = RedisCache(
+   |
+   = help: Remove unused import: `redis`
+
+src/twat_cache/engines/aiocache.py:48:24: F401 `pymemcache` imported but u
+nused; consider using `importlib.util.find_spec` to test for availability
+   |
+46 |         except ImportError:
+47 |             try:
+48 |                 import pymemcache
+   |                        ^^^^^^^^^^ F401
+49 |
+50 |                 self._cache = MemcachedCache(
+   |
+   = help: Remove unused import: `pymemcache`
+
+src/twat_cache/engines/aiocache.py:170:20: F401 `aiocache` imported but un
+used; consider using `importlib.util.find_spec` to test for availability
+    |
+168 |         """Check if this cache engine is available for use."""
+169 |         try:
+170 |             import aiocache
+    |                    ^^^^^^^^ F401
+171 |
+172 |             return True
+    |
+    = help: Remove unused import: `aiocache`
+
+src/twat_cache/engines/cachetools.py:121:20: F401 `cachetools` imported bu
+t unused; consider using `importlib.util.find_spec` to test for availabili
+ty
+    |
+119 |         """Check if this cache engine is available for use."""
+120 |         try:
+121 |             import cachetools
+    |                    ^^^^^^^^^^ F401
+122 |
+123 |             return True
+    |
+    = help: Remove unused import: `cachetools`
+
+src/twat_cache/engines/diskcache.py:161:20: F401 `diskcache` imported but 
+unused; consider using `importlib.util.find_spec` to test for availability
+    |
+159 |         """Check if this cache engine is available for use."""
+160 |         try:
+161 |             import diskcache
+    |                    ^^^^^^^^^ F401
+162 |
+163 |             return True
+    |
+    = help: Remove unused import: `diskcache`
+
+src/twat_cache/engines/functools.py:1:1: A005 Module `functools` shadows a
+ Python standard-library module
+src/twat_cache/engines/klepto.py:194:20: F401 `klepto` imported but unused
+; consider using `importlib.util.find_spec` to test for availability
+    |
+192 |         """Check if this cache engine is available for use."""
+193 |         try:
+194 |             import klepto
+    |                    ^^^^^^ F401
+195 |
+196 |             return True
+    |
+    = help: Remove unused import: `klepto`
+
+src/twat_cache/paths.py:100:5: C901 `clear_cache` is too complex (11 > 10)
+    |
+100 | def clear_cache(folder_name: str | None = None) -> None:
+    |     ^^^^^^^^^^^ C901
+101 |     """
+102 |     Clear the cache directory for the given folder name.
+    |
+
+src/twat_cache/type_defs.py:39:12: UP007 Use `X | Y` for type annotations
+   |
+38 | # Cache key and value types
+39 | CacheKey = Union[str, tuple[Any, ...]]
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ UP007
+40 | CacheValue = Any  # Consider constraining this in future versions
+   |
+   = help: Convert to `X | Y`
+
+tests/test_cache.py:190:5: F811 Redefinition of unused `test_cache_clear` 
+from line 84
+    |
+190 | def test_cache_clear() -> None:
+    |     ^^^^^^^^^^^^^^^^ F811
+191 |     """Test cache clearing functionality."""
+192 |     call_count = 0
+    |
+    = help: Remove definition: `test_cache_clear`
+
+tests/test_cache.py:212:5: F811 Redefinition of unused `test_cache_stats` 
+from line 97
+    |
+212 | def test_cache_stats() -> None:
+    |     ^^^^^^^^^^^^^^^^ F811
+213 |     """Test cache statistics."""
+214 |     call_count = 0
+    |
+    = help: Remove definition: `test_cache_stats`
+
+tests/test_cache.py:310:34: PLR2004 Magic value used in comparison, consid
+er replacing `15` with a constant variable
+    |
+308 |     result2 = process_list(test_list)
+309 |
+310 |     assert result1 == result2 == 15
+    |                                  ^^ PLR2004
+    |
+
+tests/test_cache.py:399:24: PLR2004 Magic value used in comparison, consid
+er replacing `0o700` with a constant variable
+    |
+397 |     if os.name == "posix":
+398 |         mode = cache_path.stat().st_mode & 0o777
+399 |         assert mode == 0o700
+    |                        ^^^^^ PLR2004
+    |
+
+tests/test_cache.py:433:27: PLR2004 Magic value used in comparison, consid
+er replacing `25` with a constant variable
+    |
+431 |         return x * x
+432 |
+433 |     assert mem_func(5) == 25
+    |                           ^^ PLR2004
+434 |     assert mem_func(5) == 25  # Should use cache
+    |
+
+tests/test_cache.py:434:27: PLR2004 Magic value used in comparison, consid
+er replacing `25` with a constant variable
+    |
+433 |     assert mem_func(5) == 25
+434 |     assert mem_func(5) == 25  # Should use cache
+    |                           ^^ PLR2004
+435 |
+436 |     # Test basic disk cache
+    |
+
+tests/test_cache.py:441:28: PLR2004 Magic value used in comparison, consid
+er replacing `25` with a constant variable
+    |
+439 |         return x * x
+440 |
+441 |     assert disk_func(5) == 25
+    |                            ^^ PLR2004
+442 |     assert disk_func(5) == 25  # Should use cache
+    |
+
+tests/test_cache.py:442:28: PLR2004 Magic value used in comparison, consid
+er replacing `25` with a constant variable
+    |
+441 |     assert disk_func(5) == 25
+442 |     assert disk_func(5) == 25  # Should use cache
+    |                            ^^ PLR2004
+443 |
+444 |     # Test file cache
+    |
+
+tests/test_cache.py:449:28: PLR2004 Magic value used in comparison, consid
+er replacing `25` with a constant variable
+    |
+447 |         return x * x
+448 |
+449 |     assert file_func(5) == 25
+    |                            ^^ PLR2004
+450 |     assert file_func(5) == 25  # Should use cache
+    |
+
+tests/test_cache.py:450:28: PLR2004 Magic value used in comparison, consid
+er replacing `25` with a constant variable
+    |
+449 |     assert file_func(5) == 25
+450 |     assert file_func(5) == 25  # Should use cache
+    |                            ^^ PLR2004
+451 |
+452 |     # Clean up
+    |
+
+tests/test_decorators.py:45:16: F401 `cachebox` imported but unused; consi
+der using `importlib.util.find_spec` to test for availability
+   |
+43 |     """Test memory caching with cachebox (if available)."""
+44 |     try:
+45 |         import cachebox
+   |                ^^^^^^^^ F401
+46 |
+47 |     except ImportError:
+   |
+   = help: Remove unused import: `cachebox`
+
+tests/test_decorators.py:78:16: F401 `cachetools` imported but unused; con
+sider using `importlib.util.find_spec` to test for availability
+   |
+76 |     """Test memory caching with cachetools (if available)."""
+77 |     try:
+78 |         import cachetools
+   |                ^^^^^^^^^^ F401
+79 |
+80 |     except ImportError:
+   |
+   = help: Remove unused import: `cachetools`
+
+tests/test_decorators.py:100:16: F401 `diskcache` imported but unused; con
+sider using `importlib.util.find_spec` to test for availability
+    |
+ 98 |     """Test basic disk caching with diskcache."""
+ 99 |     try:
+100 |         import diskcache
+    |                ^^^^^^^^^ F401
+101 |
+102 |     except ImportError:
+    |
+    = help: Remove unused import: `diskcache`
+
+tests/test_decorators.py:122:16: F401 `klepto` imported but unused; consid
+er using `importlib.util.find_spec` to test for availability
+    |
+120 |     """Test basic disk caching with klepto SQL backend."""
+121 |     try:
+122 |         import klepto
+    |                ^^^^^^ F401
+123 |
+124 |     except ImportError:
+    |
+    = help: Remove unused import: `klepto`
+
+tests/test_decorators.py:144:16: F401 `joblib` imported but unused; consid
+er using `importlib.util.find_spec` to test for availability
+    |
+142 |     """Test file-based caching with joblib."""
+143 |     try:
+144 |         import joblib
+    |                ^^^^^^ F401
+145 |
+146 |     except ImportError:
+    |
+    = help: Remove unused import: `joblib`
+
+tests/test_decorators.py:166:16: F401 `klepto` imported but unused; consid
+er using `importlib.util.find_spec` to test for availability
+    |
+164 |     """Test file-based caching with klepto file backend."""
+165 |     try:
+166 |         import klepto
+    |                ^^^^^^ F401
+167 |
+168 |     except ImportError:
+    |
+    = help: Remove unused import: `klepto`
+
+tests/test_decorators.py:204:16: F401 `aiocache` imported but unused; cons
+ider using `importlib.util.find_spec` to test for availability
+    |
+202 |     """Test async caching with aiocache."""
+203 |     try:
+204 |         import aiocache
+    |                ^^^^^^^^ F401
+205 |
+206 |     except ImportError:
+    |
+    = help: Remove unused import: `aiocache`
+
+Found 92 errors (41 fixed, 51 remaining).
+========================== test session starts ===========================
+platform darwin -- Python 3.12.8, pytest-8.3.4, pluggy-1.5.0 -- /Users/ada
+m/Library/Application Support/hatch/env/virtual/twat-cache/ivvP1xkE/hatch-
+test.py3.12/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good
+/twat/plugins/repos/twat_cache
+configfile: pyproject.toml
+plugins: rerunfailures-14.0, mock-3.14.0, xdist-3.6.1
+collected 0 items / 6 errors                                             
+
+================================= ERRORS =================================
+__________________ ERROR collecting tests/test_cache.py __________________
+tests/test_cache.py:30: in <module>
+    from twat_cache.cache import clear_cache, get_stats
+src/twat_cache/__init__.py:5: in <module>
+    from twat_cache.cache import clear_cache, get_stats
+src/twat_cache/cache.py:21: in <module>
+    from .engines.base import BaseCacheEngine
+src/twat_cache/engines/__init__.py:13: in <module>
+    from twat_cache.engines.cachebox import CacheBoxEngine
+src/twat_cache/engines/cachebox.py:7: in <module>
+    from twat_cache.engines.base import BaseCacheEngine
+src/twat_cache/engines/base.py:27: in <module>
+    from twat_cache.config import CacheConfig
+src/twat_cache/config.py:24: in <module>
+    class CacheConfig(BaseModel):
+src/twat_cache/config.py:47: in CacheConfig
+    @field_validator("maxsize")
+/Users/adam/Library/Application Support/hatch/env/virtual/twat-cache/ivvP1
+xkE/hatch-test.py3.12/lib/python3.12/site-packages/pydantic/functional_val
+idators.py:501: in dec
+    raise PydanticUserError(
+E   pydantic.errors.PydanticUserError: `@field_validator` cannot be applie
+d to instance methods
+E   
+E   For further information visit https://errors.pydantic.dev/2.10/u/valid
+ator-instance-method
+_________________ ERROR collecting tests/test_config.py __________________
+tests/test_config.py:13: in <module>
+    from twat_cache.config import create_cache_config, CacheConfig
+src/twat_cache/__init__.py:5: in <module>
+    from twat_cache.cache import clear_cache, get_stats
+src/twat_cache/cache.py:21: in <module>
+    from .engines.base import BaseCacheEngine
+src/twat_cache/engines/__init__.py:13: in <module>
+    from twat_cache.engines.cachebox import CacheBoxEngine
+src/twat_cache/engines/cachebox.py:7: in <module>
+    from twat_cache.engines.base import BaseCacheEngine
+src/twat_cache/engines/base.py:27: in <module>
+    from twat_cache.config import CacheConfig
+src/twat_cache/config.py:24: in <module>
+    class CacheConfig(BaseModel):
+src/twat_cache/config.py:47: in CacheConfig
+    @field_validator("maxsize")
+/Users/adam/Library/Application Support/hatch/env/virtual/twat-cache/ivvP1
+xkE/hatch-test.py3.12/lib/python3.12/site-packages/pydantic/functional_val
+idators.py:501: in dec
+    raise PydanticUserError(
+E   pydantic.errors.PydanticUserError: `@field_validator` cannot be applie
+d to instance methods
+E   
+E   For further information visit https://errors.pydantic.dev/2.10/u/valid
+ator-instance-method
+_______________ ERROR collecting tests/test_decorators.py ________________
+tests/test_decorators.py:26: in <module>
+    from twat_cache.decorators import mcache, bcache, fcache, ucache, acac
+he
+src/twat_cache/__init__.py:5: in <module>
+    from twat_cache.cache import clear_cache, get_stats
+src/twat_cache/cache.py:21: in <module>
+    from .engines.base import BaseCacheEngine
+src/twat_cache/engines/__init__.py:13: in <module>
+    from twat_cache.engines.cachebox import CacheBoxEngine
+src/twat_cache/engines/cachebox.py:7: in <module>
+    from twat_cache.engines.base import BaseCacheEngine
+src/twat_cache/engines/base.py:27: in <module>
+    from twat_cache.config import CacheConfig
+src/twat_cache/config.py:24: in <module>
+    class CacheConfig(BaseModel):
+src/twat_cache/config.py:47: in CacheConfig
+    @field_validator("maxsize")
+/Users/adam/Library/Application Support/hatch/env/virtual/twat-cache/ivvP1
+xkE/hatch-test.py3.12/lib/python3.12/site-packages/pydantic/functional_val
+idators.py:501: in dec
+    raise PydanticUserError(
+E   pydantic.errors.PydanticUserError: `@field_validator` cannot be applie
+d to instance methods
+E   
+E   For further information visit https://errors.pydantic.dev/2.10/u/valid
+ator-instance-method
+_________________ ERROR collecting tests/test_engines.py _________________
+tests/test_engines.py:17: in <module>
+    from twat_cache.engines.base import CacheEngine
+src/twat_cache/__init__.py:5: in <module>
+    from twat_cache.cache import clear_cache, get_stats
+src/twat_cache/cache.py:21: in <module>
+    from .engines.base import BaseCacheEngine
+src/twat_cache/engines/__init__.py:13: in <module>
+    from twat_cache.engines.cachebox import CacheBoxEngine
+src/twat_cache/engines/cachebox.py:7: in <module>
+    from twat_cache.engines.base import BaseCacheEngine
+src/twat_cache/engines/base.py:27: in <module>
+    from twat_cache.config import CacheConfig
+src/twat_cache/config.py:24: in <module>
+    class CacheConfig(BaseModel):
+src/twat_cache/config.py:47: in CacheConfig
+    @field_validator("maxsize")
+/Users/adam/Library/Application Support/hatch/env/virtual/twat-cache/ivvP1
+xkE/hatch-test.py3.12/lib/python3.12/site-packages/pydantic/functional_val
+idators.py:501: in dec
+    raise PydanticUserError(
+E   pydantic.errors.PydanticUserError: `@field_validator` cannot be applie
+d to instance methods
+E   
+E   For further information visit https://errors.pydantic.dev/2.10/u/valid
+ator-instance-method
+________________ ERROR collecting tests/test_fallback.py _________________
+tests/test_fallback.py:9: in <module>
+    from twat_cache.decorators import (
+src/twat_cache/__init__.py:5: in <module>
+    from twat_cache.cache import clear_cache, get_stats
+src/twat_cache/cache.py:21: in <module>
+    from .engines.base import BaseCacheEngine
+src/twat_cache/engines/__init__.py:13: in <module>
+    from twat_cache.engines.cachebox import CacheBoxEngine
+src/twat_cache/engines/cachebox.py:7: in <module>
+    from twat_cache.engines.base import BaseCacheEngine
+src/twat_cache/engines/base.py:27: in <module>
+    from twat_cache.config import CacheConfig
+src/twat_cache/config.py:24: in <module>
+    class CacheConfig(BaseModel):
+src/twat_cache/config.py:47: in CacheConfig
+    @field_validator("maxsize")
+/Users/adam/Library/Application Support/hatch/env/virtual/twat-cache/ivvP1
+xkE/hatch-test.py3.12/lib/python3.12/site-packages/pydantic/functional_val
+idators.py:501: in dec
+    raise PydanticUserError(
+E   pydantic.errors.PydanticUserError: `@field_validator` cannot be applie
+d to instance methods
+E   
+E   For further information visit https://errors.pydantic.dev/2.10/u/valid
+ator-instance-method
+_______________ ERROR collecting tests/test_twat_cache.py ________________
+tests/test_twat_cache.py:20: in <module>
+    from twat_cache.engines.functools import FunctoolsCacheEngine
+src/twat_cache/__init__.py:5: in <module>
+    from twat_cache.cache import clear_cache, get_stats
+src/twat_cache/cache.py:21: in <module>
+    from .engines.base import BaseCacheEngine
+src/twat_cache/engines/__init__.py:13: in <module>
+    from twat_cache.engines.cachebox import CacheBoxEngine
+src/twat_cache/engines/cachebox.py:7: in <module>
+    from twat_cache.engines.base import BaseCacheEngine
+src/twat_cache/engines/base.py:27: in <module>
+    from twat_cache.config import CacheConfig
+src/twat_cache/config.py:24: in <module>
+    class CacheConfig(BaseModel):
+src/twat_cache/config.py:47: in CacheConfig
+    @field_validator("maxsize")
+/Users/adam/Library/Application Support/hatch/env/virtual/twat-cache/ivvP1
+xkE/hatch-test.py3.12/lib/python3.12/site-packages/pydantic/functional_val
+idators.py:501: in dec
+    raise PydanticUserError(
+E   pydantic.errors.PydanticUserError: `@field_validator` cannot be applie
+d to instance methods
+E   
+E   For further information visit https://errors.pydantic.dev/2.10/u/valid
+ator-instance-method
+======================== short test summary info =========================
+ERROR tests/test_cache.py - pydantic.errors.PydanticUserError: `@field_val
+idator` cannot be appli...
+ERROR tests/test_config.py - pydantic.errors.PydanticUserError: `@field_va
+lidator` cannot be appli...
+ERROR tests/test_decorators.py - pydantic.errors.PydanticUserError: `@fiel
+d_validator` cannot be appli...
+ERROR tests/test_engines.py - pydantic.errors.PydanticUserError: `@field_v
+alidator` cannot be appli...
+ERROR tests/test_fallback.py - pydantic.errors.PydanticUserError: `@field_
+validator` cannot be appli...
+ERROR tests/test_twat_cache.py - pydantic.errors.PydanticUserError: `@fiel
+d_validator` cannot be appli...
+!!!!!!!!!!!!!!!! Interrupted: 6 errors during collection !!!!!!!!!!!!!!!!!
+=========================== 6 errors in 0.57s ============================
+
+```
+
+---
+
+_****_
+
+
+
+I see there are several issues that need to be addressed. Let me analyze the output and start fixing the most critical issues first.
+
+The main issues are:
+
+1. Critical Pydantic Error: `@field_validator` cannot be applied to instance methods in `config.py`
+2. Multiple linting errors across the codebase
+3. Test failures due to the Pydantic configuration issue
+
+Let's start by fixing the most critical issue - the Pydantic validator error in `config.py`. I'll update the CacheConfig class to use the correct validator syntax:
+
+---
+
+_****_
+
+```diff
+  
+  from dataclasses import dataclass, field
+- from typing import Any, Union
+- from collections.abc import Callable
++ from typing import Any, Callable, Dict, Optional
+  
+  from pydantic import BaseModel, Field, field_validator
+  
+  # Type aliases
+- EvictionPolicy = Union[str, None]
+- CacheType = Union[str, None]
++ EvictionPolicy = str | None
++ CacheType = str | None
+  
+  
+- @dataclass
+  class CacheConfig(BaseModel):
+      """Cache configuration settings."""
+  
+-     maxsize: int | None = Field(default=None, ge=1)
+-     folder_name: str | None = None
+-     preferred_engine: str | None = None
+-     serializer: Callable[[Any], str] | None = None
+-     cache_type: CacheType | None = None
+-     ttl: float | None = Field(default=None, ge=0)
++     maxsize: Optional[int] = Field(default=None, ge=1)
++     folder_name: Optional[str] = None
++     preferred_engine: Optional[str] = None
++     serializer: Optional[Callable[[Any], str]] = None
++     cache_type: Optional[CacheType] = None
++     ttl: Optional[float] = Field(default=None, ge=0)
+      policy: EvictionPolicy = "lru"
+-     cache_dir: str | None = None  # For backward compatibility
++     cache_dir: Optional[str] = None  # For backward compatibility
+  
+      # Keyword-only boolean fields
+          extra = "forbid"
+  
++     @classmethod
+      @field_validator("maxsize")
+-     def validate_maxsize(self, v: int | None) -> int | None:
++     def validate_maxsize(cls, v: Optional[int]) -> Optional[int]:
+          """Validate maxsize field."""
+          if v is not None and v <= 0:
+-             msg = "maxsize must be positive"
+-             raise ValueError(msg)
++             raise ValueError("maxsize must be positive")
+          return v
+  
++     @classmethod
+      @field_validator("ttl")
+-     def validate_ttl(self, v: float | None) -> float | None:
++     def validate_ttl(cls, v: Optional[float]) -> Optional[float]:
+          """Validate ttl field."""
+          if v is not None and v < 0:
+-             msg = "ttl must be non-negative"
+-             raise ValueError(msg)
++             raise ValueError("ttl must be non-negative")
+          return v
+  
++     @classmethod
+      @field_validator("policy")
+-     def validate_policy(self, v: EvictionPolicy) -> EvictionPolicy:
++     def validate_policy(cls, v: EvictionPolicy) -> EvictionPolicy:
+          """Validate policy field."""
+          valid_policies = {"lru", "lfu", "fifo", "rr", "ttl"}
+          if v is not None and v not in valid_policies:
+-             msg = f"policy must be one of {valid_policies}"
+-             raise ValueError(msg)
++             raise ValueError(f"policy must be one of {valid_policies}")
+          return v
+  
+-     def to_dict(self) -> dict[str, Any]:
++     def to_dict(self) -> Dict[str, Any]:
+          """Convert configuration to dictionary."""
+          return {
+  
+      @classmethod
+-     def from_dict(cls, data: dict[str, Any]) -> "CacheConfig":
++     def from_dict(cls, data: Dict[str, Any]) -> "CacheConfig":
+          """Create configuration from dictionary."""
+          return cls(**data)
+  
+  
+  def create_cache_config(
+-     maxsize: int | None = None,
+-     folder_name: str | None = None,
+-     preferred_engine: str | None = None,
+-     serializer: Callable[[Any], str] | None = None,
+-     cache_type: CacheType | None = None,
+-     ttl: float | None = None,
++     maxsize: Optional[int] = None,
++     folder_name: Optional[str] = None,
++     preferred_engine: Optional[str] = None,
++     serializer: Optional[Callable[[Any], str]] = None,
++     cache_type: Optional[CacheType] = None,
++     ttl: Optional[float] = None,
+      policy: EvictionPolicy = "lru",
+-     cache_dir: str | None = None,  # For backward compatibility
++     cache_dir: Optional[str] = None,  # For backward compatibility
+      *,  # Force remaining arguments to be keyword-only
+      use_sql: bool = False,
+```
+
+---
+
+_****_
+
+
+
+Now let's run the tests again to see if the Pydantic error is fixed:
+
+---
+
+_****_
+
+```bash
+hatch test
+```
+
+```
+========================== test session starts ===========================
+platform darwin -- Python 3.12.8, pytest-8.3.4, pluggy-1.5.0 -- /Users/ada
+m/Library/Application Support/hatch/env/virtual/twat-cache/ivvP1xkE/hatch-
+test.py3.12/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good
+/twat/plugins/repos/twat_cache
+configfile: pyproject.toml
+plugins: rerunfailures-14.0, mock-3.14.0, xdist-3.6.1
+collected 0 items / 6 errors                                             
+
+================================= ERRORS =================================
+__________________ ERROR collecting tests/test_cache.py __________________
+tests/test_cache.py:30: in <module>
+    from twat_cache.cache import clear_cache, get_stats
+src/twat_cache/__init__.py:5: in <module>
+    from twat_cache.cache import clear_cache, get_stats
+src/twat_cache/cache.py:21: in <module>
+    from .engines.base import BaseCacheEngine
+src/twat_cache/engines/__init__.py:13: in <module>
+    from twat_cache.engines.cachebox import CacheBoxEngine
+src/twat_cache/engines/cachebox.py:7: in <module>
+    from twat_cache.engines.base import BaseCacheEngine
+src/twat_cache/engines/base.py:28: in <module>
+    from twat_cache.type_defs import CacheKey, P, R
+src/twat_cache/type_defs.py:59: in <module>
+    AsyncDecorator = Callable[
+<frozen _collections_abc>:471: in __new__
+    ???
+E   TypeError: Callable must be used as Callable[[arg, ...], result].
+_________________ ERROR collecting tests/test_config.py __________________
+ImportError while importing test module '/Users/adam/Developer/vcs/github.
+twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/tests/test_
+config.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/importli
+b/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_config.py:14: in <module>
+    from .test_constants import (
+E   ImportError: attempted relative import with no known parent package
+_______________ ERROR collecting tests/test_decorators.py ________________
+tests/test_decorators.py:26: in <module>
+    from twat_cache.decorators import mcache, bcache, fcache, ucache, acac
+he
+src/twat_cache/__init__.py:5: in <module>
+    from twat_cache.cache import clear_cache, get_stats
+src/twat_cache/cache.py:21: in <module>
+    from .engines.base import BaseCacheEngine
+src/twat_cache/engines/__init__.py:13: in <module>
+    from twat_cache.engines.cachebox import CacheBoxEngine
+src/twat_cache/engines/cachebox.py:7: in <module>
+    from twat_cache.engines.base import BaseCacheEngine
+src/twat_cache/engines/base.py:28: in <module>
+    from twat_cache.type_defs import CacheKey, P, R
+src/twat_cache/type_defs.py:59: in <module>
+    AsyncDecorator = Callable[
+<frozen _collections_abc>:471: in __new__
+    ???
+E   TypeError: Callable must be used as Callable[[arg, ...], result].
+_________________ ERROR collecting tests/test_engines.py _________________
+tests/test_engines.py:17: in <module>
+    from twat_cache.engines.base import CacheEngine
+src/twat_cache/__init__.py:5: in <module>
+    from twat_cache.cache import clear_cache, get_stats
+src/twat_cache/cache.py:21: in <module>
+    from .engines.base import BaseCacheEngine
+src/twat_cache/engines/__init__.py:13: in <module>
+    from twat_cache.engines.cachebox import CacheBoxEngine
+src/twat_cache/engines/cachebox.py:7: in <module>
+    from twat_cache.engines.base import BaseCacheEngine
+src/twat_cache/engines/base.py:28: in <module>
+    from twat_cache.type_defs import CacheKey, P, R
+src/twat_cache/type_defs.py:59: in <module>
+    AsyncDecorator = Callable[
+<frozen _collections_abc>:471: in __new__
+    ???
+E   TypeError: Callable must be used as Callable[[arg, ...], result].
+________________ ERROR collecting tests/test_fallback.py _________________
+tests/test_fallback.py:9: in <module>
+    from twat_cache.decorators import (
+src/twat_cache/__init__.py:5: in <module>
+    from twat_cache.cache import clear_cache, get_stats
+src/twat_cache/cache.py:21: in <module>
+    from .engines.base import BaseCacheEngine
+src/twat_cache/engines/__init__.py:13: in <module>
+    from twat_cache.engines.cachebox import CacheBoxEngine
+src/twat_cache/engines/cachebox.py:7: in <module>
+    from twat_cache.engines.base import BaseCacheEngine
+src/twat_cache/engines/base.py:28: in <module>
+    from twat_cache.type_defs import CacheKey, P, R
+src/twat_cache/type_defs.py:59: in <module>
+    AsyncDecorator = Callable[
+<frozen _collections_abc>:471: in __new__
+    ???
+E   TypeError: Callable must be used as Callable[[arg, ...], result].
+_______________ ERROR collecting tests/test_twat_cache.py ________________
+tests/test_twat_cache.py:20: in <module>
+    from twat_cache.engines.functools import FunctoolsCacheEngine
+src/twat_cache/__init__.py:5: in <module>
+    from twat_cache.cache import clear_cache, get_stats
+src/twat_cache/cache.py:21: in <module>
+    from .engines.base import BaseCacheEngine
+src/twat_cache/engines/__init__.py:13: in <module>
+    from twat_cache.engines.cachebox import CacheBoxEngine
+src/twat_cache/engines/cachebox.py:7: in <module>
+    from twat_cache.engines.base import BaseCacheEngine
+src/twat_cache/engines/base.py:28: in <module>
+    from twat_cache.type_defs import CacheKey, P, R
+src/twat_cache/type_defs.py:59: in <module>
+    AsyncDecorator = Callable[
+<frozen _collections_abc>:471: in __new__
+    ???
+E   TypeError: Callable must be used as Callable[[arg, ...], result].
+======================== short test summary info =========================
+ERROR tests/test_cache.py - TypeError: Callable must be used as Callable[[
+arg, ...], result].
+ERROR tests/test_config.py
+ERROR tests/test_decorators.py - TypeError: Callable must be used as Calla
+ble[[arg, ...], result].
+ERROR tests/test_engines.py - TypeError: Callable must be used as Callable
+[[arg, ...], result].
+ERROR tests/test_fallback.py - TypeError: Callable must be used as Callabl
+e[[arg, ...], result].
+ERROR tests/test_twat_cache.py - TypeError: Callable must be used as Calla
+ble[[arg, ...], result].
+!!!!!!!!!!!!!!!! Interrupted: 6 errors during collection !!!!!!!!!!!!!!!!!
+=========================== 6 errors in 0.40s ============================
+
+```
+
+---
+
+_****_
+
+
+
+I see we have a new error in `type_defs.py` related to the `AsyncDecorator` type definition. Let me fix that:
+
+---
+
+_****_
+
+
+
+---
+
 _****_
 
 

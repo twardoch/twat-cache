@@ -2,9 +2,6 @@
 """Tests for backend selection and fallback behavior."""
 
 import asyncio
-import os
-import sys
-from typing import Any, Dict, Optional
 from unittest.mock import patch
 
 import pytest
@@ -14,13 +11,11 @@ from twat_cache.decorators import (
     _select_best_backend,
     mcache,
     bcache,
-    fcache,
     acache,
     ucache,
 )
 from .test_constants import (
     CACHE_SIZE,
-    CACHE_TTL,
     EXPECTED_CALLS_SINGLE,
     SQUARE_INPUT,
     SQUARE_RESULT,

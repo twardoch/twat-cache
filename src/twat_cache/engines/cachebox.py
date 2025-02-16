@@ -1,72 +1,106 @@
-"""Rust-based cache engine using cachebox package."""
+"""
+CacheBox-based cache engine implementation.
 
-from __future__ import annotations
+This module provides a cache engine implementation using the CacheBox library,
+which offers high-performance in-memory caching with advanced features.
+"""
 
-from typing import cast
+from typing import Any, Dict, Optional, cast
 
-from twat_cache.engines.base import BaseCacheEngine
-from twat_cache.types import F, CacheKey, P, R
+from loguru import logger
 
-try:
-    from cachebox import Cache
-
-    HAS_CACHEBOX = True
-except ImportError:
-    HAS_CACHEBOX = False
-    Cache = None
+from twat_cache.type_defs import (
+    F,
+    CacheKey,
+    P,
+    R,
+    CacheConfig,
+)
+from .base import BaseCacheEngine
 
 
 class CacheBoxEngine(BaseCacheEngine[P, R]):
-    """Cache engine using cachebox for high-performance Rust-based caching."""
+    """Cache engine implementation using CacheBox."""
 
-    def __init__(self, config):
-        """Initialize cachebox engine.
+    def __init__(self, config: CacheConfig) -> None:
+        """Initialize the cache engine with the given configuration."""
+        super().__init__(config)
+        self._hits = 0
+        self._misses = 0
+        self._cache: Dict[CacheKey, R] = {}
+        self._maxsize = config.maxsize or None
+        self._ttl = config.ttl
+
+        try:
+            import cachebox
+
+            self._backend = cachebox.Cache(maxsize=self._maxsize)
+        except ImportError as e:
+            msg = "CacheBox not available"
+            raise ImportError(msg) from e
+
+    def cache(self, func: F) -> F:
+        """
+        Decorate a function to cache its results.
 
         Args:
-            config: Cache configuration.
+            func: The function to cache
+
+        Returns:
+            A wrapped function that caches its results
         """
-        super().__init__(config)
-        maxsize = getattr(self._config, "maxsize", None)
-        self._maxsize = maxsize or 0  # 0 means unlimited in cachebox
-        self._cache = Cache(maxsize=self._maxsize) if HAS_CACHEBOX else None
-
-    def _get_cached_value(self, key: CacheKey) -> R | None:
-        """Retrieve a value from the cache."""
-        if not self.is_available:
-            return None
-        return cast(R, self._cache.get(key))
-
-    def _set_cached_value(self, key: CacheKey, value: R) -> None:
-        """Store a value in the cache."""
-        if not self.is_available:
-            return
-        # cachebox handles maxsize internally, so no need for extra logic here
-        self._cache[key] = value
+        return cast(F, self._backend.memoize(maxsize=self._maxsize)(func))
 
     def clear(self) -> None:
         """Clear all cached values."""
-        if self._cache is not None:
-            self._cache.clear()
+        if hasattr(self, "_backend"):
+            self._backend.clear()
+            self._hits = 0
+            self._misses = 0
+
+    def validate_config(self) -> None:
+        """
+        Validate the engine configuration.
+
+        Raises:
+            ValueError: If the configuration is invalid
+        """
+        if self._config.maxsize is not None and self._config.maxsize <= 0:
+            msg = "maxsize must be positive"
+            raise ValueError(msg)
+
+        if self._config.ttl is not None and self._config.ttl < 0:
+            msg = "ttl must be non-negative"
+            raise ValueError(msg)
 
     @property
-    def is_available(self) -> bool:
-        """Check if cachebox is available."""
-        return HAS_CACHEBOX and self._cache is not None
-
-    @property
-    def name(self) -> str:
-        """Get engine name."""
-        return "cachebox"
-
-    def cache(self, func: F) -> F:
-        """Apply cachebox caching to the function.
-
-        Args:
-            func: Function to be cached
+    def stats(self) -> Dict[str, Any]:
+        """
+        Get cache statistics.
 
         Returns:
-            Cached function wrapper
+            A dictionary containing cache statistics:
+            - hits: Number of cache hits
+            - misses: Number of cache misses
+            - size: Current number of items in cache
+            - maxsize: Maximum number of items allowed
         """
-        if not self.is_available:
-            return func
-        return cast(F, self._cache.memoize(func))
+        return {
+            "hits": self._hits,
+            "misses": self._misses,
+            "size": len(self._cache),
+            "maxsize": self._maxsize,
+            "backend": "cachebox",
+            "policy": "lru" if self._maxsize else None,
+            "ttl": self._ttl,
+        }
+
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if this cache engine is available for use."""
+        try:
+            import cachebox
+
+            return True
+        except ImportError:
+            return False

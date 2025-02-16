@@ -18,15 +18,12 @@
 """Tests for the cache decorators."""
 
 import asyncio
-import os
 import time
-from pathlib import Path
 from typing import Any
 
 import pytest
 
 from twat_cache.decorators import mcache, bcache, fcache, ucache, acache
-from twat_cache.paths import get_cache_path
 from .test_constants import (
     CACHE_SIZE,
     CACHE_TTL,
@@ -34,7 +31,6 @@ from .test_constants import (
     EXPECTED_CALLS_DOUBLE,
     EXPECTED_CALLS_TRIPLE,
     EXPECTED_CALLS_QUAD,
-    FILE_PERMISSIONS,
     SQUARE_INPUT,
     SQUARE_RESULT,
     TEST_KEY,

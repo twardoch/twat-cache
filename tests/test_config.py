@@ -11,7 +11,7 @@
 import pytest
 
 from twat_cache.config import create_cache_config, CacheConfig
-from .test_constants import (
+from twat_cache.test_constants import (
     CACHE_SIZE,
     CACHE_TTL,
     TEST_KEY,

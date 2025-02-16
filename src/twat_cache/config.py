@@ -10,16 +10,15 @@
 """Cache configuration system."""
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
 # Type aliases
-EvictionPolicy = Union[str, None]
-CacheType = Union[str, None]
+EvictionPolicy = str | None
+CacheType = str | None
 
 
-@dataclass
 class CacheConfig(BaseModel):
     """Cache configuration settings."""
 
@@ -43,6 +42,7 @@ class CacheConfig(BaseModel):
         validate_assignment = True
         extra = "forbid"
 
+    @classmethod
     @field_validator("maxsize")
     def validate_maxsize(cls, v: Optional[int]) -> Optional[int]:
         """Validate maxsize field."""
@@ -50,6 +50,7 @@ class CacheConfig(BaseModel):
             raise ValueError("maxsize must be positive")
         return v
 
+    @classmethod
     @field_validator("ttl")
     def validate_ttl(cls, v: Optional[float]) -> Optional[float]:
         """Validate ttl field."""
@@ -57,6 +58,7 @@ class CacheConfig(BaseModel):
             raise ValueError("ttl must be non-negative")
         return v
 
+    @classmethod
     @field_validator("policy")
     def validate_policy(cls, v: EvictionPolicy) -> EvictionPolicy:
         """Validate policy field."""

@@ -9,94 +9,88 @@
 """
 Functools-based cache engine implementation.
 
-This module provides a memory-based cache implementation using Python's
-built-in functools.lru_cache. This is the always-available fallback cache
-backend that requires no external dependencies.
+This module provides a basic cache engine implementation using Python's built-in
+functools.lru_cache. It serves as a fallback when no other caching backends
+are available.
 """
 
-from typing import Any, cast
-from collections.abc import Callable
-from functools import wraps, lru_cache
-import json
+import functools
+import time
+from typing import Any, Dict, Optional, Callable
 
-from twat_cache.types import CacheConfig, P, R, CacheKey
-from .base import BaseCacheEngine
+from loguru import logger
+
+from twat_cache.engines.base import BaseCacheEngine
+from twat_cache.type_defs import CacheConfig, P, R, CacheKey
 
 
 class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
-    """
-    Memory-based cache engine implementation using functools.lru_cache.
-
-    This engine uses Python's built-in functools.lru_cache for caching,
-    providing an efficient in-memory caching solution that's always available.
-
-    Args:
-        config: Cache configuration object implementing CacheConfig protocol
-    """
+    """Cache engine implementation using functools.lru_cache."""
 
     def __init__(self, config: CacheConfig) -> None:
-        """Initialize the functools cache engine."""
+        """Initialize the cache engine with the given configuration."""
         super().__init__(config)
-        self._cache = lru_cache(maxsize=config.maxsize)
+        self._hits = 0
+        self._misses = 0
+        self._cache: Dict[CacheKey, R] = {}
+        self._maxsize = config.maxsize or None
+        self._ttl = config.ttl
+        self._last_access: Dict[CacheKey, float] = {}
 
-    def get(self, key: str) -> R | None:
+    def cache(self, func: Callable[P, R]) -> Callable[P, R]:
         """
-        Get a value from the cache.
+        Decorate a function to cache its results.
 
         Args:
-            key: The key to look up
+            func: The function to cache
 
         Returns:
-            The cached value if found, None otherwise
+            A wrapped function that caches its results
         """
-        try:
-            return self._cache.cache_getitem(lambda k: k, key)  # type: ignore
-        except KeyError:
-            return None
+        if self._maxsize is not None:
+            wrapper = functools.lru_cache(maxsize=self._maxsize)(func)
+        else:
+            wrapper = functools.cache(func)
 
-    def set(self, key: str, value: R) -> None:
-        """
-        Store a value in the cache.
+        def cached_func(*args: P.args, **kwargs: P.kwargs) -> R:
+            key = self._make_key(*args, **kwargs)
 
-        Args:
-            key: The key to store under
-            value: The value to cache
-        """
-        self._cache(lambda k: k)(key)  # type: ignore
-        self._cache.cache_setitem(lambda k: k, key, value)  # type: ignore
+            # Check TTL
+            if self._ttl is not None:
+                now = time.time()
+                if key in self._last_access:
+                    if now - self._last_access[key] > self._ttl:
+                        self.clear()
+                        self._misses += 1
+                        result = func(*args, **kwargs)
+                        self._cache[key] = result
+                        self._last_access[key] = now
+                        return result
+
+            # Try to get from cache
+            try:
+                result = wrapper(*args, **kwargs)
+                self._hits += 1
+                self._cache[key] = result
+                self._last_access[key] = time.time()
+                return result
+            except Exception as e:
+                self._misses += 1
+                logger.warning(f"Cache miss for {key}: {e}")
+                result = func(*args, **kwargs)
+                self._cache[key] = result
+                self._last_access[key] = time.time()
+                return result
+
+        return cached_func
 
     def clear(self) -> None:
-        """Clear all cached values and reset statistics."""
-        self._cache.cache_clear()
-
-    @property
-    def name(self) -> str:
-        """
-        Get the name of the cache engine.
-
-        Returns:
-            str: The name of the cache engine
-        """
-        return "memory"
-
-    @property
-    def stats(self) -> dict[str, Any]:
-        """
-        Get cache statistics.
-
-        Returns:
-            dict: A dictionary containing cache statistics
-        """
-        return {
-            "type": "functools",
-            "maxsize": self._config.maxsize,
-            "current_size": len(self._cache),
-            "hits": self._hits,
-            "misses": self._misses,
-            "size": len(self._cache),
-            "backend": self.__class__.__name__,
-            "path": None,
-        }
+        """Clear all cached values."""
+        if hasattr(self, "_cache"):
+            self._cache.clear()
+            self._last_access.clear()
+            self._hits = 0
+            self._misses = 0
 
     def validate_config(self) -> None:
         """
@@ -105,85 +99,37 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
         Raises:
             ValueError: If the configuration is invalid
         """
-        super().validate_config()
-
-        # Additional functools-specific validation
-        maxsize = self._config.maxsize
-        if maxsize is not None and not isinstance(maxsize, int):
-            msg = "maxsize must be an integer or None"
+        if self._config.maxsize is not None and self._config.maxsize <= 0:
+            msg = "maxsize must be positive"
             raise ValueError(msg)
 
-    def _get_backend_key_components(self) -> list[str]:
-        """Get functools-specific components for key generation."""
-        return ["functools"]  # Add backend type to key to avoid conflicts
+        if self._config.ttl is not None and self._config.ttl < 0:
+            msg = "ttl must be non-negative"
+            raise ValueError(msg)
 
-    def cache(
-        self, func: Callable[P, R] | None = None
-    ) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
+    @property
+    def stats(self) -> Dict[str, Any]:
         """
-        Decorate a function with caching behavior.
-
-        This method can be used both as a decorator and as a decorator factory:
-
-        @engine.cache
-        def func(): ...
-
-        @engine.cache()
-        def func(): ...
-
-        Args:
-            func: The function to cache, or None if used as a decorator factory
+        Get cache statistics.
 
         Returns:
-            A wrapped function with caching behavior, or a decorator
+            A dictionary containing cache statistics:
+            - hits: Number of cache hits
+            - misses: Number of cache misses
+            - size: Current number of items in cache
+            - maxsize: Maximum number of items allowed
         """
+        return {
+            "hits": self._hits,
+            "misses": self._misses,
+            "size": len(self._cache),
+            "maxsize": self._maxsize,
+            "backend": "functools",
+            "policy": "lru" if self._maxsize else None,
+            "ttl": self._ttl,
+        }
 
-        def decorator(f: Callable[P, R]) -> Callable[P, R]:
-            @wraps(f)
-            def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-                key = json.dumps(tuple(args) + tuple(kwargs.items()), sort_keys=True)
-                result = self._get_cached_value(key)
-                if result is None:
-                    try:
-                        result = f(*args, **kwargs)
-                        self._set_cached_value(key, result)
-                    except Exception as e:
-                        # Cache the exception to avoid recomputing
-                        # We know the exception is safe to cache in this context
-                        self._set_cached_value(key, cast(R, e))
-                        raise
-                elif isinstance(result, Exception):
-                    raise result
-                return result
-
-            return wrapper
-
-        if func is None:
-            return decorator
-        return decorator(func)
-
-    def _get_cached_value(self, key: CacheKey) -> R | None:
-        """
-        Retrieve a value from the cache.
-
-        Args:
-            key: The cache key to look up
-
-        Returns:
-            The cached value if found, None otherwise
-        """
-        try:
-            return self._cache.cache_getitem(lambda k: k, str(key))  # type: ignore
-        except KeyError:
-            return None
-
-    def _set_cached_value(self, key: CacheKey, value: R) -> None:
-        """
-        Store a value in the cache.
-
-        Args:
-            key: The cache key to store under
-            value: The value to cache
-        """
-        self._cache(lambda k: k)(str(key))  # type: ignore
-        self._cache.cache_setitem(lambda k: k, str(key), value)  # type: ignore
+    @classmethod
+    def is_available(cls) -> bool:
+        """Check if this cache engine is available for use."""
+        return True  # Always available as it uses stdlib

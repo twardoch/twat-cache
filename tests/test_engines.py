@@ -10,10 +10,7 @@
 
 """Tests for cache engine implementations."""
 
-import os
-import tempfile
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 
@@ -93,7 +90,7 @@ def test_key_generation() -> None:
 
 def test_cache_operations() -> None:
     """Test basic cache operations."""
-    engine = create_test_engine()
+    create_test_engine()
     call_count = 0
 
     def test_function(x: int) -> int:
@@ -128,7 +125,7 @@ def test_cache_ttl() -> None:
     """Test time-to-live behavior."""
     import time
 
-    engine = create_test_engine()
+    create_test_engine()
     call_count = 0
 
     def test_function(x: int) -> int:

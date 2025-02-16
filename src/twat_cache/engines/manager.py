@@ -9,21 +9,34 @@
 # this_file: src/twat_cache/engines/manager.py
 
 """
-Cache engine manager.
+Cache engine manager module.
 
-This module provides a centralized manager for cache engines, handling
-registration, selection, and instantiation of appropriate cache backends
-based on configuration and availability.
+This module provides the CacheEngineManager class which handles registration,
+selection and management of cache engine implementations.
 """
 
-from typing import Any, cast, ClassVar
+from typing import Dict, List, Optional, Type, TypeVar, cast
 import os
 
 from loguru import logger
 
-from twat_cache.types import BackendType, CacheConfig, CacheEngine
+from twat_cache.type_defs import (
+    F,
+    P,
+    R,
+    CacheConfig,
+)
+from .aiocache import AioCacheEngine
 from .base import BaseCacheEngine
+from .cachebox import CacheBoxEngine
+from .cachetools import CacheToolsEngine
+from .diskcache import DiskCacheEngine
 from .functools import FunctoolsCacheEngine
+from .joblib import JoblibEngine
+from .klepto import KleptoEngine
+
+# Type variable for concrete cache engine
+E = TypeVar("E", bound=BaseCacheEngine)
 
 # Try to import optional backends
 try:
@@ -33,22 +46,6 @@ try:
 except ImportError:
     HAS_AIOCACHE = False
     logger.debug("aiocache not available")
-
-try:
-    from .diskcache import DiskCacheEngine
-
-    HAS_DISKCACHE = True
-except ImportError:
-    HAS_DISKCACHE = False
-    logger.debug("diskcache not available")
-
-try:
-    from .cachebox import CacheBoxEngine
-
-    HAS_CACHEBOX = True
-except ImportError:
-    HAS_CACHEBOX = False
-    logger.debug("cachebox not available")
 
 try:
     from .cachetools import CacheToolsEngine
@@ -75,206 +72,108 @@ except ImportError:
     logger.debug("joblib not available")
 
 
-# Type alias for concrete cache engine class
-EngineType = type[BaseCacheEngine[Any, Any]]
-
-
-class EngineManager:
-    """
-    Singleton manager for cache engine selection and instantiation.
-
-    This class manages the selection and instantiation of cache engines based on
-    configuration and availability. It ensures only one instance exists.
-    """
-
-    _instance: ClassVar["EngineManager | None"] = None
-
-    def __new__(cls) -> "EngineManager":
-        """Create or return the singleton instance."""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+class CacheEngineManager:
+    """Manages cache engine implementations and handles engine selection."""
 
     def __init__(self) -> None:
-        """Initialize the engine manager."""
-        if not hasattr(self, "_initialized"):
-            self._engines: dict[str, type[CacheEngine[Any, Any]]] = {}
-            self._register_available_engines()
-            self._initialized = True
+        """Initialize the cache engine manager."""
+        self._engines: Dict[str, Type[BaseCacheEngine[P, R]]] = {}
+        self._register_builtin_engines()
 
-    def _register_available_engines(self) -> None:
-        """Register all available cache engines."""
-        # Always register memory cache
-        self._register_engine("memory", FunctoolsCacheEngine)
+    def _register_builtin_engines(self) -> None:
+        """Register built-in cache engine implementations."""
+        self.register_engine("functools", FunctoolsCacheEngine)
+        self.register_engine("cachetools", CacheToolsEngine)
+        self.register_engine("diskcache", DiskCacheEngine)
+        self.register_engine("aiocache", AioCacheEngine)
+        self.register_engine("klepto", KleptoEngine)
+        self.register_engine("joblib", JoblibEngine)
+        self.register_engine("cachebox", CacheBoxEngine)
 
-        # Register optional engines
-        if HAS_CACHEBOX:
-            self._register_engine("cachebox", CacheBoxEngine)
-        if HAS_CACHETOOLS:
-            self._register_engine("cachetools", CacheToolsEngine)
-        if HAS_AIOCACHE:
-            self._register_engine("aiocache", AioCacheEngine)
-        if HAS_KLEPTO:
-            self._register_engine("klepto", KleptoEngine)
-        if HAS_DISKCACHE:
-            self._register_engine("diskcache", DiskCacheEngine)
-        if HAS_JOBLIB:
-            self._register_engine("joblib", JoblibEngine)
-
-        logger.debug(
-            "Registered cache engines: {}",
-            list(self._engines.keys()),
-        )
-
-    def _register_engine(self, name: str, engine_cls: type[Any]) -> None:
+    def register_engine(self, name: str, engine_cls: Type[E]) -> None:
         """
-        Register a cache engine.
+        Register a new cache engine implementation.
 
         Args:
-            name: Name of the engine
-            engine_cls: Engine class to register
-
-        Raises:
-            ValueError: If engine is invalid
+            name: Unique name for the engine
+            engine_cls: Cache engine class to register
         """
-        if not issubclass(engine_cls, BaseCacheEngine):
-            msg = (
-                f"Invalid engine class {engine_cls.__name__}, "
-                "must be a subclass of BaseCacheEngine"
-            )
-            raise ValueError(msg)
+        if name in self._engines:
+            logger.warning(f"Overwriting existing engine registration for {name}")
+        self._engines[name] = engine_cls
 
-        self._engines[name] = cast(EngineType, engine_cls)
-        logger.debug("Registered cache engine: {}", name)
-
-    def _validate_config(self, config: CacheConfig) -> None:
+    def get_engine(self, name: str) -> Optional[Type[BaseCacheEngine[P, R]]]:
         """
-        Validate the cache configuration.
+        Get a registered cache engine by name.
 
         Args:
-            config: Cache configuration to validate
+            name: Name of the engine to retrieve
 
-        Raises:
-            ValueError: If configuration is invalid
+        Returns:
+            The cache engine class if found, None otherwise
         """
-        if config.maxsize is not None and config.maxsize <= 0:
-            msg = "maxsize must be positive if specified"
-            raise ValueError(msg)
+        return self._engines.get(name)
 
-    def _try_preferred_engine(
-        self, config: CacheConfig
-    ) -> CacheEngine[Any, Any] | None:
+    def list_engines(self) -> List[str]:
         """
-        Try to create the preferred engine instance.
+        Get a list of all registered engine names.
+
+        Returns:
+            List of registered engine names
+        """
+        return list(self._engines.keys())
+
+    def get_available_engines(self) -> List[str]:
+        """
+        Get a list of registered engines that are available for use.
+
+        Returns:
+            List of available engine names
+        """
+        return [name for name, engine in self._engines.items() if engine.is_available()]
+
+    def select_engine(
+        self,
+        config: CacheConfig,
+        preferred: Optional[List[str]] = None,
+    ) -> Optional[Type[BaseCacheEngine[P, R]]]:
+        """
+        Select an appropriate cache engine based on configuration and preferences.
 
         Args:
             config: Cache configuration
+            preferred: List of preferred engine names in priority order
 
         Returns:
-            The preferred engine instance if available, None otherwise
+            Selected cache engine class or None if no suitable engine is found
         """
-        if config.preferred_engine:
-            engine_cls = self._engines.get(config.preferred_engine)
-            if engine_cls:
-                logger.debug("Using preferred engine: {}", config.preferred_engine)
-                return engine_cls(config)
-            logger.warning(
-                "Preferred engine {} not available",
-                config.preferred_engine,
-            )
+        available = self.get_available_engines()
+
+        if not available:
+            logger.warning("No cache engines are available")
+            return None
+
+        if preferred:
+            # Try preferred engines in order
+            for engine_name in preferred:
+                if engine_name in available:
+                    engine_cls = self.get_engine(engine_name)
+                    if engine_cls and engine_cls.is_available():
+                        return engine_cls
+
+        # Fall back to first available engine
+        fallback = self.get_engine(available[0])
+        if fallback and fallback.is_available():
+            return fallback
+
         return None
 
-    def _try_redis_engine(self, config: CacheConfig) -> CacheEngine[Any, Any] | None:
-        """
-        Try to create a Redis engine instance if conditions are met.
 
-        Args:
-            config: Cache configuration
-
-        Returns:
-            A Redis engine instance if available and requested, None otherwise
-        """
-        if HAS_AIOCACHE and os.environ.get("TWAT_CACHE_USE_REDIS") == "1":
-            logger.debug("Using Redis cache via aiocache")
-            return self._engines["aiocache"](config)
-        return None
-
-    def _try_sql_engine(self, config: CacheConfig) -> CacheEngine[Any, Any] | None:
-        """
-        Try to create an SQL engine instance if conditions are met.
-
-        Args:
-            config: Cache configuration
-
-        Returns:
-            An SQL engine instance if requested, None otherwise
-        """
-        if config.use_sql and HAS_DISKCACHE:
-            logger.debug("Using SQL-based disk cache")
-            return self._engines["diskcache"](config)
-        return None
-
-    def _create_fallback_engine(self, config: CacheConfig) -> CacheEngine[Any, Any]:
-        """
-        Create a fallback engine instance.
-
-        Args:
-            config: Cache configuration
-
-        Returns:
-            A fallback engine instance (LRU by default)
-        """
-        logger.debug("Using LRU cache")
-        return self._engines["memory"](config)
-
-    def get_engine(self, config: CacheConfig) -> CacheEngine[Any, Any]:
-        """
-        Get an appropriate cache engine based on configuration.
-
-        Args:
-            config: Cache configuration object
-
-        Returns:
-            An instance of the appropriate cache engine
-
-        Raises:
-            ValueError: If configuration is invalid
-        """
-        self._validate_config(config)
-
-        # Try engines in priority order
-        engine = (
-            self._try_preferred_engine(config)
-            or self._try_redis_engine(config)
-            or self._try_sql_engine(config)
-            or self._create_fallback_engine(config)
-        )
-
-        return engine
-
-    def _get_prioritized_engines(self) -> list[BackendType]:
-        """Get list of engine types in priority order."""
-        return [
-            "cachebox",  # Fastest (Rust-based)
-            "cachetools",  # Flexible in-memory
-            "aiocache",  # Async support
-            "klepto",  # Scientific computing
-            "diskcache",  # SQL-based disk cache
-            "joblib",  # Array caching
-            "memory",  # Always available
-        ]
-
-    @property
-    def available_engines(self) -> list[BackendType]:
-        """Get list of available engine types."""
-        return cast(list[BackendType], list(self._engines.keys()))
-
-
-def get_engine_manager() -> EngineManager:
+def get_engine_manager() -> CacheEngineManager:
     """
     Get the global engine manager instance.
 
     Returns:
         The global engine manager instance
     """
-    return EngineManager()
+    return CacheEngineManager()

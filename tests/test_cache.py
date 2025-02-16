@@ -23,14 +23,13 @@ import os
 import time
 import tempfile
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 import pytest
-from pydantic import ValidationError
 
 from twat_cache.cache import clear_cache, get_stats
 from twat_cache.decorators import ucache, mcache, bcache, fcache
-from twat_cache.config import create_cache_config, EvictionPolicy
+from twat_cache.config import create_cache_config
 from twat_cache.paths import get_cache_path
 from .test_constants import (
     CACHE_SIZE,
@@ -104,7 +103,7 @@ def test_cache_stats() -> None:
     call_count = 0
 
     @mcache()
-    def process_list(lst: List[int]) -> int:
+    def process_list(lst: list[int]) -> int:
         nonlocal call_count
         call_count += 1
         return sum(lst)
