@@ -160,9 +160,7 @@ class CacheEngineManager:
                         return engine_cls
 
         # Fall back to first available engine
-        fallback: type[BaseCacheEngine[Any, Any]] | None = self.get_engine(
-            available[0]
-        )
+        fallback: type[BaseCacheEngine[Any, Any]] | None = self.get_engine(available[0])
         if fallback and fallback.is_available():
             return fallback
 

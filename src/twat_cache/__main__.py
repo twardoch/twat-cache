@@ -55,7 +55,9 @@ def get_cache_path(folder_name: str | None = None) -> Path:
     if folder_name is None:
         folder_name = generate_uuid()
 
-    cache_dir = Path.home() / ".cache" / "twat_cache" / str(folder_name)
+    cache_dir = (
+        Path.home() / ".cache" / "twat_cache" / str(folder_name)
+    )  # TODO use twat.paths
     cache_dir.mkdir(parents=True, exist_ok=True)
     return cache_dir
 

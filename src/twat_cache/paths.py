@@ -17,6 +17,7 @@ for determining and creating cache directories across different platforms.
 from pathlib import Path
 import uuid
 from loguru import logger
+import shutil
 
 try:
     import platformdirs
@@ -118,8 +119,6 @@ def clear_cache(folder_name: str | None = None) -> None:
                     if item.is_file():
                         item.unlink()
                     elif item.is_dir():
-                        import shutil
-
                         shutil.rmtree(item)
                 logger.info(f"Cleared cache directory: {cache_path}")
             except Exception as e:
