@@ -179,7 +179,7 @@ globs:
 │       ├── [2.7K]  push.yml
 │       └── [1.4K]  release.yml
 ├── [3.6K]  .gitignore
-├── [ 532]  .pre-commit-config.yaml
+├── [ 470]  .pre-commit-config.yaml
 ├── [  96]  .specstory
 │   └── [ 768]  history
 │       ├── [2.7K]  .what-is-this.md
@@ -213,8 +213,8 @@ globs:
 ├── [ 38K]  README.md
 ├── [4.5K]  TODO.md
 ├── [   7]  VERSION.txt
-├── [ 12K]  cleanup.py
-├── [ 224]  dist
+├── [ 13K]  cleanup.py
+├── [ 160]  dist
 ├── [  96]  docs
 │   └── [7.7K]  context_management.md
 ├── [  96]  examples
@@ -236,7 +236,7 @@ globs:
 │   ├── [6.3K]  test_fallback.py
 │   ├── [9.5K]  test_redis_cache.py
 │   └── [7.6K]  test_twat_cache.py
-├── [186K]  twat_search.txt
+├── [188K]  twat_search.txt
 └── [ 90K]  uv.lock
 
 13 directories, 59 files
@@ -2761,8 +2761,6 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
       - id: check-yaml
       - id: check-toml
       - id: check-added-large-files
@@ -2916,17 +2914,17 @@ def suffix() -> None:
         log_message("\n=== TODO.md ===")
         content = todo.read_text()
 def log_message(message: str) -> None:
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     with LOG_FILE.open("a") as f:
         f.write(log_line)
 def run_command(cmd: list[str], check: bool = True) -> subprocess.CompletedProcess:
-        result = subprocess.run(cmd, check=check, capture_output=True, text=True)
+        result = subprocess.run(
             log_message(result.stdout)
         log_message(f"Command failed: {' '.join(cmd)}")
         log_message(f"Error: {e.stderr}")
         return subprocess.CompletedProcess(cmd, 1, "", str(e))
 def check_command_exists(cmd: str) -> bool:
-        subprocess.run(["which", cmd], check=True, capture_output=True)
+        return which(cmd) is not None
 class Cleanup:
     def __init__(self) -> None:
         self.workspace = Path.cwd()
@@ -3031,6 +3029,7 @@ def main() -> NoReturn:
             cleanup.push()
         log_message(f"Error: {e}")
     repomix()
+    sys.exit(0)  # Ensure we exit with a status code
     main()
 
 ================
@@ -5049,7 +5048,6 @@ this_file: TODO.md
 # twat-cache TODO List
 
 Tip: Periodically run `./cleanup.py status` to see results of lints and tests.
-
 ## High Priority
 
 - [ ] Improve code documentation with better docstrings
@@ -5139,7 +5137,7 @@ Tip: Periodically run `./cleanup.py status` to see results of lints and tests.
 ================
 File: VERSION.txt
 ================
-v2.1.1
+v2.5.3
 
 
 
