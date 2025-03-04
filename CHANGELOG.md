@@ -9,6 +9,34 @@ All notable changes to the `twat_cache` package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.3.0] - 2025-03-04
+
+### Added
+- Improved context management utilities
+  - Enhanced error handling in context managers
+  - Added support for explicit engine selection in context managers
+  - Improved resource cleanup mechanisms
+- Enhanced backend selection strategy
+  - Refined data type detection for optimal backend selection
+  - Added support for hybrid caching with automatic backend switching
+  - Improved fallback mechanisms for unavailable backends
+- Comprehensive documentation updates
+  - Added detailed examples for all cache backends
+  - Created documentation for context management
+  - Updated installation and usage instructions
+
+### Fixed
+- Resolved remaining type compatibility issues across the codebase
+- Fixed edge cases in Redis connection handling
+- Addressed potential memory leaks in long-running cache instances
+- Improved error handling in serialization/deserialization processes
+
+### Changed
+- Refactored internal cache key generation for better performance
+- Standardized logging format across all cache engines
+- Improved test coverage for all components
+- Updated dependencies to latest compatible versions
+
 ## [v2.2.0] - 2024-09-01
 
 ### Added

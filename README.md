@@ -28,33 +28,44 @@ A flexible caching utility package for Python functions that provides a unified 
 - Context management for cache engines
 - Comprehensive test suite for all components
 
-## Recent Updates
+## Recent Updates (v2.3.0)
 
-### Redis Cache Engine
+### Enhanced Context Management
 
-The library now includes a full Redis cache engine implementation with:
-- Serialization and compression support
-- TTL-based expiration
-- Distributed cache invalidation
-- Connection pooling and error handling
-- Namespace support for key isolation
-
-### Smart Backend Selection
-
-The backend selection strategy has been enhanced to automatically choose the most appropriate cache backend based on:
-- Data type (primitive types, collections, NumPy arrays, pandas DataFrames)
-- Data size (small, medium, large, very large)
-- Access patterns (read-heavy, write-heavy, balanced)
-- Persistence requirements (ephemeral, session, long-term)
-- Concurrency needs (single-thread, multi-thread, multi-process)
-
-### Context Management
-
-Improved context management utilities ensure proper resource cleanup:
-- `CacheContext` class for reusable context management
-- `engine_context` function for temporary cache configurations
-- Automatic resource cleanup even when exceptions occur
+The context management system has been significantly improved:
+- Better error handling and resource cleanup
 - Support for explicit engine selection
+- Simplified API for temporary cache configurations
+- Automatic cleanup of resources even when exceptions occur
+
+```python
+# Example of improved context management
+from twat_cache import CacheContext
+
+# Create a context with explicit engine selection
+with CacheContext(engine_name="redis", namespace="user_data") as cache:
+    # Use the cache within the context
+    cache.set("user:1001", {"name": "John", "role": "admin"})
+    user = cache.get("user:1001")
+    
+    # Resources are automatically cleaned up when exiting the context
+```
+
+### Refined Backend Selection
+
+The backend selection strategy has been further enhanced:
+- More accurate data type detection for optimal backend selection
+- Improved fallback mechanisms when preferred backends are unavailable
+- Better handling of edge cases for various data types
+- Enhanced performance for frequently accessed items
+
+### Comprehensive Documentation
+
+Documentation has been expanded with:
+- Detailed examples for all cache backends
+- Step-by-step guides for common use cases
+- API reference with complete parameter descriptions
+- Best practices for cache configuration
 
 ## Installation
 

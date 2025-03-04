@@ -6,46 +6,40 @@ this_file: TODO.md
 
 Tip: Periodically run `./cleanup.py status` to see results of lints and tests.
 
-## Phase 4
+## High Priority
 
 - [ ] Improve code documentation with better docstrings
 - [ ] Implement a consistent logging strategy across all modules
 - [ ] Add more defensive programming with better input validation
 - [ ] Refactor complex functions in decorators.py to improve readability
-- [ ] Add more static typing and protocol implementations
-- [ ] Add runtime diagnostics for cache performance tracking
 - [ ] Increase overall test coverage to 90%
+- [ ] Create a comprehensive API reference with examples
+- [ ] Add doctest examples in function docstrings
 
-## Features and Enhancements
+## Medium Priority
 
-- [ ] Add support for distributed caching with Redis/Memcached backends
-- [ ] Implement a cache warm-up mechanism for frequently accessed items
-- [ ] Add support for cache invalidation based on function argument patterns
-- [ ] Implement a cache profiling tool for performance analysis
 - [ ] Add support for asynchronous cache operations in all engines
 - [ ] Implement a unified configuration system with environment variable support
-- [ ] Add support for customizable serialization/deserialization strategies
-- [ ] Implement auto-detection of optimal cache settings based on workload
-
-## API Improvements
-
 - [ ] Create a more intuitive API for cache management operations
 - [ ] Add decorator factories with more customizable options
 - [ ] Implement a decorator for method caching with instance-aware key generation
 - [ ] Add better support for caching class methods and instance methods
 - [ ] Create simpler API for cache statistics and monitoring
 - [ ] Implement a unified factory function for cache creation
-
-## Testing and Documentation
-
-- [ ] Increase test coverage to at least 90%
 - [ ] Add integration tests for all cache backends
+
+## Future Enhancements
+
+- [ ] Implement a cache warm-up mechanism for frequently accessed items
+- [ ] Add support for cache invalidation based on function argument patterns
+- [ ] Implement a cache profiling tool for performance analysis
+- [ ] Add support for customizable serialization/deserialization strategies
+- [ ] Implement auto-detection of optimal cache settings based on workload
 - [ ] Create benchmarks for performance comparison of different backends
 - [ ] Document performance characteristics and tradeoffs of different cache engines
-- [ ] Add more examples in README.md for common use cases
-- [ ] Create a comprehensive API reference with examples
-- [ ] Add doctest examples in function docstrings
 - [ ] Create tutorials for advanced use cases
+- [ ] Add more static typing and protocol implementations
+- [ ] Add runtime diagnostics for cache performance tracking
 
 ## Compatibility and Integration
 
@@ -95,3 +89,5 @@ Tip: Periodically run `./cleanup.py status` to see results of lints and tests.
 - [x] Refactor common patterns across engine implementations into shared utilities
 - [x] Standardize engine initialization and validation procedures
 - [x] Create a unified interface for all cache backends
+- [x] Add support for distributed caching with Redis/Memcached backends
+- [x] Add more examples in README.md for common use cases
