@@ -68,3 +68,4 @@ all = [
 minversion = "8.0.0"
 addopts = "-v"
 testpaths = ["tests"]
+
