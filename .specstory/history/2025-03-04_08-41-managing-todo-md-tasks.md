@@ -3266,7 +3266,604 @@ yes logging and test coverage
 
 _**Assistant**_
 
-I'll help you implement a consistent logging strategy and improve test coverage for the twat-cache project. Let's start with
+I'll help you implement a consistent logging strategy and improve test coverage for the twat-cache project. Let's start with the logging strategy first.
+
+## Implementing a Consistent Logging Strategy
+
+Let's first examine how logging is currently implemented in the codebase:
+
+---
+
+_****_
+
+<details>
+            <summary>Grep search for "from loguru import logger" • **29** files</summary>
+        
+| File | Line | Match |
+|------|------|-------|
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/src/twat_cache/engines/common.py` | L25 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/src/twat_cache/engines/manager.py` | L19 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/src/twat_cache/engines/diskcache.py` | L21 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/2025-03-04_05-35-implementation-of-todo-phases-1%2C-2%2C-3.md` | L708 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/2025-03-04_05-35-implementation-of-todo-phases-1%2C-2%2C-3.md` | L935 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/src/twat_cache/engines/redis.py` | L20 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/src/twat_cache/paths.py` | L18 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refactoring-plan-for-twat-cache-system.md` | L80 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refactoring-plan-for-twat-cache-system.md` | L234 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refactoring-plan-for-twat-cache-system.md` | L323 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/src/twat_cache/hybrid_cache.py` | L21 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/merging-files-from-wrong-location.md` | L336 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/merging-files-from-wrong-location.md` | L588 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/merging-files-from-wrong-location.md` | L845 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/merging-files-from-wrong-location.md` | L1257 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/merging-files-from-wrong-location.md` | L1461 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/merging-files-from-wrong-location.md` | L1576 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/merging-files-from-wrong-location.md` | L1625 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/src/twat_cache/backend_selector.py` | L26 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-review-and-implementation.md` | L126 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-review-and-implementation.md` | L310 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-review-and-implementation.md` | L423 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-setup-and-task-implementation.md` | L2232 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-setup-and-task-implementation.md` | L2277 | `- from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-setup-and-task-implementation.md` | L2797 | `- from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-setup-and-task-implementation.md` | L3511 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-setup-and-task-implementation.md` | L4080 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-setup-and-task-implementation.md` | L5508 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/documentation-update-and-task-management.md` | L3538 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/codebase-improvement-and-dependency-management-plan.md` | L314 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/codebase-improvement-and-dependency-management-plan.md` | L1350 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/src/twat_cache/engines/base.py` | L26 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2264 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/updating-todos-and-project-documentation.md` | L5921 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/updating-todos-and-project-documentation.md` | L6128 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-overview-and-todo-execution.md` | L328 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-overview-and-todo-execution.md` | L825 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-overview-and-todo-execution.md` | L1726 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-overview-and-todo-execution.md` | L1980 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-overview-and-todo-execution.md` | L2113 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-overview-and-todo-execution.md` | L2320 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-overview-and-todo-execution.md` | L2663 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/src/twat_cache/cache.py` | L19 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/src/twat_cache/context.py` | L20 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/update-todo-and-log-for-project.md` | L1432 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L284 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L292 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L319 | `- from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L1011 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L1027 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L1043 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L1123 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L1543 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L1559 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L1575 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L1695 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L1711 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L1727 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L1767 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L2000 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L2016 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L2032 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L2048 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L3498 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L5091 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/2025-03-04_03-25-codebase-analysis-and-todo-md-update.md` | L808 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/2025-03-04_03-25-codebase-analysis-and-todo-md-update.md` | L1644 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/2025-03-04_03-25-codebase-analysis-and-todo-md-update.md` | L2032 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/2025-03-04_03-25-codebase-analysis-and-todo-md-update.md` | L4398 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/2025-03-04_03-25-codebase-analysis-and-todo-md-update.md` | L9151 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/2025-03-04_03-25-codebase-analysis-and-todo-md-update.md` | L9695 | `+ from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/2025-03-04_03-25-codebase-analysis-and-todo-md-update.md` | L9938 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/src/twat_cache/engines/klepto.py` | L22 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/src/twat_cache/engines/functools.py` | L21 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals-1.md` | L247 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals-1.md` | L3648 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/implementing-todo-item.md` | L2363 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/implementing-todo-item.md` | L2379 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/implementing-todo-item.md` | L2395 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/implementing-todo-item.md` | L3294 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/implementing-todo-item.md` | L3310 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/implementing-todo-item.md` | L3326 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/src/twat_cache/engines/functools_engine.py` | L24 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals.md` | L673 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals.md` | L1671 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals.md` | L1852 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals.md` | L2723 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals.md` | L2904 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals.md` | L3701 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals.md` | L3880 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals.md` | L4724 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals.md` | L4998 | `from loguru import logger` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals.md` | L5394 | `- from loguru import logger` |
+
+</details>
+
+---
+
+_****_
+
+
+
+Now let's check how the logger is being used in the codebase:
+
+---
+
+_****_
+
+<details>
+            <summary>Grep search for "logger\." • **2** files</summary>
+        
+| File | Line | Match |
+|------|------|-------|
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L115 | `Rewriting ./.venv/lib/python3.12/site-packages/joblib/logger.py` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L168 | `Rewriting ./.venv/lib/python3.12/site-packages/dill/logger.py` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L251 | `157 |         logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L295 | `167 |         logger.debug("Registered cache engine: {}", name)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L1325 | `157 |         logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L1369 | `167 |         logger.debug("Registered cache engine: {}", name)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2294 | `+                     logger.warning("Failed to decode cached value: {}", e)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2381 | `+             logger.error(msg)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2400 | `-             logger.error("Redis error: {}", e)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2402 | `+             logger.warning("Error retrieving from Redis cache: {}", e)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2421 | `-             logger.error("Redis error: {}", e)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2423 | `+             logger.warning("Error storing in Redis cache: {}", e)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2434 | `+                 logger.debug("Error closing Redis connection: {}", e)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2543 | `logger.debug("Registered cache engine: {}", name)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2599 | `logger.debug("Using Redis cache")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2617 | `logger.debug("Using SQL cache")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2620 | `-                 logger.debug("Using SQL-based disk cache")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2622 | `-             logger.warning("SQL cache requested but not available")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2628 | `-                 logger.debug("Selected engine: {}", engine_type)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2633 | `-             logger.debug("Using fallback memory cache")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L2646 | `+         logger.debug("Using LRU cache")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L793 | `logger.error(f"Failed to initialize cache path: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L795 | `logger.debug(f"Initialized {self.__class__.__name__} with config: {config}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L801 | `logger.error(f"Invalid cache folder configuration: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L803 | `logger.error(msg)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L807 | `logger.debug(f"Cleaning up {self.__class__.__name__} resources")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L885 | `logger.error(f"Failed to create cache directory {dir_path}: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L896 | `logger.error(f"Failed to serialize cache key: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L901 | `logger.error(f"Failed to serialize cache value: {inner_e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L907 | `logger.error(f"Failed to create temporary file: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L924 | `logger.error("Cache path is required for disk cache")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L927 | `logger.error("diskcache is not available")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L931 | `logger.debug(f"Initialized DiskCache at {self._cache_path}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L932 | `logger.error(f"Failed to initialize DiskCache: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L937 | `logger.debug(f"Closed DiskCache at {self._cache_path}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L938 | `logger.error(f"Error closing DiskCache: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L948 | `logger.trace(f"Cache hit for {func.__name__}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L951 | `logger.trace(f"Cache miss for {func.__name__}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L956 | `logger.error(f"Error in DiskCache: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L960 | `logger.debug(f"Cleared DiskCache at {self._cache_path}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L961 | `logger.error(f"Error clearing DiskCache: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L970 | `logger.error(f"Error getting DiskCache stats: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L979 | `logger.debug(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1032 | `logger.warning(f"Cache miss for {key}: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1079 | `logger.debug(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1084 | `logger.warning(f"Error retrieving from klepto cache: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1088 | `logger.warning(f"Error storing to klepto cache: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1092 | `logger.warning(f"Error clearing klepto cache: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1098 | `logger.warning(f"Error getting klepto cache stats: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1101 | `logger.warning(f"Error closing klepto cache: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1119 | `logger.debug("aiocache not available")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1120 | `logger.debug("cachetools not available")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1121 | `logger.debug("klepto not available")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1122 | `logger.debug("joblib not available")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1123 | `logger.debug("redis not available")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1137 | `logger.warning(f"Overwriting existing engine registration for {name}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1147 | `logger.warning("No cache engines are available")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1176 | `logger.debug(f"Connected to Redis at {host}:{port} (db={db})")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1177 | `logger.error(msg)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1188 | `logger.debug("Closed Redis connection")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1189 | `logger.error(f"Error closing Redis connection: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1201 | `logger.error(f"Error deserializing cached value: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1202 | `logger.error(f"Error getting cached value from Redis: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1206 | `logger.error(f"Error serializing value: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1211 | `logger.error(f"Error setting cached value in Redis: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1215 | `logger.debug(f"Cleared {len(keys)} keys from Redis namespace {self._namespace}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1216 | `logger.error(f"Error clearing Redis cache: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1228 | `logger.error(f"Error getting Redis cache size: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1235 | `logger.debug(f"Error getting Redis info: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1301 | `logger.debug(f"Preferred backend '{preferred_backend}' not available, using '{alt_backend}' instead")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1302 | `logger.debug("No suitable backend found, defaulting to 'functools'")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1325 | `logger.warning("NumPy not available, returning generic configuration")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1329 | `logger.warning("Pandas not available, returning generic configuration")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1353 | `logger.debug(f"Registered cache: {name}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1368 | `logger.warning(f"Failed to clear cache directory {path}: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1369 | `logger.debug("Cleared cache directories")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1423 | `logger.error(f"Engine '{engine_name}' not found")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1426 | `logger.error("No suitable engine found")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1428 | `logger.debug(f"Created engine {engine.__class__.__name__}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1429 | `logger.debug(f"Cleaning up engine {engine.__class__.__name__}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1431 | `logger.error(f"Error during engine cleanup: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1437 | `logger.error(f"Engine '{self.engine_name}' not found")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1440 | `logger.debug(f"Created engine {self.engine.__class__.__name__}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1442 | `logger.debug(f"Cleaning up engine {self.engine.__class__.__name__}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1552 | `logger.debug(f"Using large result config for {func_key} (size: {size} bytes)")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1553 | `logger.debug(f"Using small result config for {func_key} (size: {size} bytes)")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1554 | `logger.debug(f"Could not determine size for {func_key}, using small result config")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1566 | `logger.warning("platformdirs not available, falling back to ~/.cache")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1574 | `logger.debug(f"Created cache directory: {cache_path}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1575 | `logger.error(f"Failed to create cache directory {cache_path}: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1591 | `logger.info(f"Cleared cache directory: {cache_path}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1592 | `logger.error(f"Failed to clear cache directory {cache_path}: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1597 | `logger.info(f"Cleared cache base directory: {base_path}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L1598 | `logger.error(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L5993 | `logger.error(f"Failed to initialize cache path: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L5995 | `logger.debug(f"Initialized {self.__class__.__name__} with config: {config}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L6001 | `logger.error(f"Invalid cache folder configuration: {e}")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L6003 | `logger.error(msg)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L6007 | `logger.debug(f"Cleaning up {self.__class__.__name__} resources")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/REPO_CONTENT.txt` | L6085 | `logger.error(f"Failed to create cache directory {dir_path}: {e}")` |
+
+</details>
+
+---
+
+_****_
+
+
+
+Let's also check for any existing logging configuration:
+
+---
+
+_****_
+
+<details>
+            <summary>Grep search for "logger.configure" • **0** files</summary>
+        
+No results found
+</details>
+
+---
+
+_****_
+
+
+
+Let's check if there's any initialization of the logger:
+
+---
+
+_****_
+
+<details>
+            <summary>Grep search for "logger.add" • **7** files</summary>
+        
+| File | Line | Match |
+|------|------|-------|
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L251 | `157 |         logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/running-lint-fix-command.md` | L1325 | `157 |         logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/updating-todo-and-running-development-commands.md` | L520 | `-             logger.add(sys.stderr, format=log_format, level="DEBUG")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/updating-todo-and-running-development-commands.md` | L523 | `-             logger.add(sys.stderr, format=log_format, level="INFO")` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/updating-todo-and-running-development-commands.md` | L527 | `+         logger.add(sys.stderr, format=log_format, level=log_level)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/updating-todo-and-running-development-commands.md` | L532 | `logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/updating-todo-and-running-development-commands.md` | L4588 | `-         logger.add(sys.stderr, format=log_format, level=log_level)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/updating-todo-and-running-development-commands.md` | L4590 | `+         logger.add(sys.stderr, level=log_level)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/updating-todo-and-running-development-commands.md` | L4595 | `logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/update-todo-and-log-for-project.md` | L53 | `221 |         logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L638 | `175 |         logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/project-documentation-and-command-execution.md` | L1210 | `175 |         logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/updating-todos-and-project-documentation.md` | L2587 | `logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/updating-todos-and-project-documentation.md` | L6090 | `logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/implementing-todo-item.md` | L1591 | `157 |         logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/implementing-todo-item.md` | L2522 | `157 |         logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/implementing-todo-item.md` | L5373 | `157 |         logger.add(` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals.md` | L4935 | `-         logger.add(sys.stderr, level=log_level)` |
+| `file:///Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/repos/twat_cache/.specstory/history/refining-decorators-and-integration-goals.md` | L4941 | `-             logger.add(` |
+
+</details>
+
+---
+
+_****_
+
+
+
+
+
+Now, let's check the current test coverage:
+
+---
+
+_****_
+
+<details>
+            <summary>Listed directory tests • **16** results</summary>
+        
+| Name |
+|-------|
+| 📁 `__pycache__` |
+| 📄 `test_redis_cache.py` |
+| 📄 `test_backend_selector.py` |
+| 📄 `test_context.py` |
+| 📄 `test_exceptions.py` |
+| 📄 `test_context_simple.py` |
+| 📄 `test_exceptions_simple.py` |
+| 📄 `test_config.py` |
+| 📄 `test_cache.py` |
+| 📄 `test_fallback.py` |
+| 📄 `__init__.py` |
+| 📄 `test_decorators.py` |
+| 📄 `test_constants.py` |
+| 📄 `test_twat_cache.py` |
+| 📄 `test_engines.py` |
+| 📄 `.DS_Store` |
+
+</details>
+
+---
+
+_****_
+
+
+
+
+
+Let's look at the decorators.py file to understand what we need to add logging to:
+
+---
+
+_****_
+
+Read file: src/twat_cache/decorators.py
+
+---
+
+_****_
+
+
+
+
+
+Let's check if there's a logging module in the codebase:
+
+---
+
+_****_
+
+<details>
+            <summary>Searched codebase "logging" • **1** results</summary>
+        
+| File |
+|------|
+| `undefined` |
+
+</details>
+
+---
+
+_****_
+
+
+
+
+
+Based on my analysis, I'll now implement a consistent logging strategy for the project. Let's start by creating a dedicated logging module:
+
+---
+
+_****_
+
+```diff
+- 
++ #!/usr/bin/env -S uv run
++ # /// script
++ # dependencies = ["loguru"]
++ # ///
++ # this_file: src/twat_cache/logging.py
++ 
++ """
++ Logging configuration for twat-cache.
++ 
++ This module provides a centralized logging configuration for the twat-cache package.
++ It configures loguru with appropriate handlers, formats, and rotation settings.
++ """
++ 
++ import os
++ import sys
++ from pathlib import Path
++ from typing import Dict, Optional, Union
++ 
++ from loguru import logger
++ 
++ # Default log format
++ DEFAULT_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
++ 
++ # Format for file logging (includes process and thread IDs)
++ FILE_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | <magenta>P:{process}</magenta> T:{thread} | <level>{message}</level>"
++ 
++ # Log levels with their corresponding numeric values
++ LOG_LEVELS = {
++     "TRACE": 5,
++     "DEBUG": 10,
++     "INFO": 20,
++     "SUCCESS": 25,
++     "WARNING": 30,
++     "ERROR": 40,
++     "CRITICAL": 50,
++ }
++ 
++ 
++ def get_log_dir() -> Path:
++     """
++     Get the directory for storing log files.
++     
++     Returns:
++         Path: Path to the log directory.
++     """
++     try:
++         # Use XDG_CACHE_HOME or default to ~/.cache
++         cache_dir = os.environ.get("XDG_CACHE_HOME", None)
++         if cache_dir:
++             base_dir = Path(cache_dir)
++         else:
++             base_dir = Path.home() / ".cache"
++         
++         log_dir = base_dir / "twat-cache" / "logs"
++         log_dir.mkdir(parents=True, exist_ok=True)
++         return log_dir
++     except Exception as e:
++         # If we can't create the log directory, fall back to a temporary directory
++         import tempfile
++         temp_dir = Path(tempfile.gettempdir()) / "twat-cache-logs"
++         temp_dir.mkdir(parents=True, exist_ok=True)
++         logger.warning(f"Failed to create log directory in cache: {e}. Using {temp_dir} instead.")
++         return temp_dir
++ 
++ 
++ def configure_logging(
++     level: Union[str, int] = "INFO",
++     console: bool = True,
++     file: bool = True,
++     rotation: str = "10 MB",
++     retention: str = "1 week",
++     log_file: Optional[Union[str, Path]] = None,
++     enqueue: bool = True,
++     backtrace: bool = True,
++     diagnose: bool = True,
++ ) -> None:
++     """
++     Configure the logging system for twat-cache.
++     
++     Args:
++         level: Log level (TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR, CRITICAL)
++         console: Whether to log to console
++         file: Whether to log to file
++         rotation: When to rotate logs (e.g., "10 MB", "1 day")
++         retention: How long to keep logs (e.g., "1 week", "1 month")
++         log_file: Custom log file path (if None, a default path will be used)
++         enqueue: Whether to enqueue log messages (thread-safe)
++         backtrace: Whether to show backtrace for errors
++         diagnose: Whether to diagnose errors
++     """
++     # Convert string level to numeric if needed
++     if isinstance(level, str):
++         level = level.upper()
++         if level not in LOG_LEVELS:
++             level = "INFO"
++             logger.warning(f"Invalid log level: {level}. Using INFO instead.")
++         level = LOG_LEVELS[level]
++     
++     # Remove all existing handlers
++     logger.remove()
++     
++     # Configure logger settings
++     logger.configure(
++         handlers=[],
++         extra={"package": "twat-cache"},
++         backtrace=backtrace,
++         diagnose=diagnose,
++     )
++     
++     # Add console handler if requested
++     if console:
++         logger.add(
++             sys.stderr,
++             format=DEFAULT_FORMAT,
++             level=level,
++             colorize=True,
++             enqueue=enqueue,
++         )
++     
++     # Add file handler if requested
++     if file:
++         if log_file is None:
++             log_dir = get_log_dir()
++             log_file = log_dir / "twat-cache.log"
++         
++         logger.add(
++             str(log_file),
++             format=FILE_FORMAT,
++             level=level,
++             rotation=rotation,
++             retention=retention,
++             compression="zip",
++             enqueue=enqueue,
++         )
++ 
++ 
++ def get_logger(name: str):
++     """
++     Get a logger with the given name.
++     
++     This is a convenience function to get a logger with context information.
++     
++     Args:
++         name: Name of the logger (usually the module name)
++         
++     Returns:
++         A logger instance with context information
++     """
++     return logger.bind(name=name)
++ 
++ 
++ # Configure logging with default settings
++ configure_logging(
++     level=os.environ.get("TWAT_CACHE_LOG_LEVEL", "INFO"),
++     console=os.environ.get("TWAT_CACHE_LOG_CONSOLE", "1") == "1",
++     file=os.environ.get("TWAT_CACHE_LOG_FILE", "1") == "1",
++ ) 
+```
+
+---
+
+_****_
+
+
+
+
+
+Let's fix the linter errors in the logging.py file:
+
+---
+
+_****_
+
+```diff
+          handlers=[],
+          extra={"package": "twat-cache"},
+-         backtrace=backtrace,
+-         diagnose=diagnose,
+      )
+  
+```
+
+---
+
+_****_
+
+
+
+
+
+
+
+Now, let's update the decorators.py file to use our new logging module:
+
+---
+
+_****_
+
+Cancelled
+
+---
+
+_****_
+
+
+
+---
+
+_**User**_
+
+Remove the special logging, use very plain loguru
+
+---
+
+_**Assistant**_
+
+
 
 ---
 

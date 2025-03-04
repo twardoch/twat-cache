@@ -2,14 +2,9 @@
 this_file: TODO.md
 ---
 
-# twat-cache TODO List
+# TODO
 
 ## Phase 1
-
-- [ ] Implement a consistent logging strategy across all modules
-  - Add structured logging with configurable verbosity levels
-  - Implement log rotation for persistent logs
-  - Add performance metrics logging
 
 - [ ] Add more defensive programming with better input validation
   - Validate function arguments more thoroughly
@@ -20,9 +15,9 @@ this_file: TODO.md
   - Improve naming for better self-documentation
   - Add explanatory comments for complex logic
 - [ ] Increase overall test coverage to 90%
-  - Add more unit tests for edge cases
-  - Implement integration tests for all backends
-  - Add performance regression tests
+  - [ ] Add more unit tests for edge cases
+  - [ ] Implement integration tests for all backends
+  - [ ] Add performance regression tests
 
 ## Medium Priority
 
