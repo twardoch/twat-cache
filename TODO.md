@@ -4,17 +4,22 @@ this_file: TODO.md
 
 # twat-cache TODO List
 
-## High Priority
+## Phase 1
 
-- [ ] Implement a consistent logging strategy across all modules
-  - Add structured logging with configurable verbosity levels
-  - Implement log rotation for persistent logs
-  - Add performance metrics logging
 - [ ] Improve code documentation with better docstrings
   - Add detailed parameter descriptions
   - Include return value documentation
   - Document exceptions that can be raised
   - Add usage examples in docstrings
+
+
+## Phase 2
+
+- [ ] Implement a consistent logging strategy across all modules
+  - Add structured logging with configurable verbosity levels
+  - Implement log rotation for persistent logs
+  - Add performance metrics logging
+
 - [ ] Add more defensive programming with better input validation
   - Validate function arguments more thoroughly
   - Add type checking for critical parameters
@@ -100,25 +105,4 @@ this_file: TODO.md
   - Create examples for complex configurations
   - Document performance optimization strategies
 
-## Completed Items
 
-- [x] Implement a strategy for choosing the right cache backend for the right type of data
-- [x] Implement proper exception handling with custom exception types
-- [x] Implement a context manager interface for temporary cache configurations
-- [x] Add unit tests for exception handling and context management
-- [x] Write and execute a comprehensive test suite for backend selection strategy
-- [x] Resolve type compatibility issues in context.py with CacheConfig protocol
-- [x] Expand test coverage for cache engines
-- [x] Create documentation for cache context management
-- [x] Implement Redis cache engine with proper connection handling
-- [x] Address linter errors in engine implementations
-- [x] Add comprehensive type hints validation with mypy
-- [x] Add logging for basic cache operations (hits, misses)
-- [x] Improve configuration validation
-- [x] Refactor common patterns across engine implementations
-- [x] Standardize engine initialization and validation procedures
-- [x] Create a unified interface for all cache backends
-- [x] Add support for distributed caching with Redis backend
-- [x] Add examples in README.md for common use cases
-- [x] Implement hybrid caching with automatic backend switching
-- [x] Add enhanced context management utilities
