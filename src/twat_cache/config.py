@@ -9,8 +9,7 @@
 
 """Cache configuration system."""
 
-from dataclasses import field
-from typing import Any
+from typing import Any, Dict, Optional
 from collections.abc import Callable
 
 from pydantic import BaseModel, Field, field_validator
@@ -32,10 +31,10 @@ class CacheConfig(BaseModel):
     policy: EvictionPolicy = "lru"
     cache_dir: str | None = None  # For backward compatibility
 
-    # Keyword-only boolean fields
-    use_sql: bool = field(default=False, kw_only=True)
-    compress: bool = field(default=False, kw_only=True)
-    secure: bool = field(default=True, kw_only=True)
+    # Boolean fields
+    use_sql: bool = False
+    compress: bool = False
+    secure: bool = True
 
     class Config:
         """Pydantic model configuration."""
@@ -91,6 +90,32 @@ class CacheConfig(BaseModel):
     def from_dict(cls, data: dict[str, Any]) -> "CacheConfig":
         """Create configuration from dictionary."""
         return cls(**data)
+
+    # Methods required by the CacheConfig protocol
+    def get_maxsize(self) -> int | None:
+        """Get the maxsize value."""
+        return self.maxsize
+
+    def get_folder_name(self) -> str | None:
+        """Get the folder name."""
+        return self.folder_name
+
+    def get_use_sql(self) -> bool:
+        """Get the use_sql value."""
+        return self.use_sql
+
+    def get_preferred_engine(self) -> str | None:
+        """Get the preferred engine."""
+        return self.preferred_engine
+
+    def get_cache_type(self) -> str | None:
+        """Get the cache type."""
+        return self.cache_type
+
+    def validate_config(self) -> None:
+        """Validate the configuration (protocol compatibility method)."""
+        # This is handled by Pydantic validators
+        pass
 
 
 def create_cache_config(

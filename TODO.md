@@ -4,7 +4,9 @@ this_file: TODO.md
 
 # twat-cache TODO List
 
-## Current Focus
+Tip: Periodically run `./cleanup.py status` to see results of lints and tests.
+
+## Phase 1
 
 - [ ] Write and execute a comprehensive suite of tests to verify the new backend selection strategy with a variety of data types and cache configurations
 - [ ] Resolve type compatibility issues in context.py with CacheConfig protocol
@@ -24,11 +26,14 @@ this_file: TODO.md
 - [ ] Add logging for cache operations (hits, misses, etc.)
 - [ ] Improve configuration validation
 
-## Code Quality and Structure
+## Phase 3
 
 - [ ] Refactor common patterns across engine implementations into shared utilities
 - [ ] Standardize engine initialization and validation procedures
 - [ ] Create a unified interface for all cache backends
+
+## Phase 4
+
 - [ ] Improve code documentation with better docstrings
 - [ ] Implement a consistent logging strategy across all modules
 - [ ] Add more defensive programming with better input validation

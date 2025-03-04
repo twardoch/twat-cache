@@ -15,7 +15,7 @@ properly when no longer needed.
 """
 
 import contextlib
-from typing import Any, Generator, Optional, TypeVar, cast
+from typing import Any, Generator, Optional, TypeVar, cast, Protocol, runtime_checkable
 
 from loguru import logger
 
@@ -73,7 +73,7 @@ def engine_context(
             raise EngineError("No suitable engine found for the given configuration")
 
     # Create the engine instance
-    engine = engine_cls(engine_config)  # type: ignore
+    engine = engine_cls(engine_config)
     logger.debug(f"Created engine {engine.__class__.__name__}")
 
     try:
@@ -130,12 +130,10 @@ class CacheContext:
             engine_cls = manager.select_engine(self.config)
             if engine_cls is None:
                 logger.error("No suitable engine found")
-                raise EngineError(
-                    "No suitable engine found for the given configuration"
-                )
+                raise EngineError("No suitable engine found for the given configuration")
 
         # Create the engine instance
-        self.engine = engine_cls(self.config)  # type: ignore
+        self.engine = engine_cls(self.config)
         logger.debug(f"Created engine {self.engine.__class__.__name__}")
         return self.engine
 
@@ -194,6 +192,6 @@ def get_or_create_engine(
             raise EngineError("No suitable engine found for the given configuration")
 
     # Create the engine instance
-    engine = engine_cls(engine_config)  # type: ignore
+    engine = engine_cls(engine_config)
     logger.debug(f"Created engine {engine.__class__.__name__}")
     return engine
