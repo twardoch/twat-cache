@@ -20,6 +20,21 @@ from twat_cache.exceptions import (
     PathError,
 )
 
+# Import new modules
+from twat_cache.backend_selector import (
+    configure_for_numpy,
+    configure_for_pandas,
+    configure_for_images,
+    configure_for_json,
+    configure_for_type,
+    select_backend_for_data,
+    DataSize,
+    DataPersistence,
+    AccessPattern,
+    ConcurrencyLevel,
+)
+from twat_cache.hybrid_cache import hybrid_cache, smart_cache
+
 try:
     from twat_cache.__version__ import __version__
 except ImportError:
@@ -50,4 +65,18 @@ __all__ = [
     "ResourceError",
     "ConcurrencyError",
     "PathError",
+    # New backend selection utilities
+    "configure_for_numpy",
+    "configure_for_pandas",
+    "configure_for_images",
+    "configure_for_json",
+    "configure_for_type",
+    "select_backend_for_data",
+    "DataSize",
+    "DataPersistence",
+    "AccessPattern",
+    "ConcurrencyLevel",
+    # New hybrid caching utilities
+    "hybrid_cache",
+    "smart_cache",
 ]

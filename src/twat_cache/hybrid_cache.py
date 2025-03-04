@@ -16,7 +16,7 @@ cache backend based on the characteristics of the function's return value.
 
 import functools
 import sys
-from typing import Any, Callable, Dict, Optional, TypeVar, cast
+from typing import Any, Callable, Dict, Optional, TypeVar, cast, Generic
 
 from loguru import logger
 
@@ -26,9 +26,9 @@ from twat_cache.backend_selector import (
     DataSize,
     SIZE_THRESHOLDS,
 )
-from twat_cache.decorators import cache
+from twat_cache.decorators import ucache  # Using ucache from decorators
 from twat_cache.config import CacheConfig
-from twat_cache.type_defs import P, R, F
+from twat_cache.type_defs import P, R, F, CacheDecorator
 
 # Cache for storing function results with their selected backends
 _RESULT_BACKEND_CACHE: Dict[str, str] = {}
@@ -39,7 +39,7 @@ def hybrid_cache(
     large_result_config: Optional[CacheConfig] = None,
     size_threshold: int = SIZE_THRESHOLDS[DataSize.MEDIUM],
     analyze_first_call: bool = True,
-) -> Callable[[F], F]:
+) -> CacheDecorator[P, R]:
     """
     Decorator that selects the appropriate cache backend based on result size.
 
@@ -55,7 +55,7 @@ def hybrid_cache(
         analyze_first_call: Whether to analyze the first call to determine backend
 
     Returns:
-        Callable: Decorated function with hybrid caching
+        CacheDecorator: Decorated function with hybrid caching
     """
     # Set default configurations if not provided
     if small_result_config is None:
@@ -64,7 +64,7 @@ def hybrid_cache(
     if large_result_config is None:
         large_result_config = CacheConfig(preferred_engine="diskcache", compress=True)
 
-    def decorator(func: F) -> F:
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
         # Generate a unique key for this function
         func_key = f"{func.__module__}.{func.__qualname__}"
 
@@ -84,7 +84,16 @@ def hybrid_cache(
                     active_config = small_result_config
 
             # Apply the current active configuration
-            cached_func = cache(config=active_config)(func)
+            cached_func = ucache(
+                preferred_engine=active_config.preferred_engine,
+                maxsize=active_config.maxsize,
+                ttl=active_config.ttl,
+                policy=active_config.policy or "lru",
+                folder_name=active_config.folder_name,
+                use_sql=active_config.use_sql,
+                compress=active_config.compress,
+                secure=active_config.secure,
+            )(func)
             result = cached_func(*args, **kwargs)
 
             # If this is the first call and we're analyzing, determine the appropriate backend
@@ -118,7 +127,7 @@ def hybrid_cache(
 
             return result
 
-        return cast(F, wrapper)
+        return wrapper
 
     return decorator
 
@@ -126,7 +135,7 @@ def hybrid_cache(
 def smart_cache(
     config: Optional[CacheConfig] = None,
     analyze_every_call: bool = False,
-) -> Callable[[F], F]:
+) -> CacheDecorator[P, R]:
     """
     Decorator that automatically selects the most appropriate cache backend.
 
@@ -138,13 +147,13 @@ def smart_cache(
         analyze_every_call: Whether to analyze every call or just the first one
 
     Returns:
-        Callable: Decorated function with smart caching
+        CacheDecorator: Decorated function with smart caching
     """
     # Initialize with default configuration if not provided
     if config is None:
         config = CacheConfig()
 
-    def decorator(func: F) -> F:
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
         # Generate a unique key for this function
         func_key = f"{func.__module__}.{func.__qualname__}"
 
@@ -161,7 +170,17 @@ def smart_cache(
 
             # If we've already created a configuration for this backend, use it
             if not analyze_every_call and backend in backend_configs:
-                cached_func = cache(config=backend_configs[backend])(func)
+                backend_config = backend_configs[backend]
+                cached_func = ucache(
+                    preferred_engine=backend_config.preferred_engine,
+                    maxsize=backend_config.maxsize,
+                    ttl=backend_config.ttl,
+                    policy=backend_config.policy or "lru",
+                    folder_name=backend_config.folder_name,
+                    use_sql=backend_config.use_sql,
+                    compress=backend_config.compress,
+                    secure=backend_config.secure,
+                )(func)
                 return cached_func(*args, **kwargs)
 
             # Create a new configuration for this backend
@@ -173,9 +192,18 @@ def smart_cache(
             backend_configs[backend] = backend_config
 
             # Apply the cache with the selected backend
-            cached_func = cache(config=backend_config)(func)
+            cached_func = ucache(
+                preferred_engine=backend_config.preferred_engine,
+                maxsize=backend_config.maxsize,
+                ttl=backend_config.ttl,
+                policy=backend_config.policy or "lru",
+                folder_name=backend_config.folder_name,
+                use_sql=backend_config.use_sql,
+                compress=backend_config.compress,
+                secure=backend_config.secure,
+            )(func)
             return cached_func(*args, **kwargs)
 
-        return cast(F, wrapper)
+        return wrapper
 
     return decorator
