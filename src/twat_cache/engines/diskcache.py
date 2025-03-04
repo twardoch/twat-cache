@@ -44,7 +44,7 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
     def is_available(cls) -> bool:
         """Check if diskcache is available."""
         try:
-            import diskcache  # noqa
+            import diskcache
 
             return True
         except ImportError:
@@ -56,14 +56,16 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
 
         if not self._cache_path:
             logger.error("Cache path is required for disk cache")
+            msg = "diskcache"
             raise EngineNotAvailableError(
-                "diskcache", "Cache path is required but not provided"
+                msg, "Cache path is required but not provided"
             )
 
         if not self.is_available():
             logger.error("diskcache is not available")
+            msg = "diskcache"
             raise EngineNotAvailableError(
-                "diskcache",
+                msg,
                 "Package is not installed. Install with 'pip install diskcache'",
             )
 
@@ -86,7 +88,8 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
             logger.debug(f"Initialized DiskCache at {self._cache_path}")
         except Exception as e:
             logger.error(f"Failed to initialize DiskCache: {e}")
-            raise ResourceError(f"Failed to initialize DiskCache: {str(e)}") from e
+            msg = f"Failed to initialize DiskCache: {e!s}"
+            raise ResourceError(msg) from e
 
     def cleanup(self) -> None:
         """Clean up resources used by the cache engine."""
@@ -126,7 +129,7 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
 
                         # Check if entry has expired
                         if expire_time is None or (
-                            isinstance(expire_time, (int, float))
+                            isinstance(expire_time, int | float)
                             and time.time() < expire_time
                         ):
                             self._hits += 1
@@ -183,7 +186,8 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
                 logger.debug(f"Cleared DiskCache at {self._cache_path}")
         except Exception as e:
             logger.error(f"Error clearing DiskCache: {e}")
-            raise CacheOperationError(f"Failed to clear DiskCache: {str(e)}") from e
+            msg = f"Failed to clear DiskCache: {e!s}"
+            raise CacheOperationError(msg) from e
 
     @property
     def stats(self) -> dict[str, Any]:

@@ -15,7 +15,8 @@ properly when no longer needed.
 """
 
 import contextlib
-from typing import Any, Generator, Optional, TypeVar, cast, Protocol, runtime_checkable
+from typing import Any, Optional, TypeVar, cast, Protocol, runtime_checkable
+from collections.abc import Generator
 
 from loguru import logger
 
@@ -32,8 +33,8 @@ E = TypeVar("E", bound=BaseCacheEngine[Any, Any])
 
 @contextlib.contextmanager
 def engine_context(
-    config: Optional[CacheConfig] = None,
-    engine_name: Optional[str] = None,
+    config: CacheConfig | None = None,
+    engine_name: str | None = None,
     **kwargs: Any,
 ) -> Generator[BaseCacheEngine[Any, Any], None, None]:
     """
@@ -64,13 +65,15 @@ def engine_context(
         engine_cls = manager.get_engine(engine_name)
         if engine_cls is None:
             logger.error(f"Engine '{engine_name}' not found")
-            raise EngineError(f"Engine '{engine_name}' not found")
+            msg = f"Engine '{engine_name}' not found"
+            raise EngineError(msg)
     else:
         # Let the manager select the best engine
         engine_cls = manager.select_engine(engine_config)
         if engine_cls is None:
             logger.error("No suitable engine found")
-            raise EngineError("No suitable engine found for the given configuration")
+            msg = "No suitable engine found for the given configuration"
+            raise EngineError(msg)
 
     # Create the engine instance
     engine = engine_cls(engine_config)
@@ -98,8 +101,8 @@ class CacheContext:
 
     def __init__(
         self,
-        config: Optional[CacheConfig] = None,
-        engine_name: Optional[str] = None,
+        config: CacheConfig | None = None,
+        engine_name: str | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -112,7 +115,7 @@ class CacheContext:
         """
         self.config = config or create_cache_config(**kwargs)
         self.engine_name = engine_name
-        self.engine: Optional[BaseCacheEngine[Any, Any]] = None
+        self.engine: BaseCacheEngine[Any, Any] | None = None
 
     def __enter__(self) -> BaseCacheEngine[Any, Any]:
         """Enter the context and initialize the engine."""
@@ -124,13 +127,15 @@ class CacheContext:
             engine_cls = manager.get_engine(self.engine_name)
             if engine_cls is None:
                 logger.error(f"Engine '{self.engine_name}' not found")
-                raise EngineError(f"Engine '{self.engine_name}' not found")
+                msg = f"Engine '{self.engine_name}' not found"
+                raise EngineError(msg)
         else:
             # Let the manager select the best engine
             engine_cls = manager.select_engine(self.config)
             if engine_cls is None:
                 logger.error("No suitable engine found")
-                raise EngineError("No suitable engine found for the given configuration")
+                msg = "No suitable engine found for the given configuration"
+                raise EngineError(msg)
 
         # Create the engine instance
         self.engine = engine_cls(self.config)
@@ -150,8 +155,8 @@ class CacheContext:
 
 
 def get_or_create_engine(
-    config: Optional[CacheConfig] = None,
-    engine_name: Optional[str] = None,
+    config: CacheConfig | None = None,
+    engine_name: str | None = None,
     **kwargs: Any,
 ) -> BaseCacheEngine[Any, Any]:
     """
@@ -183,13 +188,15 @@ def get_or_create_engine(
         engine_cls = manager.get_engine(engine_name)
         if engine_cls is None:
             logger.error(f"Engine '{engine_name}' not found")
-            raise EngineError(f"Engine '{engine_name}' not found")
+            msg = f"Engine '{engine_name}' not found"
+            raise EngineError(msg)
     else:
         # Let the manager select the best engine
         engine_cls = manager.select_engine(engine_config)
         if engine_cls is None:
             logger.error("No suitable engine found")
-            raise EngineError("No suitable engine found for the given configuration")
+            msg = "No suitable engine found for the given configuration"
+            raise EngineError(msg)
 
     # Create the engine instance
     engine = engine_cls(engine_config)

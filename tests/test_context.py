@@ -60,7 +60,8 @@ def test_engine_context_with_error():
                 assert isinstance(engine, BaseCacheEngine)
 
                 # Deliberately raise an error
-                raise ValueError("Test error")
+                msg = "Test error"
+                raise ValueError(msg)
         except ValueError:
             # The exception should have propagated
             pass

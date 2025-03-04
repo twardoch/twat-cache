@@ -16,7 +16,8 @@ cache backend based on the characteristics of the function's return value.
 
 import functools
 import sys
-from typing import Any, Callable, Dict, Optional, TypeVar, cast, Generic
+from typing import Any, Dict, Optional, TypeVar, cast, Generic
+from collections.abc import Callable
 
 from loguru import logger
 
@@ -31,12 +32,12 @@ from twat_cache.config import CacheConfig
 from twat_cache.type_defs import P, R, F, CacheDecorator
 
 # Cache for storing function results with their selected backends
-_RESULT_BACKEND_CACHE: Dict[str, str] = {}
+_RESULT_BACKEND_CACHE: dict[str, str] = {}
 
 
 def hybrid_cache(
-    small_result_config: Optional[CacheConfig] = None,
-    large_result_config: Optional[CacheConfig] = None,
+    small_result_config: CacheConfig | None = None,
+    large_result_config: CacheConfig | None = None,
     size_threshold: int = SIZE_THRESHOLDS[DataSize.MEDIUM],
     analyze_first_call: bool = True,
 ) -> CacheDecorator[P, R]:
@@ -103,7 +104,7 @@ def hybrid_cache(
                     size = sys.getsizeof(result)
 
                     # For containers, add approximate size of contents
-                    if isinstance(result, (list, tuple, set)):
+                    if isinstance(result, list | tuple | set):
                         for item in result:
                             size += sys.getsizeof(item)
                     elif isinstance(result, dict):
@@ -133,7 +134,7 @@ def hybrid_cache(
 
 
 def smart_cache(
-    config: Optional[CacheConfig] = None,
+    config: CacheConfig | None = None,
     analyze_every_call: bool = False,
 ) -> CacheDecorator[P, R]:
     """
@@ -155,10 +156,9 @@ def smart_cache(
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         # Generate a unique key for this function
-        func_key = f"{func.__module__}.{func.__qualname__}"
 
         # Dictionary to store backend configurations for different result types
-        backend_configs: Dict[str, CacheConfig] = {}
+        backend_configs: dict[str, CacheConfig] = {}
 
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:

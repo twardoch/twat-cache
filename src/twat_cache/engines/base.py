@@ -52,7 +52,7 @@ def is_package_available(package_name: str) -> bool:
     Returns:
         bool: True if the package is available, False otherwise.
     """
-    return bool(util.find_spec(package_name))
+    return util.find_spec(package_name) is not None
 
 
 class BaseCacheEngine(ABC, Generic[P, R]):
@@ -74,6 +74,9 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         self._size = 0
         self._cache_path: Path | None = None
         self._cache: dict[CacheKey, tuple[R, float | None]] = {}
+        self._last_access = 0.0
+        self._last_update = 0.0
+        self._created_at = time.time()
 
         # Validate configuration
         self.validate_config()
@@ -85,13 +88,12 @@ class BaseCacheEngine(ABC, Generic[P, R]):
 
                 # Ensure directory exists with proper permissions
                 if self._cache_path:
-                    ensure_dir_exists(
-                        self._cache_path, mode=0o700 if self._config.secure else 0o755
-                    )
+                    ensure_dir_exists(self._cache_path, mode=0o700 if self._config.secure else 0o755)
 
             except (OSError, PermissionError) as e:
                 logger.error(f"Failed to initialize cache path: {e}")
-                raise PathError(f"Failed to initialize cache path: {str(e)}") from e
+                msg = f"Failed to initialize cache path: {e!s}"
+                raise PathError(msg) from e
 
         logger.debug(f"Initialized {self.__class__.__name__} with config: {config}")
 
@@ -107,6 +109,10 @@ class BaseCacheEngine(ABC, Generic[P, R]):
             "path": str(self._cache_path) if self._cache_path else None,
             "policy": self._config.policy,
             "ttl": self._config.ttl,
+            "last_access": self._last_access,
+            "last_update": self._last_update,
+            "created_at": self._created_at,
+            "uptime": time.time() - self._created_at,
         }
 
     def validate_config(self) -> None:
@@ -122,7 +128,8 @@ class BaseCacheEngine(ABC, Generic[P, R]):
                 validate_cache_path(self._config.folder_name)
             except ValueError as e:
                 logger.error(f"Invalid cache folder configuration: {e}")
-                raise ConfigurationError(f"Invalid cache folder: {str(e)}") from e
+                msg = f"Invalid cache folder: {e!s}"
+                raise ConfigurationError(msg) from e
 
         # Check TTL is non-negative if provided
         if self._config.ttl is not None and self._config.ttl < 0:
@@ -158,7 +165,7 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         logger.debug(f"Cleaning up {self.__class__.__name__} resources")
         self._cache.clear()
 
-    def _check_ttl(self, timestamp: Optional[float]) -> bool:
+    def _check_ttl(self, timestamp: float | None) -> bool:
         """
         Check if a cache entry has expired based on its timestamp.
 

@@ -49,7 +49,7 @@ class EngineError(TwatCacheError):
 class EngineNotAvailableError(EngineError):
     """Raised when a requested cache engine is not available."""
 
-    def __init__(self, message: str, reason: Optional[str] = None) -> None:
+    def __init__(self, message: str, reason: str | None = None) -> None:
         """Initialize with a message and an optional reason.
 
         Args:

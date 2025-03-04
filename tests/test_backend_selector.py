@@ -298,10 +298,10 @@ class TestFunctionAnalysis:
         def returns_int() -> int:
             return 42
 
-        def returns_list() -> List[int]:
+        def returns_list() -> list[int]:
             return [1, 2, 3]
 
-        def returns_dict() -> Dict[str, Any]:
+        def returns_dict() -> dict[str, Any]:
             return {"a": 1, "b": 2}
 
         def returns_numpy() -> np.ndarray:
@@ -309,8 +309,8 @@ class TestFunctionAnalysis:
 
         # Test with type annotations
         assert analyze_function_return_type(returns_int) == int
-        assert analyze_function_return_type(returns_list) == List[int]
-        assert analyze_function_return_type(returns_dict) == Dict[str, Any]
+        assert analyze_function_return_type(returns_list) == list[int]
+        assert analyze_function_return_type(returns_dict) == dict[str, Any]
         assert analyze_function_return_type(returns_numpy) == np.ndarray
 
         # Test with no type annotations

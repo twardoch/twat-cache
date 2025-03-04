@@ -133,7 +133,8 @@ def test_safe_key_serializer_error():
     # Create a class that raises an error when serialized
     class UnserializableObject:
         def __repr__(self):
-            raise RuntimeError("Cannot serialize")
+            msg = "Cannot serialize"
+            raise RuntimeError(msg)
 
     # Test with an unserializable object
     with pytest.raises(CacheKeyError) as excinfo:
@@ -165,7 +166,8 @@ def test_safe_value_serializer_error():
     # Create a class that raises an error even with repr
     class BadObject:
         def __repr__(self):
-            raise RuntimeError("Cannot serialize")
+            msg = "Cannot serialize"
+            raise RuntimeError(msg)
 
     # This should raise a CacheValueError
     with pytest.raises(CacheValueError) as excinfo:
@@ -202,20 +204,23 @@ def test_safe_temp_file():
 def test_catching_exceptions():
     """Test catching the custom exceptions."""
     try:
-        raise ConfigurationError("Test config error")
+        msg = "Test config error"
+        raise ConfigurationError(msg)
     except TwatCacheError as e:
         assert isinstance(e, ConfigurationError)
         assert str(e) == "Test config error"
 
     try:
-        raise EngineNotAvailableError("test_engine", "Not installed")
+        msg = "test_engine"
+        raise EngineNotAvailableError(msg, "Not installed")
     except EngineError as e:
         assert isinstance(e, EngineNotAvailableError)
         assert e.engine_name == "test_engine"
         assert e.reason == "Not installed"
 
     try:
-        raise CacheKeyError("Invalid key")
+        msg = "Invalid key"
+        raise CacheKeyError(msg)
     except CacheOperationError as e:
         assert isinstance(e, CacheKeyError)
         assert str(e) == "Invalid key"

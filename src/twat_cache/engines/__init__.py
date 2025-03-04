@@ -1,60 +1,100 @@
-"""Cache engine implementations."""
+#!/usr/bin/env -S uv run
+# /// script
+# dependencies = [
+#   "loguru",
+# ]
+# ///
+# this_file: src/twat_cache/engines/__init__.py
 
-from __future__ import annotations
+"""
+Cache engine implementations.
 
-import importlib.util
+This package provides various cache engine implementations for different
+backends and use cases.
+"""
 
-# Import base engine and always available engines
-from twat_cache.engines.base import BaseCacheEngine
-from twat_cache.engines.functools import FunctoolsCacheEngine
+from typing import Dict, List, Type, Any, cast
 
-# Check optional backend availability
-HAS_AIOCACHE = bool(importlib.util.find_spec("aiocache"))
-HAS_CACHEBOX = bool(importlib.util.find_spec("cachebox"))
-HAS_CACHETOOLS = bool(importlib.util.find_spec("cachetools"))
-HAS_DISKCACHE = bool(importlib.util.find_spec("diskcache"))
-HAS_JOBLIB = bool(importlib.util.find_spec("joblib"))
-HAS_KLEPTO = bool(importlib.util.find_spec("klepto"))
+from .base import BaseCacheEngine, is_package_available
+from .manager import get_engine_manager
 
-# Define base exports
+# Optional imports - these may fail if dependencies are not installed
+engines: dict[str, type[BaseCacheEngine[Any, Any]]] = {}
+
+try:
+    from .functools import FunctoolsCacheEngine
+
+    engines["functools"] = cast(type[BaseCacheEngine[Any, Any]], FunctoolsCacheEngine)
+except ImportError:
+    pass
+
+try:
+    from .cachetools import CacheToolsEngine
+
+    engines["cachetools"] = cast(type[BaseCacheEngine[Any, Any]], CacheToolsEngine)
+except ImportError:
+    pass
+
+try:
+    from .diskcache import DiskCacheEngine
+
+    engines["diskcache"] = cast(type[BaseCacheEngine[Any, Any]], DiskCacheEngine)
+except ImportError:
+    pass
+
+try:
+    from .aiocache import AioCacheEngine
+
+    engines["aiocache"] = cast(type[BaseCacheEngine[Any, Any]], AioCacheEngine)
+except ImportError:
+    pass
+
+try:
+    from .klepto import KleptoEngine
+
+    engines["klepto"] = cast(type[BaseCacheEngine[Any, Any]], KleptoEngine)
+except ImportError:
+    pass
+
+try:
+    from .joblib import JoblibEngine
+
+    engines["joblib"] = cast(type[BaseCacheEngine[Any, Any]], JoblibEngine)
+except ImportError:
+    pass
+
+try:
+    from .cachebox import CacheBoxEngine
+
+    engines["cachebox"] = cast(type[BaseCacheEngine[Any, Any]], CacheBoxEngine)
+except ImportError:
+    pass
+
+try:
+    from .redis import RedisCacheEngine
+
+    engines["redis"] = cast(type[BaseCacheEngine[Any, Any]], RedisCacheEngine)
+except ImportError:
+    pass
+
+
+def get_available_engines() -> list[str]:
+    """
+    Get a list of available cache engines.
+
+    Returns:
+        List of available engine names.
+    """
+    return [
+        name
+        for name, engine_cls in engines.items()
+        if hasattr(engine_cls, "is_available") and engine_cls.is_available()
+    ]
+
+
 __all__ = [
-    "HAS_AIOCACHE",
-    "HAS_CACHEBOX",
-    "HAS_CACHETOOLS",
-    "HAS_DISKCACHE",
-    "HAS_JOBLIB",
-    "HAS_KLEPTO",
     "BaseCacheEngine",
-    "FunctoolsCacheEngine",
+    "get_available_engines",
+    "get_engine_manager",
+    "is_package_available",
 ]
-
-# Import and export optional engines if available
-if HAS_AIOCACHE:
-    from twat_cache.engines.aiocache import AioCacheEngine
-
-    __all__.append("AioCacheEngine")
-
-if HAS_CACHEBOX:
-    from twat_cache.engines.cachebox import CacheBoxEngine
-
-    __all__.append("CacheBoxEngine")
-
-if HAS_CACHETOOLS:
-    from twat_cache.engines.cachetools import CacheToolsEngine
-
-    __all__.append("CacheToolsEngine")
-
-if HAS_DISKCACHE:
-    from twat_cache.engines.diskcache import DiskCacheEngine
-
-    __all__.append("DiskCacheEngine")
-
-if HAS_JOBLIB:
-    from twat_cache.engines.joblib import JoblibEngine
-
-    __all__.append("JoblibEngine")
-
-if HAS_KLEPTO:
-    from twat_cache.engines.klepto import KleptoEngine
-
-    __all__.append("KleptoEngine")

@@ -9,6 +9,7 @@
 
 """Cache configuration system."""
 
+import os
 from typing import Any, Dict, Optional
 from collections.abc import Callable
 
@@ -35,6 +36,12 @@ class CacheConfig(BaseModel):
     use_sql: bool = False
     compress: bool = False
     secure: bool = True
+
+    # Redis-specific configuration
+    redis_host: str = "localhost"
+    redis_port: int = 6379
+    redis_db: int = 0
+    redis_password: str | None = None
 
     class Config:
         """Pydantic model configuration."""
@@ -70,6 +77,15 @@ class CacheConfig(BaseModel):
             raise ValueError(msg)
         return v
 
+    @classmethod
+    @field_validator("redis_port")
+    def validate_redis_port(cls, v: int) -> int:
+        """Validate redis_port field."""
+        if v <= 0 or v > 65535:
+            msg = f"redis_port must be between 1 and 65535, got {v}"
+            raise ValueError(msg)
+        return v
+
     def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary."""
         return {
@@ -84,6 +100,10 @@ class CacheConfig(BaseModel):
             "compress": self.compress,
             "secure": self.secure,
             "cache_dir": self.cache_dir,
+            "redis_host": self.redis_host,
+            "redis_port": self.redis_port,
+            "redis_db": self.redis_db,
+            "redis_password": self.redis_password,
         }
 
     @classmethod
@@ -112,6 +132,37 @@ class CacheConfig(BaseModel):
         """Get the cache type."""
         return self.cache_type
 
+    # Redis-specific getters
+    def get_redis_host(self) -> str:
+        """Get the Redis host."""
+        return os.environ.get("TWAT_CACHE_REDIS_HOST", self.redis_host)
+
+    def get_redis_port(self) -> int:
+        """Get the Redis port."""
+        port_str = os.environ.get("TWAT_CACHE_REDIS_PORT")
+        if port_str:
+            try:
+                return int(port_str)
+            except ValueError:
+                return self.redis_port
+        return self.redis_port
+
+    def get_redis_db(self) -> int:
+        """Get the Redis database number."""
+        db_str = os.environ.get("TWAT_CACHE_REDIS_DB")
+        if db_str:
+            try:
+                return int(db_str)
+            except ValueError:
+                return self.redis_db
+        return self.redis_db
+
+    def get_redis_password(self) -> str | None:
+        """Get the Redis password."""
+        return os.environ.get("TWAT_CACHE_REDIS_PASSWORD", self.redis_password)
+
+    # We can't override the validate method as it conflicts with Pydantic's validate
+    # Instead, we'll implement a protocol-compatible method with a different name
     def validate_config(self) -> None:
         """Validate the configuration (protocol compatibility method)."""
         # This is handled by Pydantic validators
@@ -131,6 +182,10 @@ def create_cache_config(
     use_sql: bool = False,
     compress: bool = False,
     secure: bool = True,
+    redis_host: str = "localhost",
+    redis_port: int = 6379,
+    redis_db: int = 0,
+    redis_password: str | None = None,
 ) -> CacheConfig:
     """Create a cache configuration.
 
@@ -146,6 +201,10 @@ def create_cache_config(
         use_sql: Whether to use SQL backend.
         compress: Whether to compress cached data.
         secure: Whether to use secure file permissions.
+        redis_host: Redis server hostname.
+        redis_port: Redis server port.
+        redis_db: Redis database number.
+        redis_password: Redis server password.
 
     Returns:
         CacheConfig: Cache configuration object.
@@ -165,4 +224,8 @@ def create_cache_config(
         compress=compress,
         secure=secure,
         cache_dir=cache_dir,
+        redis_host=redis_host,
+        redis_port=redis_port,
+        redis_db=redis_db,
+        redis_password=redis_password,
     )

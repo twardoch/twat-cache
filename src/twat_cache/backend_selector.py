@@ -20,7 +20,8 @@ import inspect
 import sys
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Type, TypeVar, Union, get_type_hints
+from typing import Any, Dict, Optional, Type, TypeVar, Union, get_type_hints
+from collections.abc import Callable
 from collections.abc import Awaitable, Coroutine
 
 from loguru import logger
@@ -162,9 +163,9 @@ def estimate_data_size(data: Any) -> DataSize:
         size = sys.getsizeof(data)
 
         # For certain types, we need to account for nested objects
-        if isinstance(data, (list, tuple, set, dict)):
+        if isinstance(data, list | tuple | set | dict):
             # Add approximate size of contents for containers
-            if isinstance(data, (list, tuple, set)):
+            if isinstance(data, list | tuple | set):
                 for item in data:
                     size += sys.getsizeof(item)
             elif isinstance(data, dict):
@@ -186,7 +187,7 @@ def estimate_data_size(data: Any) -> DataSize:
         return DataSize.MEDIUM
 
 
-def get_type_based_backend(data_type: Type) -> str:
+def get_type_based_backend(data_type: type) -> str:
     """
     Get the recommended backend based on data type.
 
@@ -236,7 +237,7 @@ def get_available_backend(preferred_backend: str) -> str:
             return alt_backend
 
     # If no alternatives are available, default to functools which is always available
-    logger.debug(f"No suitable backend found, defaulting to 'functools'")
+    logger.debug("No suitable backend found, defaulting to 'functools'")
     return "functools"
 
 
@@ -274,7 +275,7 @@ def is_backend_available(backend_name: str) -> bool:
 
 def select_backend_for_data(
     data: Any = None,
-    data_type: Type = None,
+    data_type: type | None = None,
     size: DataSize = None,
     persistence: DataPersistence = None,
     access_pattern: AccessPattern = None,
@@ -342,7 +343,7 @@ def select_backend_for_data(
     return "functools"
 
 
-def configure_for_type(data_type: Type, **kwargs) -> CacheConfig:
+def configure_for_type(data_type: type, **kwargs) -> CacheConfig:
     """
     Create a cache configuration optimized for a specific data type.
 
@@ -444,7 +445,7 @@ def hybrid_cache_config(
     large_result_engine: str = "diskcache",
     size_threshold: int = 1024 * 1024,  # 1MB
     **kwargs,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Create a configuration for hybrid caching based on result size.
 
@@ -468,7 +469,7 @@ def hybrid_cache_config(
     }
 
 
-def analyze_function_return_type(func: Callable) -> Optional[Type]:
+def analyze_function_return_type(func: Callable) -> type | None:
     """
     Analyze a function to determine its return type.
 

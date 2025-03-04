@@ -9,6 +9,48 @@ All notable changes to the `twat_cache` package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.2.0] - 2024-09-01
+
+### Added
+
+- Comprehensive test suite for backend selection strategy
+  - Tests for data size estimation
+  - Tests for type-based backend selection
+  - Tests for backend availability
+  - Tests for various data types (primitive, containers, NumPy arrays, pandas DataFrames)
+- Redis cache engine implementation
+  - Full Redis cache engine with serialization, compression, and TTL support
+  - Redis-specific configuration options
+  - Proper connection handling and error management
+  - Registration in the engine manager
+- Documentation for cache context management
+  - Detailed guide on using context managers
+  - Examples for basic and advanced usage patterns
+  - Best practices for resource management
+  - Error handling recommendations
+
+### Fixed
+
+- Type compatibility issues in context.py with CacheConfig protocol
+  - Updated protocol in type_defs.py to use validate_config instead of validate
+  - Fixed type casting to avoid type errors
+  - Improved type annotations for better static analysis
+- Linter errors in engine implementations
+  - Fixed import issues with optional dependencies
+  - Addressed type compatibility warnings
+  - Improved error handling in Redis engine
+
+### Changed
+
+- Expanded test coverage for cache engines
+  - Added comprehensive tests for Redis cache engine
+  - Tests for initialization, configuration validation, key generation
+  - Tests for caching operations and error handling
+- Refactored common patterns across engine implementations
+  - Standardized engine initialization and validation procedures
+  - Created unified interfaces for all cache backends
+  - Improved code organization and maintainability
+
 ## [v2.1.1] - 2024-08-26
 
 ### Added

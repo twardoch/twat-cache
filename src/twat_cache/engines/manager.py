@@ -67,6 +67,14 @@ except ImportError:
     HAS_JOBLIB = False
     logger.debug("joblib not available")
 
+try:
+    from .redis import RedisCacheEngine
+
+    HAS_REDIS = True
+except ImportError:
+    HAS_REDIS = False
+    logger.debug("redis not available")
+
 
 class CacheEngineManager:
     """Manages cache engine implementations and handles engine selection."""
@@ -85,6 +93,10 @@ class CacheEngineManager:
         self.register_engine("klepto", KleptoEngine)
         self.register_engine("joblib", JoblibEngine)
         self.register_engine("cachebox", CacheBoxEngine)
+
+        # Register Redis engine if available
+        if HAS_REDIS:
+            self.register_engine("redis", RedisCacheEngine)
 
     def register_engine(self, name: str, engine_cls: type[E]) -> None:
         """
@@ -153,9 +165,7 @@ class CacheEngineManager:
             # Try preferred engines in order
             for engine_name in preferred:
                 if engine_name in available:
-                    engine_cls: type[BaseCacheEngine[Any, Any]] | None = (
-                        self.get_engine(engine_name)
-                    )
+                    engine_cls: type[BaseCacheEngine[Any, Any]] | None = self.get_engine(engine_name)
                     if engine_cls and engine_cls.is_available():
                         return engine_cls
 

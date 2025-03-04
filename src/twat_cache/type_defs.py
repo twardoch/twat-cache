@@ -94,7 +94,7 @@ class CacheConfig(Protocol):
         """Get the cache type."""
         ...
 
-    def validate(self) -> None:
+    def validate_config(self) -> None:
         """Validate the configuration."""
         ...
 

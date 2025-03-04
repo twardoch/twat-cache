@@ -19,7 +19,8 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Callable, Generic, Optional, TypeVar, cast
+from typing import Any, Generic, Optional, TypeVar, cast
+from collections.abc import Callable
 from collections.abc import Mapping, Sequence
 
 from loguru import logger
@@ -55,7 +56,8 @@ def ensure_dir_exists(dir_path: Path, mode: int = 0o700) -> None:
         dir_path.mkdir(mode=mode, parents=True, exist_ok=True)
     except (OSError, PermissionError) as e:
         logger.error(f"Failed to create cache directory {dir_path}: {e}")
-        raise PathError(f"Failed to create cache directory {dir_path}: {str(e)}") from e
+        msg = f"Failed to create cache directory {dir_path}: {e!s}"
+        raise PathError(msg) from e
 
 
 def safe_key_serializer(key: Any) -> str:
@@ -75,10 +77,10 @@ def safe_key_serializer(key: Any) -> str:
         if isinstance(key, str):
             return key
 
-        if isinstance(key, (int, float, bool, type(None))):
+        if isinstance(key, int | float | bool | type(None)):
             return str(key)
 
-        if isinstance(key, (list, tuple, set)):
+        if isinstance(key, list | tuple | set):
             return json.dumps([safe_key_serializer(k) for k in key])
 
         if isinstance(key, dict):
@@ -88,7 +90,8 @@ def safe_key_serializer(key: Any) -> str:
         return json.dumps(repr(key))
     except Exception as e:
         logger.error(f"Failed to serialize cache key: {e}")
-        raise CacheKeyError(f"Failed to serialize cache key: {str(e)}") from e
+        msg = f"Failed to serialize cache key: {e!s}"
+        raise CacheKeyError(msg) from e
 
 
 def safe_value_serializer(value: Any) -> str:
@@ -106,14 +109,15 @@ def safe_value_serializer(value: Any) -> str:
     """
     try:
         return json.dumps(value)
-    except (TypeError, ValueError, OverflowError) as e:
+    except (TypeError, ValueError, OverflowError):
         try:
             # Fallback to repr for complex objects
             return repr(value)
         except Exception as inner_e:
             logger.error(f"Failed to serialize cache value: {inner_e}")
+            msg = f"Failed to serialize cache value: {inner_e!s}"
             raise CacheValueError(
-                f"Failed to serialize cache value: {str(inner_e)}"
+                msg
             ) from inner_e
 
 
@@ -139,7 +143,8 @@ def safe_temp_file(
         return Path(path), os.fdopen(fd, "w+b")
     except (OSError, PermissionError) as e:
         logger.error(f"Failed to create temporary file: {e}")
-        raise ResourceError(f"Failed to create temporary file: {str(e)}") from e
+        msg = f"Failed to create temporary file: {e!s}"
+        raise ResourceError(msg) from e
 
 
 def get_func_qualified_name(func: Callable[..., Any]) -> str:

@@ -12,19 +12,49 @@ A flexible caching utility package for Python functions that provides a unified 
   4. `klepto` - Scientific computing caching (optional)
   5. `diskcache` - SQL-based disk cache (optional)
   6. `joblib` - Efficient array caching (optional)
-  7. Memory-based LRU cache (always available)
+  7. `redis` - Distributed caching with Redis (optional)
+  8. Memory-based LRU cache (always available)
 - Automatic cache directory management
 - Type hints and modern Python features
 - Lazy backend loading - only imports what you use
 - Automatic backend selection based on availability and use case
+- Smart backend selection based on data characteristics
 - TTL support for cache expiration
 - Multiple eviction policies (LRU, LFU, FIFO, RR)
 - Async function support
 - Compression options for large data
 - Secure file permissions for sensitive data
-- Smart backend selection based on data characteristics
 - Hybrid caching with automatic backend switching
 - Context management for cache engines
+- Comprehensive test suite for all components
+
+## Recent Updates
+
+### Redis Cache Engine
+
+The library now includes a full Redis cache engine implementation with:
+- Serialization and compression support
+- TTL-based expiration
+- Distributed cache invalidation
+- Connection pooling and error handling
+- Namespace support for key isolation
+
+### Smart Backend Selection
+
+The backend selection strategy has been enhanced to automatically choose the most appropriate cache backend based on:
+- Data type (primitive types, collections, NumPy arrays, pandas DataFrames)
+- Data size (small, medium, large, very large)
+- Access patterns (read-heavy, write-heavy, balanced)
+- Persistence requirements (ephemeral, session, long-term)
+- Concurrency needs (single-thread, multi-thread, multi-process)
+
+### Context Management
+
+Improved context management utilities ensure proper resource cleanup:
+- `CacheContext` class for reusable context management
+- `engine_context` function for temporary cache configurations
+- Automatic resource cleanup even when exceptions occur
+- Support for explicit engine selection
 
 ## Installation
 
@@ -46,6 +76,7 @@ pip install twat-cache[aiocache]     # For async-capable caching
 pip install twat-cache[klepto]       # For scientific computing caching
 pip install twat-cache[diskcache]    # For SQL-based disk caching
 pip install twat-cache[joblib]       # For efficient array caching
+pip install twat-cache[redis]        # For distributed caching with Redis
 ```
 
 ## Usage
@@ -82,6 +113,23 @@ from twat_cache import bcache
     ttl=3600,               # Cache entries expire after 1 hour
     use_sql=True,           # Use SQLite backend
     secure=True,            # Use secure file permissions
+)
+def expensive_function(x: int) -> int:
+    return x * x
+```
+
+### Redis Distributed Caching
+
+For distributed caching with Redis:
+
+```python
+from twat_cache import ucache
+
+@ucache(
+    preferred_engine="redis",
+    folder_name="redis_cache",  # Used as Redis namespace
+    ttl=3600,                  # Cache entries expire after 1 hour
+    compress=True,             # Enable compression
 )
 def expensive_function(x: int) -> int:
     return x * x
@@ -220,10 +268,16 @@ print(stats)  # Shows hits, misses, size, etc.
 Use cache engines with context management:
 
 ```python
-from twat_cache import CacheContext
+from twat_cache import CacheContext, engine_context
 
-# Use a cache engine with context management
-with CacheContext(engine="diskcache", folder_name="cache") as cache:
+# Method 1: Using the CacheContext class
+with CacheContext(engine_name="diskcache", folder_name="cache") as cache:
+    # Use the cache
+    cache.set("key", "value")
+    value = cache.get("key")
+    
+# Method 2: Using the engine_context function
+with engine_context(engine_name="redis", ttl=3600) as cache:
     # Use the cache
     cache.set("key", "value")
     value = cache.get("key")
@@ -248,61 +302,36 @@ def get_weather(city: str) -> dict:
 
 ### Eviction Policies
 
-Choose from multiple eviction policies:
-
-```python
-from twat_cache import mcache
-
-# Least Recently Used (default)
-@mcache(policy="lru")
-def func1(): pass
-
-# Least Frequently Used
-@mcache(policy="lfu")
-def func2(): pass
-
-# First In First Out
-@mcache(policy="fifo")
-def func3(): pass
-
-# Random Replacement
-@mcache(policy="rr")
-def func4(): pass
-```
-
-### Security Features
-
-Enable secure file permissions for disk caches:
-
-```python
-from twat_cache import bcache
-
-@bcache(
-    folder_name="secure_cache",
-    secure=True,  # Sets 0o700 for dirs, 0o600 for files
-)
-def sensitive_function(): pass
-```
-
-### Backend Selection
-
-Explicitly choose a backend:
+Choose from different cache eviction policies:
 
 ```python
 from twat_cache import ucache
 
-# Use cachebox if available
-@ucache(preferred_engine="cachebox")
-def fast_function(): pass
+# Least Recently Used (default)
+@ucache(policy="lru")
+def function1(x: int) -> int:
+    return x * x
 
-# Use diskcache if available
-@ucache(preferred_engine="diskcache")
-def persistent_function(): pass
+# Least Frequently Used
+@ucache(policy="lfu")
+def function2(x: int) -> int:
+    return x * x
 
-# Use joblib if available
-@ucache(preferred_engine="joblib")
-def array_function(): pass
+# First In, First Out
+@ucache(policy="fifo")
+def function3(x: int) -> int:
+    return x * x
 ```
+
+## Documentation
+
+For more detailed documentation, see the following resources:
+
+- [Context Management](docs/context_management.md)
+- [Backend Selection](docs/backend_selection.md)
+- [Cache Engines](docs/cache_engines.md)
+- [Configuration Options](docs/configuration.md)
+- [API Reference](docs/api_reference.md)
 
 ## Contributing
 

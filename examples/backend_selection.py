@@ -70,7 +70,7 @@ def example_type_specific_config():
 
     # For JSON data
     @ucache(config=configure_for_json())
-    def fetch_json_data(url: str) -> Dict[str, Any]:
+    def fetch_json_data(url: str) -> dict[str, Any]:
         """Fetch JSON data with appropriate caching."""
         print(f"  Fetching JSON data from {url}...")
         time.sleep(1)  # Simulate network request
@@ -98,7 +98,7 @@ def example_hybrid_caching():
     print("\n=== Example 2: Hybrid Caching Based on Result Size ===")
 
     @hybrid_cache()
-    def get_data(size: str) -> Union[Dict[str, Any], List[int]]:
+    def get_data(size: str) -> dict[str, Any] | list[int]:
         """
         Return different sized data based on the input.
 
@@ -114,7 +114,7 @@ def example_hybrid_caching():
             return {"name": "Small Data", "value": 42}
         else:
             # Large result, should use disk caching
-            return [i for i in range(100000)]  # Large list
+            return list(range(100000))  # Large list
 
     # Small data example
     print("\n  Small data example:")
@@ -165,7 +165,7 @@ def example_smart_caching():
         if data_type == "dict":
             return {f"key_{i}": f"value_{i}" for i in range(size)}
         elif data_type == "list":
-            return [i for i in range(size)]
+            return list(range(size))
         elif data_type == "str":
             return "x" * size
         else:
