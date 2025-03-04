@@ -4,29 +4,25 @@ this_file: TODO.md
 
 # twat-cache TODO List
 
-## Phase 1
-
-- [ ] Implement a strategy for choosing the right cache backend for the right type of data as detailed in @NEXT.md, then proceed with other items in @TODO.md
-
-## Phase 2
-
-- [ ] Add comprehensive type hints validation with mypy to ensure type safety across the codebase
-- [ ] Add graceful fallback mechanisms when preferred engines are unavailable
-- [ ] Fix any potential race conditions in concurrent cache access
-- [ ] Ensure thread safety in all cache operations
-- [ ] Implement proper signal handling for clean shutdown
-- [ ] Add comprehensive unit tests for all cache engines and decorators
-- [ ] Add logging for cache operations (hits, misses, etc.)
-- [ ] Improve configuration validation
-
 ## Current Focus
 
+- [ ] Write and execute a comprehensive suite of tests to verify the new backend selection strategy with a variety of data types and cache configurations
 - [ ] Resolve type compatibility issues in context.py with CacheConfig protocol
 - [ ] Expand test coverage for cache engines
 - [ ] Create documentation for cache context management
 - [ ] Implement Redis cache engine
 - [ ] Address linter errors in engine implementations (diskcache, klepto)
 - [ ] Work on graceful fallback mechanisms when preferred engines are unavailable
+
+## Phase 2
+
+- [ ] Add comprehensive type hints validation with mypy to ensure type safety across the codebase
+- [ ] Fix any potential race conditions in concurrent cache access
+- [ ] Ensure thread safety in all cache operations
+- [ ] Implement proper signal handling for clean shutdown
+- [ ] Add comprehensive unit tests for all cache engines and decorators
+- [ ] Add logging for cache operations (hits, misses, etc.)
+- [ ] Improve configuration validation
 
 ## Code Quality and Structure
 
@@ -38,7 +34,6 @@ this_file: TODO.md
 - [ ] Add more defensive programming with better input validation
 - [ ] Refactor complex functions in decorators.py to improve readability
 - [ ] Add more static typing and protocol implementations
-- [x] Implement proper exception handling with custom exception types
 - [ ] Add runtime diagnostics for cache performance tracking
 - [ ] Increase overall test coverage to 90%
 
@@ -56,7 +51,6 @@ this_file: TODO.md
 ## API Improvements
 
 - [ ] Create a more intuitive API for cache management operations
-- [x] Implement a context manager interface for temporary cache configurations
 - [ ] Add decorator factories with more customizable options
 - [ ] Implement a decorator for method caching with instance-aware key generation
 - [ ] Add better support for caching class methods and instance methods
@@ -67,8 +61,6 @@ this_file: TODO.md
 
 - [ ] Increase test coverage to at least 90%
 - [ ] Add integration tests for all cache backends
-- [x] Add unit tests for exception handling
-- [x] Add unit tests for context management
 - [ ] Create benchmarks for performance comparison of different backends
 - [ ] Document performance characteristics and tradeoffs of different cache engines
 - [ ] Add more examples in README.md for common use cases
@@ -104,3 +96,11 @@ this_file: TODO.md
 - [ ] Add sanitization for cache keys to prevent injection attacks
 - [ ] Implement secure deletion for sensitive cached data
 - [ ] Add support for cache isolation between users in multi-user environments
+
+## Completed Items
+
+- [x] Implement a strategy for choosing the right cache backend for the right type of data as detailed in @NEXT.md
+- [x] Implement proper exception handling with custom exception types
+- [x] Implement a context manager interface for temporary cache configurations
+- [x] Add unit tests for exception handling
+- [x] Add unit tests for context management

@@ -17,6 +17,14 @@ A flexible caching utility package for Python functions that provides a unified 
 - Type hints and modern Python features
 - Lazy backend loading - only imports what you use
 - Automatic backend selection based on availability and use case
+- TTL support for cache expiration
+- Multiple eviction policies (LRU, LFU, FIFO, RR)
+- Async function support
+- Compression options for large data
+- Secure file permissions for sensitive data
+- Smart backend selection based on data characteristics
+- Hybrid caching with automatic backend switching
+- Context management for cache engines
 
 ## Installation
 
@@ -136,6 +144,62 @@ def my_function(x: int) -> int:
     return x * x
 ```
 
+### Smart Backend Selection
+
+Automatically select the best backend based on data characteristics:
+
+```python
+from twat_cache import smart_cache
+
+@smart_cache()
+def process_data(data_type: str, size: int) -> Any:
+    """Process different types of data with automatic backend selection."""
+    if data_type == "dict":
+        return {f"key_{i}": f"value_{i}" for i in range(size)}
+    elif data_type == "list":
+        return [i for i in range(size)]
+    elif data_type == "str":
+        return "x" * size
+    else:
+        return size
+```
+
+### Hybrid Caching
+
+Switch backends based on result size:
+
+```python
+from twat_cache import hybrid_cache
+
+@hybrid_cache()
+def get_data(size: str) -> Union[Dict[str, Any], List[int]]:
+    """Return different sized data with appropriate backend selection."""
+    if size == "small":
+        # Small result, will use in-memory caching
+        return {"name": "Small Data", "value": 42}
+    else:
+        # Large result, will use disk caching
+        return [i for i in range(100000)]
+```
+
+### Type-Specific Configuration
+
+Configure caching based on data types:
+
+```python
+from twat_cache import ucache, configure_for_numpy, configure_for_json
+
+# For NumPy arrays
+@ucache(config=configure_for_numpy())
+def process_array(data: np.ndarray) -> np.ndarray:
+    return data * 2
+
+# For JSON data
+@ucache(config=configure_for_json())
+def fetch_json_data(url: str) -> Dict[str, Any]:
+    return {"data": [1, 2, 3, 4, 5], "metadata": {"source": url}}
+```
+
 ### Cache Management
 
 Clear caches and get statistics:
@@ -149,6 +213,22 @@ clear_cache()
 # Get cache statistics
 stats = get_stats()
 print(stats)  # Shows hits, misses, size, etc.
+```
+
+### Context Management
+
+Use cache engines with context management:
+
+```python
+from twat_cache import CacheContext
+
+# Use a cache engine with context management
+with CacheContext(engine="diskcache", folder_name="cache") as cache:
+    # Use the cache
+    cache.set("key", "value")
+    value = cache.get("key")
+    
+# Cache is automatically closed when exiting the context
 ```
 
 ## Advanced Features

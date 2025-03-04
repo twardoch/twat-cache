@@ -24,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests for exceptions and context management modules
   - Simple test suite for exception hierarchy and messages
   - Context management tests with mocking for proper isolation
+- Implemented data type-based cache backend selection strategy
+  - New `backend_selector` module for automatic backend selection
+  - Helper functions for common data types (numpy, pandas, images, json)
+  - Smart backend selection based on data characteristics
+- Added hybrid caching capabilities
+  - `hybrid_cache` decorator for size-based backend selection
+  - `smart_cache` decorator for automatic backend selection
+- Added example demonstrating the backend selection strategy
 - Created CHANGELOG.md for tracking version changes
 - Updated TODO.md to reflect completed items and reprioritize tasks
 
