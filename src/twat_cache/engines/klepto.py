@@ -21,7 +21,6 @@ from klepto.archives import (
     file_archive,
 )
 from loguru import logger
-from klepto import keyed_cache
 
 from twat_cache.config import CacheConfig
 from twat_cache.type_defs import CacheKey, P, R
@@ -89,7 +88,6 @@ class KleptoEngine(BaseCacheEngine[P, R]):
             )
 
         self._cache.load()
-        self._keyed_cache = keyed_cache
 
         # Initialize TTL tracking
         self._expiry: dict[CacheKey, float] = {}
@@ -209,10 +207,7 @@ class KleptoEngine(BaseCacheEngine[P, R]):
 
         return cast(
             Callable[P, R],
-            self._keyed_cache(
-                cache=self._cache,
-                typed=True,
-            )(func),
+            self._cache(func),
         )
 
     def get(self, key: CacheKey) -> R | None:

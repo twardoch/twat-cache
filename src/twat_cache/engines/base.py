@@ -18,16 +18,29 @@ from abc import ABC, abstractmethod
 from functools import wraps
 import inspect
 import json
+import time
 from pathlib import Path
-from typing import Any, Generic, cast
+from typing import Any, Generic, cast, Optional
 from collections.abc import Callable
 from importlib import util
 
 from loguru import logger
 
 from twat_cache.config import CacheConfig
+from twat_cache.exceptions import (
+    ConfigurationError,
+    CacheOperationError,
+    EngineNotAvailableError,
+    PathError,
+    ResourceError,
+)
 from twat_cache.type_defs import CacheKey, P, R
 from twat_cache.paths import get_cache_path, validate_cache_path
+from twat_cache.engines.common import (
+    ensure_dir_exists,
+    get_func_qualified_name,
+    create_cache_key,
+)
 
 
 def is_package_available(package_name: str) -> bool:
@@ -67,9 +80,18 @@ class BaseCacheEngine(ABC, Generic[P, R]):
 
         # Initialize cache path if needed
         if self._config.folder_name is not None:
-            self._cache_path = get_cache_path(self._config.folder_name)
-            if self._config.secure:
-                self._cache_path.chmod(0o700)
+            try:
+                self._cache_path = get_cache_path(self._config.folder_name)
+
+                # Ensure directory exists with proper permissions
+                if self._cache_path:
+                    ensure_dir_exists(
+                        self._cache_path, mode=0o700 if self._config.secure else 0o755
+                    )
+
+            except (OSError, PermissionError) as e:
+                logger.error(f"Failed to initialize cache path: {e}")
+                raise PathError(f"Failed to initialize cache path: {str(e)}") from e
 
         logger.debug(f"Initialized {self.__class__.__name__} with config: {config}")
 
@@ -92,80 +114,91 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         Validate the engine configuration.
 
         Raises:
-            ValueError: If the configuration is invalid
+            ConfigurationError: If the configuration is invalid
         """
-        # Config is already validated by Pydantic
-        # Just validate cache folder if provided
+        # Check for folder existence if provided
         if self._config.folder_name is not None:
             try:
                 validate_cache_path(self._config.folder_name)
             except ValueError as e:
-                msg = f"Invalid cache folder: {e}"
-                raise ValueError(msg) from e
+                logger.error(f"Invalid cache folder configuration: {e}")
+                raise ConfigurationError(f"Invalid cache folder: {str(e)}") from e
 
-    def _make_key(self, func: Callable[P, R], args: tuple, kwargs: dict) -> CacheKey:
+        # Check TTL is non-negative if provided
+        if self._config.ttl is not None and self._config.ttl < 0:
+            msg = f"TTL must be a non-negative number, got {self._config.ttl}"
+            logger.error(msg)
+            raise ConfigurationError(msg)
+
+        # Check maxsize is positive if provided
+        if self._config.maxsize is not None and self._config.maxsize <= 0:
+            msg = f"Cache maxsize must be a positive number, got {self._config.maxsize}"
+            logger.error(msg)
+            raise ConfigurationError(msg)
+
+    @classmethod
+    @abstractmethod
+    def is_available(cls) -> bool:
         """
-        Generate a cache key for the given function and arguments.
+        Check if this cache engine is available.
 
-        This method creates a unique key based on:
-        1. The function's module and name
-        2. The function's arguments
-        3. Any relevant configuration parameters
+        Returns:
+            bool: True if the cache engine is available, False otherwise
+        """
+        pass
+
+    def cleanup(self) -> None:
+        """
+        Clean up resources used by the cache engine.
+
+        This method should be called when the cache is no longer needed to ensure
+        proper resource cleanup. Implementations should override this method if they
+        need to perform specific cleanup actions.
+        """
+        logger.debug(f"Cleaning up {self.__class__.__name__} resources")
+        self._cache.clear()
+
+    def _check_ttl(self, timestamp: Optional[float]) -> bool:
+        """
+        Check if a cache entry has expired based on its timestamp.
+
+        Args:
+            timestamp: The timestamp when the entry was created, or None if no TTL
+
+        Returns:
+            bool: True if the entry is still valid, False if expired
+        """
+        if timestamp is None or self._config.ttl is None:
+            return True
+
+        return (time.time() - timestamp) < self._config.ttl
+
+    def _make_key(self, func: Callable[P, R], args: Any, kwargs: Any) -> CacheKey:
+        """
+        Create a cache key for the given function and arguments.
 
         Args:
             func: The function being cached
-            args: Positional arguments to the function
-            kwargs: Keyword arguments to the function
+            args: Positional arguments
+            kwargs: Keyword arguments
 
         Returns:
-            A cache key suitable for the backend
+            A cache key suitable for lookup
         """
-        # Get function info
-        module = inspect.getmodule(func)
-        module_name = module.__name__ if module else "unknown_module"
-        func_name = func.__name__
+        return create_cache_key(func, args, kwargs)
 
-        # Convert args and kwargs to a stable string representation
-        try:
-            # Try JSON serialization first for stable representation
-            args_str = json.dumps(args, sort_keys=True) if args else ""
-            kwargs_str = (
-                json.dumps(dict(sorted(kwargs.items())), sort_keys=True)
-                if kwargs
-                else ""
-            )
-        except (TypeError, ValueError):
-            # Fall back to str() for non-JSON-serializable objects
-            args_str = str(args) if args else ""
-            kwargs_str = str(sorted(kwargs.items())) if kwargs else ""
-
-        # Combine components into a key
-        key_components = [
-            module_name,
-            func_name,
-            args_str,
-            kwargs_str,
-        ]
-
-        # Add any backend-specific components
-        backend_key = self._get_backend_key_components()
-        if backend_key:
-            key_components.extend(backend_key)
-
-        return tuple(key_components)
-
-    def _get_backend_key_components(self) -> list[str]:
+    @abstractmethod
+    def cache(self, func: Callable[P, R]) -> Callable[P, R]:
         """
-        Get backend-specific components for key generation.
+        Decorate a function to cache its results.
 
-        Override this in backend implementations if needed.
+        Args:
+            func: The function to cache
+
+        Returns:
+            A wrapped function that uses the cache
         """
-        components = []
-        if self._config.ttl is not None:
-            components.append(f"ttl={self._config.ttl}")
-        if self._config.policy != "lru":
-            components.append(f"policy={self._config.policy}")
-        return components
+        pass
 
     @abstractmethod
     def _get_cached_value(self, key: CacheKey) -> R | None:
@@ -196,47 +229,6 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         """Clear all cached values."""
         ...
 
-    def cache(self, func: Callable[P, R]) -> Callable[P, R]:
-        """
-        Decorate a function with caching capability.
-
-        Args:
-            func: The function to cache
-
-        Returns:
-            A wrapped function that will use the cache
-        """
-
-        @wraps(func)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            # Generate cache key
-            key = self._make_key(func, args, kwargs)
-
-            # Try to get from cache
-            cached_value = self._get_cached_value(key)
-            if cached_value is not None:
-                self._hits += 1
-                logger.trace(f"Cache hit for {func.__name__} with key {key}")
-                if isinstance(cached_value, Exception):
-                    raise cached_value
-                return cast(R, cached_value)
-
-            # Cache miss - compute and store
-            self._misses += 1
-            try:
-                value = func(*args, **kwargs)
-                self._set_cached_value(key, value)
-            except Exception as e:
-                # Cache the exception
-                self._set_cached_value(key, cast(R, e))
-                raise
-            self._size += 1
-            logger.trace(f"Cache miss for {func.__name__} with key {key}")
-
-            return value
-
-        return wrapper
-
     def get(self, key: str) -> R | None:
         """Get a value from the cache."""
         return self._get_cached_value(key)
@@ -249,11 +241,6 @@ class BaseCacheEngine(ABC, Generic[P, R]):
     def name(self) -> str:
         """Get the name of the cache engine."""
         return self.__class__.__name__
-
-    @classmethod
-    def is_available(cls) -> bool:
-        """Check if this cache engine is available for use."""
-        return True  # Override in subclasses if availability depends on imports
 
 
 class CacheEngine(BaseCacheEngine[P, R]):
