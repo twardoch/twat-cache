@@ -32,42 +32,22 @@ backends, automatically handling fallbacks if preferred backends are not availab
 
 import asyncio
 import functools
-import hashlib
 import importlib.util
-import inspect
 import json
-import os
-import pickle
-import sys
-import time
-import warnings
-from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import (
     Any,
-    Awaitable,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Literal,
-    Optional,
     Protocol,
-    Set,
-    Tuple,
-    TypeVar,
-    Union,
     cast,
-    overload,
 )
+from collections.abc import Awaitable, Callable
 
 # Import the logger from our logging module
 from .logging import logger
 
 from .config import CacheConfig, create_cache_config, EvictionPolicy
 from .engines.base import BaseCacheEngine
-from .engines.functools import FunctoolsCacheEngine
-from .type_defs import P, R, AsyncR, CacheDecorator as CacheDecoratorType
+from .type_defs import P, R, AsyncR
 
 
 class CacheDecorator(Protocol[P, R]):

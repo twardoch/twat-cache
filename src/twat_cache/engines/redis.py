@@ -11,11 +11,10 @@
 
 from __future__ import annotations
 
-import json
 import pickle
 import time
 from functools import wraps
-from typing import Any, Optional, cast
+from typing import Any, cast
 from collections.abc import Callable
 
 from loguru import logger

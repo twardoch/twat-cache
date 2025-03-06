@@ -10,7 +10,7 @@
 """Cache configuration system."""
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 from collections.abc import Callable
 
 from pydantic import BaseModel, Field, field_validator
@@ -166,7 +166,6 @@ class CacheConfig(BaseModel):
     def validate_config(self) -> None:
         """Validate the configuration (protocol compatibility method)."""
         # This is handled by Pydantic validators
-        pass
 
 
 def create_cache_config(

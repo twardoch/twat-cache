@@ -68,7 +68,6 @@ class JoblibEngine(BaseCacheEngine[P, R]):
         # Joblib's caching is handled within the decorated function itself.
         # We don't need to do anything here.
         _ = key, value  # Used for type checking
-        pass
 
     def clear(self) -> None:
         """Clear all cached values."""

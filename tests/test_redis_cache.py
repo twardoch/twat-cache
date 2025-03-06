@@ -12,7 +12,6 @@
 
 """Test suite for Redis cache engine."""
 
-import time
 import pickle
 import pytest
 from unittest.mock import patch, MagicMock

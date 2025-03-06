@@ -15,12 +15,9 @@ implementing common functionality and enforcing the CacheEngine protocol.
 """
 
 from abc import ABC, abstractmethod
-from functools import wraps
-import inspect
-import json
 import time
 from pathlib import Path
-from typing import Any, Generic, cast, Optional
+from typing import Any, Generic
 from collections.abc import Callable
 from importlib import util
 
@@ -29,16 +26,12 @@ from loguru import logger
 from twat_cache.config import CacheConfig
 from twat_cache.exceptions import (
     ConfigurationError,
-    CacheOperationError,
-    EngineNotAvailableError,
     PathError,
-    ResourceError,
 )
 from twat_cache.type_defs import CacheKey, P, R
 from twat_cache.paths import get_cache_path, validate_cache_path
 from twat_cache.engines.common import (
     ensure_dir_exists,
-    get_func_qualified_name,
     create_cache_key,
 )
 
@@ -152,7 +145,6 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         Returns:
             bool: True if the cache engine is available, False otherwise
         """
-        pass
 
     def cleanup(self) -> None:
         """
@@ -205,7 +197,6 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         Returns:
             A wrapped function that uses the cache
         """
-        pass
 
     @abstractmethod
     def _get_cached_value(self, key: CacheKey) -> R | None:

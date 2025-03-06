@@ -15,14 +15,13 @@ properly when no longer needed.
 """
 
 import contextlib
-from typing import Any, Optional, TypeVar, cast, Protocol, runtime_checkable
+from typing import Any, TypeVar
 from collections.abc import Generator
 
 from loguru import logger
 
 from twat_cache.config import CacheConfig, create_cache_config
 from twat_cache.exceptions import EngineError
-from twat_cache.type_defs import P, R
 from twat_cache.engines.base import BaseCacheEngine
 from twat_cache.engines.manager import get_engine_manager
 

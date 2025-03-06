@@ -9,9 +9,7 @@
 
 """Test suite for twat_cache context management."""
 
-import os
 import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -19,7 +17,6 @@ from twat_cache.context import engine_context, CacheContext, get_or_create_engin
 from twat_cache.exceptions import EngineError
 from twat_cache.config import create_cache_config
 from twat_cache.engines.base import BaseCacheEngine
-from twat_cache.type_defs import P, R
 
 
 def test_engine_context():

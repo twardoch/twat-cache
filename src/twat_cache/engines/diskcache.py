@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import time
 from functools import wraps
-from typing import Any, cast, Tuple, Optional
+from typing import Any, cast
 from collections.abc import Callable
 
 # Skipping analyzing "diskcache": module is installed, but missing library stubs or py.typed marker
@@ -27,9 +27,9 @@ from twat_cache.exceptions import (
     CacheOperationError,
     ResourceError,
 )
-from twat_cache.type_defs import CacheKey, P, R
+from twat_cache.type_defs import P, R
 from .base import BaseCacheEngine
-from .common import ensure_dir_exists, create_cache_key
+from .common import ensure_dir_exists
 
 
 class DiskCacheEngine(BaseCacheEngine[P, R]):

@@ -14,7 +14,6 @@ from unittest.mock import patch, MagicMock
 
 # Import context directly
 from twat_cache.context import CacheContext
-from twat_cache.exceptions import ResourceError
 from twat_cache.config import CacheConfig
 
 

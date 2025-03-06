@@ -13,23 +13,19 @@ This module provides shared functionality used by multiple cache engine
 implementations to reduce code duplication and ensure consistent behavior.
 """
 
-import functools
 import inspect
 import json
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Generic, Optional, TypeVar, cast
+from typing import Any, TypeVar
 from collections.abc import Callable
-from collections.abc import Mapping, Sequence
 
 from loguru import logger
 
-from twat_cache.config import CacheConfig
 from twat_cache.exceptions import (
     CacheKeyError,
     CacheValueError,
-    SerializationError,
     ResourceError,
     PathError,
 )

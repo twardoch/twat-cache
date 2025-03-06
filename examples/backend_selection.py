@@ -9,24 +9,15 @@ to automatically choose the most appropriate cache backend based on
 the characteristics of the data being cached.
 """
 
-import json
 import time
-from typing import Dict, List, Any, Union
+from typing import Any
 
 from twat_cache import (
     # Basic decorators
     ucache,
     # Backend selection utilities
     configure_for_numpy,
-    configure_for_pandas,
     configure_for_json,
-    configure_for_images,
-    configure_for_type,
-    select_backend_for_data,
-    DataSize,
-    DataPersistence,
-    AccessPattern,
-    # Hybrid caching utilities
     hybrid_cache,
     smart_cache,
 )

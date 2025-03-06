@@ -13,7 +13,7 @@ This module provides a hierarchy of exception classes for consistent error handl
 across all components of the caching system.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 
 class TwatCacheError(Exception):
@@ -37,13 +37,11 @@ class TwatCacheError(Exception):
 class ConfigurationError(TwatCacheError):
     """Raised when there is an error in the cache configuration."""
 
-    pass
 
 
 class EngineError(TwatCacheError):
     """Base class for all engine-related errors."""
 
-    pass
 
 
 class EngineNotAvailableError(EngineError):
@@ -65,40 +63,33 @@ class EngineNotAvailableError(EngineError):
 class CacheOperationError(TwatCacheError):
     """Raised when a cache operation fails."""
 
-    pass
 
 
 class CacheKeyError(CacheOperationError):
     """Raised when there is an issue with a cache key."""
 
-    pass
 
 
 class CacheValueError(CacheOperationError):
     """Raised when there is an issue with a cache value."""
 
-    pass
 
 
 class SerializationError(CacheOperationError):
     """Raised when serialization or deserialization fails."""
 
-    pass
 
 
 class ResourceError(TwatCacheError):
     """Raised when there is an issue with resource management."""
 
-    pass
 
 
 class ConcurrencyError(ResourceError):
     """Raised when there is a concurrency-related issue."""
 
-    pass
 
 
 class PathError(ResourceError):
     """Raised when there is an issue with cache paths."""
 
-    pass

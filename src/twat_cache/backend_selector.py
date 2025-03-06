@@ -16,11 +16,9 @@ It implements the strategy outlined in the project documentation for matching
 data types to their optimal caching backends.
 """
 
-import inspect
 import sys
 from enum import Enum
-from functools import wraps
-from typing import Any, Dict, Optional, Type, TypeVar, Union, get_type_hints
+from typing import Any, TypeVar, get_type_hints
 from collections.abc import Callable
 from collections.abc import Awaitable, Coroutine
 
@@ -28,7 +26,6 @@ from loguru import logger
 
 from twat_cache.config import CacheConfig
 from twat_cache.engines.base import is_package_available
-from twat_cache.exceptions import ConfigurationError
 
 # Type variables
 F = TypeVar("F", bound=Callable[..., Any])

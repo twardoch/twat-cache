@@ -20,14 +20,9 @@
 
 """Test suite for backend selection strategy."""
 
-import sys
-import json
-import pickle
-from typing import Any, Dict, List, Optional, Type, Union
-import pytest
+from typing import Any
 import numpy as np
 import pandas as pd
-from pathlib import Path
 
 from twat_cache.backend_selector import (
     DataSize,
@@ -49,7 +44,7 @@ from twat_cache.backend_selector import (
     smart_cache_config,
     detect_result_type,
 )
-from twat_cache.config import CacheConfig, create_cache_config
+from twat_cache.config import create_cache_config
 from twat_cache.engines.manager import get_engine_manager
 
 

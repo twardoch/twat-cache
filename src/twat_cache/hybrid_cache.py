@@ -16,20 +16,18 @@ cache backend based on the characteristics of the function's return value.
 
 import functools
 import sys
-from typing import Any, Dict, Optional, TypeVar, cast, Generic
 from collections.abc import Callable
 
 from loguru import logger
 
 from twat_cache.backend_selector import (
     detect_result_type,
-    estimate_data_size,
     DataSize,
     SIZE_THRESHOLDS,
 )
 from twat_cache.decorators import ucache  # Using ucache from decorators
 from twat_cache.config import CacheConfig
-from twat_cache.type_defs import P, R, F, CacheDecorator
+from twat_cache.type_defs import P, R, CacheDecorator
 
 # Cache for storing function results with their selected backends
 _RESULT_BACKEND_CACHE: dict[str, str] = {}
