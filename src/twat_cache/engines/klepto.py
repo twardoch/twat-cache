@@ -210,60 +210,6 @@ class KleptoEngine(BaseCacheEngine[P, R]):
             self._cache(func),
         )
 
-    def get(self, key: CacheKey) -> R | None:
-        """Get a value from the cache.
-
-        Args:
-            key: Cache key.
-
-        Returns:
-            Optional[R]: Cached value if found, None otherwise.
-        """
-        if not self._cache:
-            msg = "Cache not initialized"
-            raise RuntimeError(msg)
-
-        return cast(R | None, self._cache.get(str(key)))
-
-    def set(self, key: CacheKey, value: R) -> None:
-        """Set a value in the cache.
-
-        Args:
-            key: Cache key.
-            value: Value to cache.
-        """
-        if not self._cache:
-            msg = "Cache not initialized"
-            raise RuntimeError(msg)
-
-        self._cache[str(key)] = value
-        self._cache.dump()
-
-    def clear(self) -> None:
-        """Clear all cached values."""
-        if not self._cache:
-            msg = "Cache not initialized"
-            raise RuntimeError(msg)
-
-        self._cache.clear()
-        self._cache.dump()
-
-    @property
-    def stats(self) -> dict[str, Any]:
-        """Get cache statistics.
-
-        Returns:
-            dict[str, Any]: Dictionary of cache statistics.
-        """
-        if not self._cache:
-            msg = "Cache not initialized"
-            raise RuntimeError(msg)
-
-        return {
-            "hits": getattr(self._cache, "hits", 0),
-            "misses": getattr(self._cache, "misses", 0),
-            "size": len(self._cache),
-            "maxsize": self._config.maxsize,
-            "policy": self._config.policy,
-            "ttl": self._config.ttl,
-        }
+    # Public get, set, clear, and second stats property removed.
+    # BaseCacheEngine's public methods will be used, which call the _get_cached_value, etc.
+    # The first clear and stats methods in this file are the ones to keep and ensure they match BaseEngine.

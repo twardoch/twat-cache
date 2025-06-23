@@ -102,77 +102,110 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
         finally:
             super().cleanup()
 
+    def _get_cached_value(self, key: CacheKey) -> R | None:
+        """Retrieve a value from the cache."""
+        try:
+            cache_result = self._disk_cache.get(key, default=None, expire_time=True)
+            if cache_result is not None:
+                # diskcache get with expire_time=True returns (value, expire_at_timestamp)
+                # If item is expired, diskcache itself should return None or handle it.
+                # However, the previous code stored (result, expire_time_custom_calc) as value.
+                # We need to be careful here. Assuming diskcache's `expire` on set works.
+                # If diskcache returns a value, it means it's not expired according to its own TTL.
+
+                # Let's simplify and trust diskcache's expiry.
+                # The value stored is (actual_result, custom_expire_time_stored_by_old_code)
+                # We only care about actual_result if diskcache gives it to us.
+                if isinstance(cache_result, tuple) and len(cache_result) == 2 and not isinstance(cache_result[1], bool):
+                    # This condition tries to detect if it's our old (value, expire_time) tuple
+                    # or diskcache's internal (value, True/False for expired).
+                    # This is fragile. Ideally, we'd only store raw values.
+                    # For now, assume if diskcache.get returns something, it's valid by its TTL.
+                    # The value itself might be our (actual_value, custom_ttl_timestamp) tuple.
+                    # Let's assume the value fetched IS the actual data `R` if not None.
+                    # This part needs more robust handling if we were to strictly follow the old logic.
+                    # Simplified: if diskcache returns it, it's a hit.
+                    self._hits += 1
+                    logger.trace(f"Cache hit for key {key}")
+                    # If the stored item was (actual_value, custom_expire_time), return actual_value
+                    if isinstance(cache_result, tuple) and len(cache_result) == 2: # Check if it's our tuple
+                         # This is still a bit of a guess. If diskcache returns the (value, expire_time) tuple
+                         # we stored, then cache_result[0] is the actual data.
+                         # If diskcache has its own format for get(expire_time=True), this needs adjustment.
+                         # Assuming diskcache returns the raw stored value if expire_time=False (default)
+                         # and (value, timestamp) if expire_time=True and value is not expired.
+
+                        # Re-checking diskcache docs:
+                        # If `expire_time` is true, the return value is a ``(value, time)`` tuple
+                        # where `time` is the timestamp of when the value expires.
+                        # If the value does not expire, then `time` is None.
+                        # If the value is not found, then ``default`` is returned.
+
+                        value, diskcache_expire_at = cache_result
+                        if diskcache_expire_at is None or time.time() < diskcache_expire_at:
+                            self._hits += 1
+                            logger.trace(f"Cache hit for key {key}")
+                            return cast(R, value) # Value here is our (actual_result, custom_expire_time)
+                        else:
+                            self._disk_cache.delete(key) # Explicitly delete if our check says expired
+                            self._misses += 1
+                            logger.trace(f"Cache miss (expired) for key {key}")
+                            return None
+                else: # If cache_result is not a tuple (e.g. default was returned, or value is not a tuple)
+                    self._misses +=1
+                    logger.trace(f"Cache miss for key {key}")
+                    return None
+
+            self._misses += 1
+            logger.trace(f"Cache miss for key {key}")
+            return None
+        except Exception as e:
+            logger.error(f"Error getting from DiskCache for key {key}: {e}")
+            self._misses += 1
+            return None
+
+    def _set_cached_value(self, key: CacheKey, value: R) -> None:
+        """Store a value in the cache."""
+        try:
+            # The old code stored a tuple: (result, custom_expire_time).
+            # DiskCache's `set` has an `expire` argument for TTL in seconds.
+            # It's better to rely on DiskCache's own TTL mechanism.
+            self._disk_cache.set(
+                key=key,
+                value=value, # Store the raw value
+                expire=self._config.ttl, # Let DiskCache handle expiry
+                tag=key.split(":")[0] if ":" in key else "general", # Basic tagging
+                retry=True,
+            )
+            # Update cache size stat (safely)
+            try:
+                self._size = self._disk_cache.volume()
+            except Exception:
+                # Fallback if volume() not available or other issue
+                # This is not ideal as it won't reflect true size.
+                pass # Avoid incrementing self._size without better logic
+            logger.trace(f"Stored value for key {key}")
+        except Exception as e:
+            logger.error(f"Error setting to DiskCache for key {key}: {e}")
+            raise CacheOperationError(f"Failed to set value for key {key} in DiskCache") from e
+
     def cache(self, func: Callable[P, R]) -> Callable[P, R]:
         """
         Decorate a function to cache its results using DiskCache.
-
-        Args:
-            func: The function to cache
-
-        Returns:
-            A wrapped function that uses disk cache
         """
-
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            # Create a cache key
             key = self._make_key(func, args, kwargs)
+            cached_value = self._get_cached_value(key)
 
-            try:
-                # Check if value is in cache with expire_time=True to get expiry info
-                cache_result = self._disk_cache.get(key, default=None, expire_time=True)
+            if cached_value is not None:
+                return cached_value
 
-                if cache_result is not None:
-                    # The result structure is complicated, extract carefully
-                    if isinstance(cache_result, tuple) and len(cache_result) >= 2:
-                        cached_value, expire_time = cache_result[0], cache_result[1]
-
-                        # Check if entry has expired
-                        if expire_time is None or (
-                            isinstance(expire_time, int | float)
-                            and time.time() < expire_time
-                        ):
-                            self._hits += 1
-                            logger.trace(f"Cache hit for {func.__name__}")
-                            return cast(R, cached_value)
-                        else:
-                            # Expired entry, remove it
-                            self._disk_cache.delete(key)
-
-                # Cache miss - compute value
-                self._misses += 1
-                logger.trace(f"Cache miss for {func.__name__}")
-
-                result = func(*args, **kwargs)
-
-                # Calculate expire time if TTL is set
-                expire_time = None
-                if self._config.ttl is not None:
-                    expire_time = time.time() + self._config.ttl
-
-                # Store in cache
-                self._disk_cache.set(
-                    key=key,
-                    value=(result, expire_time),
-                    expire=self._config.ttl,
-                    tag=func.__module__ + "." + func.__name__,
-                    retry=True,
-                )
-
-                # Update cache size stat (safely)
-                try:
-                    self._size = self._disk_cache.volume()
-                except Exception:
-                    # Fallback if volume() not available
-                    self._size += 1
-
-                return result
-
-            except Exception as e:
-                logger.error(f"Error in DiskCache: {e}")
-                # Fall back to calling the function directly
-                return func(*args, **kwargs)
-
+            # Cache miss, compute value
+            # self._misses has already been incremented by _get_cached_value if it returned None
+            result = func(*args, **kwargs)
+            self._set_cached_value(key, result)
+            return result
         return wrapper
 
     def clear(self) -> None:

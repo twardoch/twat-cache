@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import asyncio # Moved to top
 from typing import Any, cast
 from collections.abc import Callable
 
@@ -85,46 +86,50 @@ class AioCacheEngine(BaseCacheEngine[P, R]):
             Callable[P, R],
             cached(
                 ttl=self._config.ttl,
-                cache=self._cache,
-                namespace=self._config.folder_name,
+                cache=self._cache, # This is the aiocache instance
+                namespace=self._config.folder_name, # aiocache uses namespace
             )(func),
         )
 
-    def get(self, key: CacheKey) -> R | None:
-        """Get a value from the cache.
-
-        Args:
-            key: Cache key.
-
-        Returns:
-            Optional[R]: Cached value if found, None otherwise.
-        """
+    def _get_cached_value(self, key: CacheKey) -> R | None:
+        """Get a value from the cache (synchronous wrapper for aiocache)."""
         if not self._cache:
-            msg = "Cache not initialized"
-            raise RuntimeError(msg)
+            self._misses += 1
+            return None
+        try:
+            # Aiocache methods are async, so we need to run them in an event loop
+            # This is a blocking call, which is not ideal for an async engine's direct sync methods
+            # but necessary to fulfill the BaseCacheEngine synchronous abstract method.
+            loop = asyncio.get_event_loop()
+            value = loop.run_until_complete(self._cache.get(str(key)))
+            if value is not None:
+                self._hits += 1
+            else:
+                self._misses += 1
+            return cast(R | None, value)
+        except Exception: # pragma: no cover
+            self._misses += 1
+            return None
 
-        return cast(R | None, self._cache.get(str(key)))
-
-    def set(self, key: CacheKey, value: R) -> None:
-        """Set a value in the cache.
-
-        Args:
-            key: Cache key.
-            value: Value to cache.
-        """
+    def _set_cached_value(self, key: CacheKey, value: R) -> None:
+        """Set a value in the cache (synchronous wrapper for aiocache)."""
         if not self._cache:
-            msg = "Cache not initialized"
-            raise RuntimeError(msg)
+            raise RuntimeError("Cache not initialized") # Should not happen
 
-        self._cache.set(str(key), value, ttl=self._config.ttl)
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self._cache.set(str(key), value, ttl=self._config.ttl))
+        # self._size might not be easily trackable here without another async call
 
     def clear(self) -> None:
-        """Clear all cached values."""
+        """Clear all cached values (synchronous wrapper for aiocache)."""
         if not self._cache:
-            msg = "Cache not initialized"
-            raise RuntimeError(msg)
+            raise RuntimeError("Cache not initialized") # Should not happen
 
-        self._cache.clear()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self._cache.clear(namespace=self._config.folder_name))
+        self._hits = 0
+        self._misses = 0
+        # self._size = 0 # Size tracking might be complex
 
     @property
     def stats(self) -> dict[str, Any]:
@@ -144,11 +149,5 @@ class AioCacheEngine(BaseCacheEngine[P, R]):
             "backend": self._cache.__class__.__name__,
         }
 
-    @property
-    def is_available(self) -> bool:
-        """Check if this cache engine is available for use.
-
-        Returns:
-            bool: True if the engine is available, False otherwise.
-        """
-        return is_package_available("aiocache")
+    # Removed duplicated is_available property
+    # The @classmethod is_available is correctly defined in the class.
