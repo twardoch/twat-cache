@@ -53,8 +53,7 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
             if key in self._last_access and (now - self._last_access[key] > self._ttl):
                 if key in self._cache:
                     del self._cache[key]
-                if key in self._last_access:
-                    del self._last_access[key]
+                del self._last_access[key]
                 self._misses += 1 # Consider it a miss if TTL expired
                 return None
 
