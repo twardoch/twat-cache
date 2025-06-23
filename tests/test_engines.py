@@ -16,7 +16,7 @@ import pytest
 
 from twat_cache.engines.base import CacheEngine
 from twat_cache.engines.functools import FunctoolsCacheEngine
-from twat_cache.engines.manager import EngineManager
+from twat_cache.engines.manager import CacheEngineManager
 from twat_cache.config import create_cache_config, CacheConfig
 from .test_constants import (
     CACHE_SIZE,
@@ -37,9 +37,9 @@ TEST_FUNCTION_RESULT = 42
 
 
 @pytest.fixture
-def engine_manager() -> EngineManager:
+def engine_manager() -> CacheEngineManager:
     """Provide a clean engine manager instance."""
-    return EngineManager()
+    return CacheEngineManager()
 
 
 @pytest.fixture

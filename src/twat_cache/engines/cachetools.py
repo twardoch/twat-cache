@@ -38,7 +38,7 @@ class CacheToolsEngine(BaseCacheEngine[P, R]):
         self._config = config
         self._cache = None
 
-        if not self.is_available:
+        if not CacheToolsEngine.is_available():
             msg = "cachetools is not available"
             raise ImportError(msg)
 
@@ -94,7 +94,7 @@ class CacheToolsEngine(BaseCacheEngine[P, R]):
             )(func),
         )
 
-    def get(self, key: CacheKey) -> R | None:
+    def _get_cached_value(self, key: CacheKey) -> R | None:
         """Get a value from the cache.
 
         Args:
@@ -104,12 +104,20 @@ class CacheToolsEngine(BaseCacheEngine[P, R]):
             Optional[R]: Cached value if found, None otherwise.
         """
         if not self._cache:
-            msg = "Cache not initialized"
-            raise RuntimeError(msg)
+            # This case should ideally not be hit if used by BaseCacheEngine.cache decorator,
+            # which calls _get_cached_value. But good for direct use.
+            self._misses += 1 # Assuming direct call if _cache is None
+            return None
 
-        return cast(R | None, self._cache.get(str(key)))
+        # cachetools .get() returns the value or the default (None here)
+        value = self._cache.get(str(key))
+        if value is not None: # Or however cachetools signifies a hit from a miss with default=None
+            self._hits +=1 # Approximate, actual hits are internal to cachetools object for @cached
+        else:
+            self._misses +=1 # Approximate
+        return cast(R | None, value)
 
-    def set(self, key: CacheKey, value: R) -> None:
+    def _set_cached_value(self, key: CacheKey, value: R) -> None:
         """Set a value in the cache.
 
         Args:
@@ -117,10 +125,11 @@ class CacheToolsEngine(BaseCacheEngine[P, R]):
             value: Value to cache.
         """
         if not self._cache:
-            msg = "Cache not initialized"
+            msg = "Cache not initialized" # Should not happen if __init__ ran
             raise RuntimeError(msg)
 
         self._cache[str(key)] = value
+        self._size = len(self._cache) # Approximate size tracking
 
     def clear(self) -> None:
         """Clear all cached values."""
@@ -149,12 +158,3 @@ class CacheToolsEngine(BaseCacheEngine[P, R]):
             "policy": self._config.policy,
             "ttl": getattr(self._cache, "ttl", None),
         }
-
-    @property
-    def is_available(self) -> bool:
-        """Check if this cache engine is available for use.
-
-        Returns:
-            bool: True if the engine is available, False otherwise.
-        """
-        return is_package_available("cachetools")

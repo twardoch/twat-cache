@@ -78,7 +78,7 @@ class CacheBoxEngine(BaseCacheEngine[P, R]):
             )(func),
         )
 
-    def get(self, key: CacheKey) -> R | None:
+    def _get_cached_value(self, key: CacheKey) -> R | None:
         """Get a value from the cache.
 
         Args:
@@ -93,7 +93,7 @@ class CacheBoxEngine(BaseCacheEngine[P, R]):
 
         return cast(R | None, self._cache.get(str(key)))
 
-    def set(self, key: CacheKey, value: R) -> None:
+    def _set_cached_value(self, key: CacheKey, value: R) -> None:
         """Set a value in the cache.
 
         Args:
@@ -133,11 +133,5 @@ class CacheBoxEngine(BaseCacheEngine[P, R]):
             "policy": self._config.policy,
         }
 
-    @property
-    def is_available(self) -> bool:
-        """Check if this cache engine is available for use.
-
-        Returns:
-            bool: True if the engine is available, False otherwise.
-        """
-        return is_package_available("cachebox")
+    # Removed duplicated is_available property
+    # The @classmethod is_available is correctly defined in the class.
