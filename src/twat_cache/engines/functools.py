@@ -100,12 +100,6 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
                     # Expire our internal tracking if any
                     if key in self._cache: del self._cache[key]
                     if key in self._last_access: del self._last_access[key]
-                    # For functools.lru_cache, clearing on TTL is tricky.
-                    # A common approach is to wrap and check timestamp, or re-instance.
-                    # Here, we'll just let lru_cache do its thing, and our stats might be off for TTL.
-                    # A more robust TTL with lru_cache would require a custom wrapper around it.
-                    pass # Let underlying_cached_func recompute if its internal state also expired
-
             # Call the functools-cached function
             # This will handle its own caching, hits, misses internally.
             # Our own _hits/_misses will be for the _get_cached_value calls if they were primary.
