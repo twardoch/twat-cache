@@ -18,83 +18,15 @@ from typing import Dict, List, Type, Any, cast
 from .base import BaseCacheEngine, is_package_available
 from .manager import get_engine_manager
 
-# Optional imports - these may fail if dependencies are not installed
-engines: dict[str, type[BaseCacheEngine[Any, Any]]] = {}
+# Optional imports are handled by CacheEngineManager during its registration phase.
+# Individual engine classes are not typically directly imported from this __init__.
+# The manager will attempt to import them.
 
-try:
-    from .functools import FunctoolsCacheEngine
-
-    engines["functools"] = cast(type[BaseCacheEngine[Any, Any]], FunctoolsCacheEngine)
-except ImportError:
-    pass
-
-try:
-    from .cachetools import CacheToolsEngine
-
-    engines["cachetools"] = cast(type[BaseCacheEngine[Any, Any]], CacheToolsEngine)
-except ImportError:
-    pass
-
-try:
-    from .diskcache import DiskCacheEngine
-
-    engines["diskcache"] = cast(type[BaseCacheEngine[Any, Any]], DiskCacheEngine)
-except ImportError:
-    pass
-
-try:
-    from .aiocache import AioCacheEngine
-
-    engines["aiocache"] = cast(type[BaseCacheEngine[Any, Any]], AioCacheEngine)
-except ImportError:
-    pass
-
-try:
-    from .klepto import KleptoEngine
-
-    engines["klepto"] = cast(type[BaseCacheEngine[Any, Any]], KleptoEngine)
-except ImportError:
-    pass
-
-try:
-    from .joblib import JoblibEngine
-
-    engines["joblib"] = cast(type[BaseCacheEngine[Any, Any]], JoblibEngine)
-except ImportError:
-    pass
-
-try:
-    from .cachebox import CacheBoxEngine
-
-    engines["cachebox"] = cast(type[BaseCacheEngine[Any, Any]], CacheBoxEngine)
-except ImportError:
-    pass
-
-try:
-    from .redis import RedisCacheEngine
-
-    engines["redis"] = cast(type[BaseCacheEngine[Any, Any]], RedisCacheEngine)
-except ImportError:
-    pass
-
-
-def get_available_engines() -> list[str]:
-    """
-    Get a list of available cache engines.
-
-    Returns:
-        List of available engine names.
-    """
-    return [
-        name
-        for name, engine_cls in engines.items()
-        if hasattr(engine_cls, "is_available") and engine_cls.is_available()
-    ]
-
-
+# Export key components
 __all__ = [
-    "BaseCacheEngine",
-    "get_available_engines",
-    "get_engine_manager",
-    "is_package_available",
+    "BaseCacheEngine", # Abstract base class for engines
+    "get_engine_manager", # Access to the singleton engine manager
+    "is_package_available", # Utility function
+    # Individual engine classes like FunctoolsCacheEngine, DiskCacheEngine, etc.,
+    # are not exported here by default. They are registered with the manager.
 ]

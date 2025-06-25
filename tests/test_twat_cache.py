@@ -17,7 +17,7 @@ focusing on the core _get, _set, and clear methods.
 from pathlib import Path
 import pytest
 
-from twat_cache.engines.functools import FunctoolsCacheEngine
+from twat_cache.engines.functools_engine import FunctoolsCacheEngine # Corrected import
 from twat_cache.engines.cachebox import CacheBoxEngine
 from twat_cache.engines.cachetools import CacheToolsEngine
 from twat_cache.engines.diskcache import DiskCacheEngine

@@ -49,10 +49,15 @@ class CacheBoxEngine(BaseCacheEngine[P, R]):
         }
 
         cache_type = cache_types.get(config.policy, LRUCache)
-        self._cache: Cache = cache_type(
-            maxsize=config.maxsize or 100,
-            ttl=config.ttl,
-        )
+
+        cache_args: dict[str, Any] = {"maxsize": config.maxsize or 100}
+        # CacheBox's standard caches (LRU, LFU, FIFO, RR) do not accept 'ttl' in constructor.
+        # If config.ttl is set, it will be ignored by these CacheBox cache types.
+        # If CacheBox had specific TTL-aware caches, one might add config.ttl to cache_args conditionally.
+        # For now, we pass what's common, and ttl might be managed by a wrapper if CacheBox supported it,
+        # or it's simply not a feature for these specific cache_type with CacheBox.
+
+        self._cache: Cache = cache_type(**cache_args)
 
     def cache(self, func: Callable[P, R]) -> Callable[P, R]:
         """Decorate a function with caching.

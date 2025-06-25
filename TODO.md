@@ -1,94 +1,50 @@
----
-this_file: TODO.md
----
-
-# TODO
-
-## Phase 1
-
-- [ ] Add more defensive programming with better input validation
-  - Validate function arguments more thoroughly
-  - Add type checking for critical parameters
-  - Implement graceful fallbacks for invalid inputs
-- [ ] Refactor complex functions in decorators.py to improve readability
-  - Break down large functions into smaller, focused ones
-  - Improve naming for better self-documentation
-  - Add explanatory comments for complex logic
-- [ ] Increase overall test coverage to 90%
-  - [ ] Add more unit tests for edge cases
-  - [ ] Implement integration tests for all backends
-  - [ ] Add performance regression tests
-
-## Medium Priority
-
-- [ ] Add support for asynchronous cache operations in all engines
-  - Implement async versions of all cache operations
-  - Add async context managers
-  - Ensure compatibility with asyncio event loops
-- [ ] Implement a unified configuration system with environment variable support
-  - Add support for loading config from environment variables
-  - Create a configuration hierarchy (env vars > config files > defaults)
-  - Add validation for configuration values
-- [ ] Create a more intuitive API for cache management operations
-  - Simplify the interface for common operations
-  - Add helper functions for frequent use cases
-  - Improve error messages and feedback
-- [ ] Add decorator factories with more customizable options
-  - Support for custom key generation functions
-  - Add options for cache invalidation strategies
-  - Implement conditional caching based on arguments
-- [ ] Create simpler API for cache statistics and monitoring
-  - Add hit/miss ratio tracking
-  - Implement cache efficiency metrics
-  - Add visualization tools for cache performance
-
-## Performance Optimizations
-
-- [ ] Optimize key generation for better performance
-  - Implement faster hashing algorithms for keys
-  - Add support for custom key generation functions
-  - Optimize key storage and lookup
-- [ ] Implement smart TTL handling with refreshing strategies
-  - Add background refresh for frequently accessed items
-  - Implement sliding TTL windows
-  - Add support for TTL based on access patterns
-- [ ] Add memory usage monitoring to prevent cache bloat
-  - Implement memory usage tracking
-  - Add automatic pruning based on memory pressure
-  - Create alerts for excessive memory usage
-- [ ] Optimize serialization/deserialization for common data types
-  - Add specialized serializers for numpy arrays and pandas DataFrames
-  - Implement compression for large objects
-  - Add support for incremental serialization
-
-## Compatibility and Integration
-
-- [ ] Ensure compatibility with Python 3.12+
-  - Test with latest Python versions
-  - Update type hints to use latest typing features
-  - Address any deprecation warnings
-- [ ] Add support for integration with popular frameworks
-  - Create adapters for Flask, FastAPI, Django
-  - Add middleware for web frameworks
-  - Implement integration examples
-- [ ] Ensure compatibility with container environments
-  - Test in Docker and Kubernetes environments
-  - Add configuration for containerized deployments
-  - Document best practices for containers
-
-## Documentation and Examples
-
-- [ ] Create a comprehensive API reference with examples
-  - Document all public classes and functions
-  - Add usage examples for each feature
-  - Include performance considerations
-- [ ] Add doctest examples in function docstrings
-  - Add executable examples in docstrings
-  - Ensure examples are tested in CI
-  - Keep examples up-to-date with API changes
-- [ ] Create tutorials for advanced use cases
-  - Add step-by-step guides for common scenarios
-  - Create examples for complex configurations
-  - Document performance optimization strategies
-
-
+- [X] **Phase 1: Core Simplification & Decoupling**
+    - [X] Deprecate/Remove `backend_selector.py` and `hybrid_cache.py`
+        - [X] Remove imports from `src/twat_cache/__init__.py`
+        - [X] Delete `src/twat_cache/backend_selector.py`
+        - [X] Delete `src/twat_cache/hybrid_cache.py`
+    - [X] Consolidate Backend Selection Logic
+        - [X] Refactor `CacheEngineManager` to be the main engine instantiator.
+        - [X] `CacheEngineManager.create_engine_instance()` returns engine instance based on `CacheConfig`.
+    - [X] Simplify Decorators in `decorators.py`
+        - [X] Retain `ucache` and `acache`.
+        - [X] Refactor `ucache` to use `CacheEngineManager`, simplify params.
+        - [X] Refactor `acache` to use `AioCacheEngine` or raise if unavailable.
+        - [X] Remove `mcache`, `bcache`, `fcache` implementations.
+        - [X] Update `__init__.py` to not export `mcache`, `bcache`, `fcache`.
+    - [X] Standardize TTL Handling in Engines
+        - [X] Review `DiskCacheEngine` to use `diskcache`'s `expire` parameter and rely on its TTL.
+    - [X] Clarify/Remove `CacheEngine` from `engines/base.py`
+        - [X] Remove the concrete `CacheEngine` class from `engines/base.py`.
+- [ ] **Phase 1.5: Remove Non-MVP Features & Address Critical Test Issues**
+    - [X] Remove Redis Support (as per user feedback)
+        - [X] Delete `src/twat_cache/engines/redis.py`.
+        - [X] Remove Redis engine registration from `CacheEngineManager`.
+        - [X] Remove Redis-specific fields from `CacheConfig`.
+        - [X] Delete `tests/test_redis_cache.py`.
+    - [X] Remove `test_safe_key_serializer` (as per user feedback)
+        - [X] Comment out failing assertion in `test_safe_key_serializer` from `tests/test_exceptions.py`. (Marked as complete)
+    - [X] Fix Critical Bug in `FunctoolsCacheEngine`
+        - [X] Correct `set()` method.
+        - [X] Ensure `_config` usage.
+    - [X] Fix Critical Bug in `context.py`
+        - [X] Update to use new `CacheEngineManager` methods.
+    - [X] Fix `AioCacheEngine` import issue (Re-verify)
+    - [X] Fix `CacheToolsEngine` and `CacheBoxEngine` TTL constructor issue (Re-verify)
+- [ ] **Phase 2: Configuration and API Refinement**
+    - [ ] Simplify `CacheConfig` (`config.py`)
+        - [X] Ensure Redis-specific fields are removed (Covered by Phase 1.5).
+        - [ ] Remove `cache_type` field.
+        - [ ] Remove other non-MVP fields (e.g. `use_sql`, `compression_level`).
+    - [ ] Review `cache.py` (Global Cache Management)
+        - [ ] Ensure compatibility with new engine structure.
+    - [ ] Refine `__init__.py` exports.
+- [ ] **Phase 3: Focusing on MVP Backends**
+    - [ ] Ensure `FunctoolsCacheEngine`, `DiskCacheEngine`, `AioCacheEngine` are robust.
+- [ ] **Phase 4: Documentation and Testing**
+    - [ ] Update/Refactor Tests for API changes and removed features.
+    - [ ] Update Documentation.
+- [ ] **General**
+    - [ ] Create `CHANGELOG.md`
+    - [ ] Update `PLAN.md` and `TODO.md` as progress is made.
+    - [ ] Final Review and Submission.

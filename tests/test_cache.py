@@ -28,7 +28,7 @@ from typing import Any
 import pytest
 
 from twat_cache.cache import clear_cache, get_stats
-from twat_cache.decorators import ucache, mcache, bcache, fcache
+from twat_cache.decorators import ucache, acache # acache added for consistency, though not used here
 from twat_cache.config import create_cache_config
 from twat_cache.paths import get_cache_path
 from tests.test_constants import (
@@ -98,35 +98,7 @@ def test_cache_clear() -> None:
         assert not test_file.exists()
 
 
-def test_cache_stats() -> None:
-    """Test cache statistics."""
-    # Reset stats
-    clear_cache()
-
-    # Create a test function
-    call_count = 0
-
-    @mcache()
-    def process_list(lst: list[int]) -> int:
-        nonlocal call_count
-        call_count += 1
-        return sum(lst)
-
-    # First call
-    result1 = process_list(TEST_LIST)
-    assert result1 == TEST_LIST_SUM
-
-    # Second call (should use cache)
-    result2 = process_list(TEST_LIST)
-    assert result1 == result2 == TEST_LIST_SUM
-
-    # Get stats
-    stats = get_stats()
-    assert isinstance(stats, dict)
-    assert "hits" in stats
-    assert "misses" in stats
-    assert stats["hits"] > 0
-
+# Removed test_cache_stats that used mcache
 
 def test_cache_security() -> None:
     """Test cache security features."""
@@ -137,164 +109,13 @@ def test_cache_security() -> None:
         assert mode == FILE_PERMISSIONS
 
 
-def test_cache_decorators() -> None:
-    """Test all cache decorators."""
-
-    # Test memory cache
-    @mcache()
-    def mem_func(x: int) -> int:
-        return x * x
-
-    assert mem_func(SQUARE_INPUT) == SQUARE_RESULT
-    assert mem_func(SQUARE_INPUT) == SQUARE_RESULT  # Should use cache
-
-    # Test basic disk cache
-    @bcache()
-    def disk_func(x: int) -> int:
-        return x * x
-
-    assert disk_func(SQUARE_INPUT) == SQUARE_RESULT
-    assert disk_func(SQUARE_INPUT) == SQUARE_RESULT  # Should use cache
-
-    # Test file cache
-    @fcache()
-    def file_func(x: int) -> int:
-        return x * x
-
-    assert file_func(SQUARE_INPUT) == SQUARE_RESULT
-    assert file_func(SQUARE_INPUT) == SQUARE_RESULT  # Should use cache
-
-    # Clean up
-    clear_cache()
-
-
-def test_cache_basic():
-    """Test basic caching functionality."""
-    call_count = 0
-
-    @mcache()
-    def square(x: int) -> int:
-        nonlocal call_count
-        call_count += 1
-        return x * x
-
-    # First call should compute
-    result1 = square(TEST_VALUE)
-    assert result1 == TEST_RESULT
-    assert call_count == 1
-
-    # Second call should use cache
-    result2 = square(TEST_VALUE)
-    assert result2 == TEST_RESULT
-    assert call_count == 1  # Still 1, used cache
-
-
-def test_cache_size():
-    """Test cache size limits."""
-    call_count = 0
-
-    @mcache(maxsize=SMALL_CACHE_SIZE)
-    def square(x: int) -> int:
-        nonlocal call_count
-        call_count += 1
-        return x * x
-
-    # Fill cache
-    for i in range(SMALL_CACHE_SIZE * 2):
-        square(i)
-
-    # Cache should be limited to SMALL_CACHE_SIZE
-    assert call_count == SMALL_CACHE_SIZE * 2
-
-
-def test_cache_clear():
-    """Test cache clearing functionality."""
-    call_count = 0
-
-    @mcache()
-    def square(x: int) -> int:
-        nonlocal call_count
-        call_count += 1
-        return x * x
-
-    # First call
-    result1 = square(TEST_VALUE)
-    assert result1 == TEST_RESULT
-    assert call_count == 1
-
-    # Clear cache
-    square.cache_clear()
-
-    # Should recompute
-    result2 = square(TEST_VALUE)
-    assert result2 == TEST_RESULT
-    assert call_count == 2
-
-
-def test_cache_stats():
-    """Test cache statistics."""
-    call_count = 0
-
-    @mcache()
-    def square(x: int) -> int:
-        nonlocal call_count
-        call_count += 1
-        return x * x
-
-    # First call (miss)
-    square(TEST_VALUE)
-    assert square.cache_info().misses == 1
-    assert square.cache_info().hits == 0
-
-    # Second call (hit)
-    square(TEST_VALUE)
-    assert square.cache_info().misses == 1
-    assert square.cache_info().hits == 1
-
-
-def test_cache_permissions():
-    """Test cache directory permissions."""
-    if os.name == "posix":
-
-        @bcache(folder_name=TEST_CACHE_DIR)
-        def func(x: int) -> int:
-            return x
-
-        # Call function to create cache
-        func(TEST_VALUE)
-
-        # Check permissions
-        cache_path = func.cache.directory
-        mode = os.stat(cache_path).st_mode & 0o777
-        assert mode == DIR_PERMISSIONS
-
-
-def test_cache_types():
-    """Test different cache types."""
-
-    # Test memory cache
-    @mcache()
-    def mem_func(x: int) -> int:
-        return x * x
-
-    assert mem_func(TEST_VALUE) == TEST_RESULT
-    assert mem_func(TEST_VALUE) == TEST_RESULT  # Should use cache
-
-    # Test disk cache
-    @bcache(folder_name=TEST_CACHE_DIR)
-    def disk_func(x: int) -> int:
-        return x * x
-
-    assert disk_func(TEST_VALUE) == TEST_RESULT
-    assert disk_func(TEST_VALUE) == TEST_RESULT  # Should use cache
-
-    # Test file cache
-    @fcache(folder_name=TEST_CACHE_DIR)
-    def file_func(x: int) -> int:
-        return x * x
-
-    assert file_func(TEST_VALUE) == TEST_RESULT
-    assert file_func(TEST_VALUE) == TEST_RESULT  # Should use cache
+# Removed test_cache_decorators (used mcache, bcache, fcache)
+# Removed test_cache_basic (used mcache)
+# Removed test_cache_size (used mcache)
+# Removed test_cache_clear (the one that used mcache and square.cache_clear())
+# Removed the third test_cache_stats (the one that used mcache and square.cache_info())
+# Removed test_cache_permissions (used bcache)
+# Removed test_cache_types (used mcache, bcache, fcache)
 
 
 def test_list_processing() -> None:
@@ -513,48 +334,5 @@ def test_specific_decorators() -> None:
     clear_cache()
 
 
-def test_basic_memory_cache():
-    """Test basic memory caching."""
-    call_count = 0
-
-    @bcache()
-    def square(x: int) -> int:
-        nonlocal call_count
-        call_count += 1
-        return x * x
-
-    # First call should compute
-    result1 = square(TEST_VALUE)
-    assert result1 == TEST_RESULT
-    assert call_count == EXPECTED_CALLS_SINGLE
-
-    # Second call should use cache
-    result2 = square(TEST_VALUE)
-    assert result2 == TEST_RESULT
-    assert call_count == EXPECTED_CALLS_SINGLE
-
-
-def test_cache_clear():
-    """Test cache clearing functionality."""
-    call_count = 0
-
-    @bcache()
-    def square(x: int) -> int:
-        nonlocal call_count
-        call_count += 1
-        return x * x
-
-    # First call should compute
-    result1 = square(TEST_VALUE)
-    assert result1 == TEST_RESULT
-    assert call_count == EXPECTED_CALLS_SINGLE
-
-    # Second call should use cache
-    result2 = square(TEST_VALUE)
-    assert result2 == TEST_RESULT
-    assert call_count == EXPECTED_CALLS_SINGLE
-
-    # Clear cache and verify recomputation
-    square.clear()
-    result3 = square(TEST_VALUE)
-    assert result3 == TEST_RESULT
+# Removed duplicated test_basic_memory_cache (used bcache)
+# Removed duplicated test_cache_clear (used bcache and square.clear())

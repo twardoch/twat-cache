@@ -59,24 +59,28 @@ def engine_context(
     # Get the engine manager
     manager = get_engine_manager()
 
-    # Get the engine class
+    # If a specific engine_name is given, set it as the preferred_engine in the config
     if engine_name:
-        engine_cls = manager.get_engine(engine_name)
-        if engine_cls is None:
-            logger.error(f"Engine '{engine_name}' not found")
-            msg = f"Engine '{engine_name}' not found"
-            raise EngineError(msg)
+        # We need to ensure engine_config is mutable here or create a new one
+        # Pydantic models are immutable by default after creation unless configured otherwise.
+        # Let's create a new config dictionary and update it.
+        config_dict = engine_config.to_dict()
+        config_dict['preferred_engine'] = engine_name
+        final_engine_config = CacheConfig.from_dict(config_dict)
     else:
-        # Let the manager select the best engine
-        engine_cls = manager.select_engine(engine_config)
-        if engine_cls is None:
-            logger.error("No suitable engine found")
-            msg = "No suitable engine found for the given configuration"
-            raise EngineError(msg)
+        final_engine_config = engine_config
 
-    # Create the engine instance
-    engine = engine_cls(engine_config)
-    logger.debug(f"Created engine {engine.__class__.__name__}")
+    engine = manager.create_engine_instance(final_engine_config)
+
+    if engine is None:
+        logger.error(
+            f"Failed to create engine. Engine name: {engine_name}, "
+            f"Config preferred: {engine_config.preferred_engine}"
+        )
+        msg = "No suitable engine could be created for the given configuration"
+        raise EngineError(msg)
+
+    logger.debug(f"Created engine {engine.__class__.__name__} via engine_context")
 
     try:
         # Yield the engine for use in the context
@@ -121,24 +125,23 @@ class CacheContext:
         # Get the engine manager
         manager = get_engine_manager()
 
-        # Get the engine class
+        current_config = self.config
         if self.engine_name:
-            engine_cls = manager.get_engine(self.engine_name)
-            if engine_cls is None:
-                logger.error(f"Engine '{self.engine_name}' not found")
-                msg = f"Engine '{self.engine_name}' not found"
-                raise EngineError(msg)
-        else:
-            # Let the manager select the best engine
-            engine_cls = manager.select_engine(self.config)
-            if engine_cls is None:
-                logger.error("No suitable engine found")
-                msg = "No suitable engine found for the given configuration"
-                raise EngineError(msg)
+            config_dict = self.config.to_dict()
+            config_dict['preferred_engine'] = self.engine_name
+            current_config = CacheConfig.from_dict(config_dict)
 
-        # Create the engine instance
-        self.engine = engine_cls(self.config)
-        logger.debug(f"Created engine {self.engine.__class__.__name__}")
+        self.engine = manager.create_engine_instance(current_config)
+
+        if self.engine is None:
+            logger.error(
+                f"Failed to create engine in CacheContext. Engine name: {self.engine_name}, "
+                f"Config preferred: {self.config.preferred_engine}"
+            )
+            msg = "No suitable engine could be created for the given configuration in CacheContext"
+            raise EngineError(msg)
+
+        logger.debug(f"Created engine {self.engine.__class__.__name__} via CacheContext")
         return self.engine
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
@@ -182,22 +185,23 @@ def get_or_create_engine(
     # Get the engine manager
     manager = get_engine_manager()
 
-    # Get the engine class
+    # If a specific engine_name is given, set it as the preferred_engine in the config
     if engine_name:
-        engine_cls = manager.get_engine(engine_name)
-        if engine_cls is None:
-            logger.error(f"Engine '{engine_name}' not found")
-            msg = f"Engine '{engine_name}' not found"
-            raise EngineError(msg)
+        config_dict = engine_config.to_dict()
+        config_dict['preferred_engine'] = engine_name
+        final_engine_config = CacheConfig.from_dict(config_dict)
     else:
-        # Let the manager select the best engine
-        engine_cls = manager.select_engine(engine_config)
-        if engine_cls is None:
-            logger.error("No suitable engine found")
-            msg = "No suitable engine found for the given configuration"
-            raise EngineError(msg)
+        final_engine_config = engine_config
 
-    # Create the engine instance
-    engine = engine_cls(engine_config)
-    logger.debug(f"Created engine {engine.__class__.__name__}")
+    engine = manager.create_engine_instance(final_engine_config)
+
+    if engine is None:
+        logger.error(
+            f"Failed to create engine in get_or_create_engine. Engine name: {engine_name}, "
+            f"Config preferred: {engine_config.preferred_engine}"
+        )
+        msg = "No suitable engine could be created for the given configuration in get_or_create_engine"
+        raise EngineError(msg)
+
+    logger.debug(f"Created engine {engine.__class__.__name__} via get_or_create_engine")
     return engine

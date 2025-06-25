@@ -27,21 +27,21 @@ class CacheConfig(BaseModel):
     folder_name: str | None = None
     preferred_engine: str | None = None
     serializer: Callable[[Any], str] | None = None
-    cache_type: CacheType | None = None
+    # cache_type: CacheType | None = None # REMOVED - preferred_engine is used
     ttl: float | None = Field(default=None, ge=0)
     policy: EvictionPolicy = "lru"
     cache_dir: str | None = None  # For backward compatibility
 
     # Boolean fields
-    use_sql: bool = False
+    # use_sql: bool = False # REMOVED (hint for de-emphasized Klepto)
     compress: bool = False
     secure: bool = True
 
-    # Redis-specific configuration
-    redis_host: str = "localhost"
-    redis_port: int = 6379
-    redis_db: int = 0
-    redis_password: str | None = None
+    # Redis-specific configuration REMOVED
+    # redis_host: str = "localhost"
+    # redis_port: int = 6379
+    # redis_db: int = 0
+    # redis_password: str | None = None
 
     class Config:
         """Pydantic model configuration."""
@@ -77,34 +77,25 @@ class CacheConfig(BaseModel):
             raise ValueError(msg)
         return v
 
-    @classmethod
-    @field_validator("redis_port")
-    def validate_redis_port(cls, v: int) -> int:
-        """Validate redis_port field."""
-        if v <= 0 or v > 65535:
-            msg = f"redis_port must be between 1 and 65535, got {v}"
-            raise ValueError(msg)
-        return v
+    # Removed redis_port validator
 
     def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary."""
-        return {
+        data = {
             "maxsize": self.maxsize,
             "folder_name": self.folder_name,
             "preferred_engine": self.preferred_engine,
             "serializer": self.serializer,
-            "cache_type": self.cache_type,
+            # "cache_type": self.cache_type, # REMOVED
             "ttl": self.ttl,
             "policy": self.policy,
-            "use_sql": self.use_sql,
+            # "use_sql": self.use_sql, # REMOVED
             "compress": self.compress,
             "secure": self.secure,
-            "cache_dir": self.cache_dir,
-            "redis_host": self.redis_host,
-            "redis_port": self.redis_port,
-            "redis_db": self.redis_db,
-            "redis_password": self.redis_password,
+            "cache_dir": self.cache_dir, # For backward compatibility
         }
+        # Removed Redis fields from dict
+        return data
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "CacheConfig":
@@ -120,46 +111,23 @@ class CacheConfig(BaseModel):
         """Get the folder name."""
         return self.folder_name
 
-    def get_use_sql(self) -> bool:
-        """Get the use_sql value."""
-        return self.use_sql
+    # def get_use_sql(self) -> bool: # REMOVED
+    #     """Get the use_sql value."""
+    #     return self.use_sql
 
     def get_preferred_engine(self) -> str | None:
         """Get the preferred engine."""
         return self.preferred_engine
 
-    def get_cache_type(self) -> str | None:
-        """Get the cache type."""
-        return self.cache_type
+    # def get_cache_type(self) -> str | None: # REMOVED
+    #     """Get the cache type."""
+    #     return self.cache_type
 
-    # Redis-specific getters
-    def get_redis_host(self) -> str:
-        """Get the Redis host."""
-        return os.environ.get("TWAT_CACHE_REDIS_HOST", self.redis_host)
-
-    def get_redis_port(self) -> int:
-        """Get the Redis port."""
-        port_str = os.environ.get("TWAT_CACHE_REDIS_PORT")
-        if port_str:
-            try:
-                return int(port_str)
-            except ValueError:
-                return self.redis_port
-        return self.redis_port
-
-    def get_redis_db(self) -> int:
-        """Get the Redis database number."""
-        db_str = os.environ.get("TWAT_CACHE_REDIS_DB")
-        if db_str:
-            try:
-                return int(db_str)
-            except ValueError:
-                return self.redis_db
-        return self.redis_db
-
-    def get_redis_password(self) -> str | None:
-        """Get the Redis password."""
-        return os.environ.get("TWAT_CACHE_REDIS_PASSWORD", self.redis_password)
+    # Redis-specific getters REMOVED
+    # def get_redis_host(self) -> str: ...
+    # def get_redis_port(self) -> int: ...
+    # def get_redis_db(self) -> int: ...
+    # def get_redis_password(self) -> str | None: ...
 
     # We can't override the validate method as it conflicts with Pydantic's validate
     # Instead, we'll implement a protocol-compatible method with a different name
@@ -173,18 +141,18 @@ def create_cache_config(
     folder_name: str | None = None,
     preferred_engine: str | None = None,
     serializer: Callable[[Any], str] | None = None,
-    cache_type: CacheType | None = None,
+    # cache_type: CacheType | None = None, # REMOVED
     ttl: float | None = None,
     policy: EvictionPolicy = "lru",
     cache_dir: str | None = None,  # For backward compatibility
     *,  # Force remaining arguments to be keyword-only
-    use_sql: bool = False,
+    # use_sql: bool = False, # REMOVED
     compress: bool = False,
     secure: bool = True,
-    redis_host: str = "localhost",
-    redis_port: int = 6379,
-    redis_db: int = 0,
-    redis_password: str | None = None,
+    # redis_host: str = "localhost", # REMOVED
+    # redis_port: int = 6379, # REMOVED
+    # redis_db: int = 0, # REMOVED
+    # redis_password: str | None = None, # REMOVED
 ) -> CacheConfig:
     """Create a cache configuration.
 
@@ -211,20 +179,29 @@ def create_cache_config(
     Raises:
         ValueError: If configuration is invalid.
     """
+    actual_folder_name = folder_name
+    if actual_folder_name is None and cache_dir is not None:
+        # If folder_name is not given, but cache_dir (for backward compat) is,
+        # use the basename of cache_dir as the folder_name.
+        # This assumes cache_dir is just a directory name, not a full path.
+        # If cache_dir is a full path, get_cache_path will handle it.
+        # For DiskCacheEngine, it needs a folder_name to construct its path.
+        actual_folder_name = os.path.basename(cache_dir)
+
     return CacheConfig(
         maxsize=maxsize,
-        folder_name=folder_name,
+        folder_name=actual_folder_name,
         preferred_engine=preferred_engine,
         serializer=serializer,
-        cache_type=cache_type,
+        # cache_type=cache_type, # REMOVED
         ttl=ttl,
         policy=policy,
-        use_sql=use_sql,
+        # use_sql=use_sql, # REMOVED
         compress=compress,
         secure=secure,
         cache_dir=cache_dir,
-        redis_host=redis_host,
-        redis_port=redis_port,
-        redis_db=redis_db,
-        redis_password=redis_password,
+        # redis_host=redis_host, # REMOVED
+        # redis_port=redis_port, # REMOVED
+        # redis_db=redis_db, # REMOVED
+        # redis_password=redis_password, # REMOVED
     )

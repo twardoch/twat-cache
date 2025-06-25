@@ -55,10 +55,8 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
         Returns:
             The cached value if found, None otherwise
         """
-        try:
-            return self._cache.cache_getitem(lambda k: k, key)  # type: ignore
-        except KeyError:
-            return None
+        # self._cache is a dict, not an lru_cache object. Use internal method.
+        return self._get_cached_value(key)
 
     def set(self, key: str, value: R) -> None:
         """
@@ -68,8 +66,8 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
             key: The key to store under
             value: The value to cache
         """
-        self._cache(lambda k: k)(key)  # type: ignore
-        self._cache.cache_setitem(lambda k: k, key, value)  # type: ignore
+        # self._cache is a dict, not an lru_cache object. Use internal method.
+        self._set_cached_value(key, value)
 
     def clear(self) -> None:
         """Clear all cached values and reset statistics."""

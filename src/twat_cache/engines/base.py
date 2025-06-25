@@ -240,67 +240,7 @@ class BaseCacheEngine(ABC, Generic[P, R]):
         """Get the name of the cache engine."""
         return self.__class__.__name__
 
-
-class CacheEngine(BaseCacheEngine[P, R]):
-    """
-    Concrete implementation of the cache engine protocol.
-
-    This class provides a default implementation using a simple in-memory
-    dictionary cache with the configured eviction policy.
-    """
-
-    def _get_cached_value(self, key: CacheKey) -> R | None:
-        """
-        Retrieve a value from the cache.
-
-        Args:
-            key: The cache key to look up
-
-        Returns:
-            The cached value if found and not expired, None otherwise
-        """
-        if key not in self._cache:
-            return None
-
-        value, expiry = self._cache[key]
-        if expiry is not None and expiry <= 0:
-            del self._cache[key]
-            self._size -= 1
-            return None
-
-        return value
-
-    def _set_cached_value(self, key: CacheKey, value: R) -> None:
-        """
-        Store a value in the cache.
-
-        Args:
-            key: The cache key to store under
-            value: The value to cache
-        """
-        # Check maxsize
-        if self._config.maxsize is not None and self._size >= self._config.maxsize:
-            # Remove oldest item based on policy
-            if self._config.policy == "lru":
-                # Remove least recently used
-                oldest_key = next(iter(self._cache))
-                del self._cache[oldest_key]
-                self._size -= 1
-            elif self._config.policy == "fifo":
-                # Remove first item added
-                oldest_key = next(iter(self._cache))
-                del self._cache[oldest_key]
-                self._size -= 1
-            # Other policies would be implemented here
-
-        # Store with TTL if configured
-        expiry = self._config.ttl
-        self._cache[key] = (value, expiry)
-        self._size += 1
-
-    def clear(self) -> None:
-        """Clear all cached values."""
-        self._cache.clear()
-        self._size = 0
-        self._hits = 0
-        self._misses = 0
+# The CacheEngine class previously defined here was a concrete in-memory implementation
+# that was largely redundant or confusing given FunctoolsCacheEngine and other specific
+# engine implementations. It has been removed as part of streamlining for MVP.
+# BaseCacheEngine (ABC) remains the primary base for all engines.
