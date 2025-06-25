@@ -31,9 +31,8 @@ class CacheBoxEngine(BaseCacheEngine[P, R]):
         """
         super().__init__(config)
         self._config = config
-        self._cache = None
 
-        if not self.is_available:
+        if not CacheBoxEngine.is_available():
             msg = "cachebox is not available"
             raise ImportError(msg)
 
@@ -49,15 +48,10 @@ class CacheBoxEngine(BaseCacheEngine[P, R]):
         }
 
         cache_type = cache_types.get(config.policy, LRUCache)
-
-        cache_args: dict[str, Any] = {"maxsize": config.maxsize or 100}
-        # CacheBox's standard caches (LRU, LFU, FIFO, RR) do not accept 'ttl' in constructor.
-        # If config.ttl is set, it will be ignored by these CacheBox cache types.
-        # If CacheBox had specific TTL-aware caches, one might add config.ttl to cache_args conditionally.
-        # For now, we pass what's common, and ttl might be managed by a wrapper if CacheBox supported it,
-        # or it's simply not a feature for these specific cache_type with CacheBox.
-
-        self._cache: Cache = cache_type(**cache_args)
+        # CacheBox doesn't support TTL in constructor
+        self._cache: Cache = cache_type(
+            maxsize=config.maxsize or 100,
+        )
 
     def cache(self, func: Callable[P, R]) -> Callable[P, R]:
         """Decorate a function with caching.
@@ -68,7 +62,7 @@ class CacheBoxEngine(BaseCacheEngine[P, R]):
         Returns:
             Callable: Decorated function with caching.
         """
-        if not self._cache:
+        if self._cache is None:
             msg = "Cache not initialized"
             raise RuntimeError(msg)
 
@@ -92,7 +86,7 @@ class CacheBoxEngine(BaseCacheEngine[P, R]):
         Returns:
             Optional[R]: Cached value if found, None otherwise.
         """
-        if not self._cache:
+        if self._cache is None:
             msg = "Cache not initialized"
             raise RuntimeError(msg)
 
@@ -105,15 +99,35 @@ class CacheBoxEngine(BaseCacheEngine[P, R]):
             key: Cache key.
             value: Value to cache.
         """
-        if not self._cache:
+        if self._cache is None:
             msg = "Cache not initialized"
             raise RuntimeError(msg)
 
         self._cache[str(key)] = value
 
+    def get(self, key: CacheKey) -> R | None:
+        """Get a value from the cache.
+
+        Args:
+            key: Cache key.
+
+        Returns:
+            Optional[R]: Cached value if found, None otherwise.
+        """
+        return self._get_cached_value(key)
+
+    def set(self, key: CacheKey, value: R) -> None:
+        """Set a value in the cache.
+
+        Args:
+            key: Cache key.
+            value: Value to cache.
+        """
+        self._set_cached_value(key, value)
+
     def clear(self) -> None:
         """Clear all cached values."""
-        if not self._cache:
+        if self._cache is None:
             msg = "Cache not initialized"
             raise RuntimeError(msg)
 
@@ -126,7 +140,7 @@ class CacheBoxEngine(BaseCacheEngine[P, R]):
         Returns:
             dict[str, Any]: Dictionary of cache statistics.
         """
-        if not self._cache:
+        if self._cache is None:
             msg = "Cache not initialized"
             raise RuntimeError(msg)
 
@@ -138,5 +152,3 @@ class CacheBoxEngine(BaseCacheEngine[P, R]):
             "policy": self._config.policy,
         }
 
-    # Removed duplicated is_available property
-    # The @classmethod is_available is correctly defined in the class.

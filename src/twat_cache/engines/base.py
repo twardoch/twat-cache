@@ -81,7 +81,9 @@ class BaseCacheEngine(ABC, Generic[P, R]):
 
                 # Ensure directory exists with proper permissions
                 if self._cache_path:
-                    ensure_dir_exists(self._cache_path, mode=0o700 if self._config.secure else 0o755)
+                    ensure_dir_exists(
+                        self._cache_path, mode=0o700 if self._config.secure else 0o755
+                    )
 
             except (OSError, PermissionError) as e:
                 logger.error(f"Failed to initialize cache path: {e}")

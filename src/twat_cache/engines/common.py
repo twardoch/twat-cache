@@ -112,9 +112,7 @@ def safe_value_serializer(value: Any) -> str:
         except Exception as inner_e:
             logger.error(f"Failed to serialize cache value: {inner_e}")
             msg = f"Failed to serialize cache value: {inner_e!s}"
-            raise CacheValueError(
-                msg
-            ) from inner_e
+            raise CacheValueError(msg) from inner_e
 
 
 def safe_temp_file(
