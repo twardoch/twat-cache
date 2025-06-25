@@ -46,7 +46,10 @@ from collections.abc import Awaitable, Callable
 from .logging import logger
 
 from .config import CacheConfig, create_cache_config, EvictionPolicy
-from .engines.base import BaseCacheEngine
+# BaseCacheEngine might not be directly needed here anymore if ucache delegates fully
+# from .engines.base import BaseCacheEngine
+from .engines.manager import get_engine_manager
+from .exceptions import EngineNotAvailableError # For acache
 from .type_defs import P, R, AsyncR
 
 
@@ -76,14 +79,7 @@ class AsyncCacheDecorator(Protocol[P, AsyncR]):
     ) -> Callable[P, Awaitable[AsyncR]]: ...
 
 
-# Check optional backend availability
-HAS_AIOCACHE = bool(importlib.util.find_spec("aiocache"))
-HAS_CACHEBOX = bool(importlib.util.find_spec("cachebox"))
-HAS_CACHETOOLS = bool(importlib.util.find_spec("cachetools"))
-HAS_DISKCACHE = bool(importlib.util.find_spec("diskcache"))
-HAS_JOBLIB = bool(importlib.util.find_spec("joblib"))
-HAS_KLEPTO = bool(importlib.util.find_spec("klepto"))
-
+# HAS_AIOCACHE constant is no longer needed. Engine availability is handled by CacheEngineManager.
 
 def get_cache_dir(folder_name: str | None = None) -> Path:
     """
@@ -170,443 +166,96 @@ def make_key(serializer: Callable[[Any], str] | None = None, *args: Any, **kwarg
     return json.dumps((converted_args, converted_kwargs), sort_keys=True)
 
 
-def mcache(
-    maxsize: int | None = None,
-    ttl: float | None = None,
-    policy: str = "lru",
-    *,  # Force remaining arguments to be keyword-only
-    secure: bool = True,
-) -> CacheDecorator[P, R]:
-    """
-    Memory-based caching decorator.
-
-    Creates a decorator that caches results in memory using the fastest available backend,
-    with fallback to functools.lru_cache if no other backends are available.
-
-    Args:
-        maxsize: Maximum size of the cache. If None, the cache has no size limit.
-        ttl: Time-to-live in seconds. If None, cached values never expire.
-        policy: Cache eviction policy. Options: "lru", "fifo", "lifo", "mru", "lfu".
-        secure: Whether to use secure key generation (slower but handles more types).
-
-    Returns:
-        A decorator function that can be applied to functions to cache their results.
-
-    Examples:
-        >>> @mcache(maxsize=100, ttl=60)
-        ... def expensive_function(x, y):
-        ...     # Some expensive computation
-        ...     return x + y
-    """
-    logger.debug(f"Creating memory cache with maxsize={maxsize}, ttl={ttl}, policy={policy}")
-
-    config = create_cache_config(
-        folder_name=None,
-        maxsize=maxsize,
-        ttl=ttl,
-        policy=policy,
-        secure=secure,
-        cache_type="memory",
-    )
-
-    if HAS_CACHEBOX:
-        from .engines import cachebox
-
-        logger.debug("Using CacheBox engine for memory caching")
-        engine: BaseCacheEngine[P, R] = cachebox.CacheBoxEngine(config)  # type: ignore[abstract]
-        return cast(CacheDecorator[P, R], engine.cache)
-    elif HAS_CACHETOOLS:
-        from .engines import cachetools
-
-        logger.debug("Using CacheTools engine for memory caching")
-        engine = cachetools.CacheToolsEngine(config)  # type: ignore[abstract]
-        return cast(CacheDecorator[P, R], engine.cache)
-    else:
-        from .engines import functools_engine
-
-        logger.debug("Using functools engine for memory caching (fallback)")
-        engine = functools_engine.FunctoolsEngine(config)  # type: ignore[abstract]
-        return cast(CacheDecorator[P, R], engine.cache)
-
-
-def bcache(
-    folder_name: str | None = None,
-    maxsize: int | None = None,
-    ttl: float | None = None,
-    policy: str = "lru",
-    *,  # Force remaining arguments to be keyword-only
-    use_sql: bool = True,
-    secure: bool = True,
-) -> CacheDecorator[P, R]:
-    """
-    Basic disk caching decorator.
-
-    Creates a decorator that caches results on disk using diskcache, with fallback to
-    memory caching if diskcache is not available.
-
-    Args:
-        folder_name: Name of the folder to store cache files. If None, a default is used.
-        maxsize: Maximum size of the cache. If None, the cache has no size limit.
-        ttl: Time-to-live in seconds. If None, cached values never expire.
-        policy: Cache eviction policy. Options: "lru", "fifo", "lifo", "mru", "lfu".
-        use_sql: Whether to use SQL-based disk cache (if available).
-        secure: Whether to use secure key generation (slower but handles more types).
-
-    Returns:
-        A decorator function that can be applied to functions to cache their results.
-
-    Examples:
-        >>> @bcache(folder_name="my_cache", ttl=3600)
-        ... def expensive_function(x, y):
-        ...     # Some expensive computation
-        ...     return x + y
-    """
-    logger.debug(f"Creating disk cache with folder={folder_name}, maxsize={maxsize}, ttl={ttl}, use_sql={use_sql}")
-
-    config = create_cache_config(
-        folder_name=folder_name,
-        maxsize=maxsize,
-        ttl=ttl,
-        policy=policy,
-        secure=secure,
-        cache_type="disk",
-    )
-
-    if HAS_DISKCACHE:
-        from .engines import diskcache
-
-        logger.debug("Using DiskCache engine for disk caching")
-        engine: BaseCacheEngine[P, R] = diskcache.DiskCacheEngine(config)  # type: ignore[abstract]
-        return cast(CacheDecorator[P, R], engine.cache)
-    elif HAS_KLEPTO and use_sql:
-        from .engines import klepto
-
-        logger.debug("Using Klepto engine for disk caching (SQL)")
-        engine = klepto.KleptoEngine(config)
-        return cast(CacheDecorator[P, R], engine.cache)
-    else:
-        logger.warning("No disk cache backends available, falling back to memory cache")
-        return mcache(maxsize=maxsize, ttl=ttl, policy=policy, secure=secure)
-
-
-def fcache(
-    folder_name: str | None = None,
-    maxsize: int | None = None,
-    ttl: float | None = None,
-    *,  # Force remaining arguments to be keyword-only
-    compress: bool = False,
-    secure: bool = True,
-) -> CacheDecorator[P, R]:
-    """
-    Fast file-based caching decorator.
-
-    Creates a decorator that caches results in files using joblib, with fallback to
-    memory caching if joblib is not available.
-
-    Args:
-        folder_name: Name of the folder to store cache files. If None, a default is used.
-        maxsize: Maximum size of the cache. If None, the cache has no size limit.
-        ttl: Time-to-live in seconds. If None, cached values never expire.
-        compress: Whether to compress cached values.
-        secure: Whether to use secure key generation (slower but handles more types).
-
-    Returns:
-        A decorator function that can be applied to functions to cache their results.
-
-    Examples:
-        >>> @fcache(folder_name="my_cache", compress=True)
-        ... def expensive_function(x, y):
-        ...     # Some expensive computation
-        ...     return x + y
-    """
-    logger.debug(f"Creating file cache with folder={folder_name}, maxsize={maxsize}, ttl={ttl}, compress={compress}")
-
-    config = create_cache_config(
-        folder_name=folder_name,
-        maxsize=maxsize,
-        ttl=ttl,
-        compress=compress,
-        secure=secure,
-        cache_type="file",
-    )
-
-    if HAS_JOBLIB:
-        from .engines.joblib import JoblibEngine
-
-        logger.debug("Using Joblib engine for file caching")
-        engine: BaseCacheEngine[P, R] = JoblibEngine(config)
-        return cast(CacheDecorator[P, R], engine.cache)
-    elif HAS_KLEPTO:
-        from .engines.klepto import KleptoEngine
-
-        logger.debug("Using Klepto engine for file caching (fallback)")
-        engine = KleptoEngine(config)
-        return cast(CacheDecorator[P, R], engine.cache)
-    else:
-        logger.warning("No file cache backends available, falling back to memory cache")
-        return mcache(maxsize=maxsize, ttl=ttl)
-
+# mcache, bcache, fcache are deprecated.
+# Their functionality will be covered by ucache with specific configurations.
 
 def acache(
     maxsize: int | None = None,
     ttl: float | None = None,
     policy: EvictionPolicy = "lru",
-) -> (
-    Callable[[Callable[P, Awaitable[AsyncR]]], Callable[P, Awaitable[AsyncR]]]
-    | Callable[[Callable[P, AsyncR]], Callable[P, Awaitable[AsyncR]]]
-):
+    # Add serializer to be consistent, though AioCacheEngine might handle it differently
+    serializer: Callable[[Any], str] | None = None,
+) -> AsyncCacheDecorator[P, AsyncR]:
     """
     Async-capable caching decorator.
 
-    Creates a decorator that caches results of asynchronous functions. This decorator
-    works with both coroutine functions and regular functions that return awaitable objects.
-    It automatically handles the asynchronous nature of the cached functions.
+    Uses AioCacheEngine to cache results of asynchronous functions.
+    If AioCacheEngine is not available or cannot be instantiated, this decorator
+    will raise an EngineNotAvailableError.
 
     Args:
-        maxsize: Maximum size of the cache. If None, the cache has no size limit.
-        ttl: Time-to-live in seconds. If None, cached values never expire.
-        policy: Cache eviction policy. Options: "lru", "fifo", "lifo", "mru", "lfu".
+        maxsize: Maximum size of the cache. None means unlimited.
+        ttl: Time-to-live in seconds. None means no TTL.
+        policy: Cache eviction policy (e.g., "lru", "fifo").
+        serializer: Optional custom serializer for cache keys.
 
     Returns:
-        A decorator function that can be applied to async functions to cache their results.
+        A decorator for async functions.
 
-    Examples:
-        >>> @acache(maxsize=100, ttl=60)
-        ... async def expensive_async_function(x, y):
-        ...     # Some expensive async computation
-        ...     return x + y
+    Raises:
+        EngineNotAvailableError: If AioCacheEngine cannot be initialized.
     """
-    logger.debug(f"Creating async cache with maxsize={maxsize}, ttl={ttl}, policy={policy}")
+    logger.debug(f"acache invoked with: maxsize={maxsize}, ttl={ttl}, policy='{policy}'")
 
+    # Configuration specifically for aiocache
+    # folder_name is typically not used by memory-based async caches like aiocache's defaults
     config = create_cache_config(
-        folder_name=None,
+        preferred_engine="aiocache", # Explicitly request aiocache
         maxsize=maxsize,
         ttl=ttl,
         policy=policy,
-        cache_type="memory",
+        serializer=serializer,
+        # folder_name=None, # Explicitly None for memory-based
+        # cache_type="memory", # Implicit with aiocache often, or engine handles
     )
 
-    if HAS_AIOCACHE:
-        from .engines import aiocache
+    engine_manager = get_engine_manager()
+    # Attempt to create an aiocache engine instance
+    # The type of cache_engine_instance will be BaseCacheEngine.
+    # We expect it to be an AioCacheEngine or a compatible async engine.
+    cache_engine_instance = engine_manager.create_engine_instance(config)
 
-        logger.debug("Using AioCache engine for async caching")
+    if cache_engine_instance is None or not cache_engine_instance.name.startswith("AioCache"):
+        # Check if it's None OR if it's not an AioCacheEngine (or a sub-class like AioCacheEngine)
+        # This check on name is a bit heuristic; ideally, we'd check isinstance(cache_engine_instance, AioCacheEngine),
+        # but that would require importing AioCacheEngine here, creating a circular dep or just more imports.
+        # The CacheEngineManager should have logged if it couldn't create 'aiocache'.
+        logger.error(
+            "Failed to obtain an AioCacheEngine instance. "
+            "acache requires the 'aiocache' backend."
+        )
+        raise EngineNotAvailableError(
+            engine_name="aiocache",
+            message="AioCacheEngine is not available or could not be instantiated. "
+                    "Please ensure 'aiocache' is installed and configured correctly."
+        )
 
-        def decorator(
-            func: Callable[P, AsyncR] | Callable[P, Awaitable[AsyncR]],
-        ) -> Callable[P, Awaitable[AsyncR]]:
-            """Decorator that wraps a function with async caching."""
-            # Create the engine instance inside the decorator where it's actually used
-            engine: Any = aiocache.AioCacheEngine(config)  # type: ignore[abstract]
-            cache_func = engine.cache(func)
+    # We have a cache_engine_instance, presumably an AioCacheEngine.
+    # Its .cache() method should be suitable for async functions.
+    def decorator(
+        func: Callable[P, AsyncR] | Callable[P, Awaitable[AsyncR]],
+    ) -> Callable[P, Awaitable[AsyncR]]:
 
-            @functools.wraps(func)
-            async def wrapper(*args: P.args, **kwargs: P.kwargs) -> AsyncR:
-                return await cache_func(*args, **kwargs)
+        # The engine's .cache() method is responsible for returning an async wrapper.
+        # BaseCacheEngine.cache is typed for sync, so we might need a cast
+        # or ensure AioCacheEngine's .cache method has the correct async signature.
+        # For now, let's assume the engine's .cache method is correctly implemented for async.
 
-            return wrapper
+        # Directly call the engine's cache method.
+        # If cache_engine_instance is indeed an AioCacheEngine, its `cache` method
+        # should correctly handle async functions and return an async wrapper.
+        cached_func = cache_engine_instance.cache(func) # type: ignore
 
-        return decorator
-    else:
-        logger.warning("AioCache not available, using memory cache with async wrapper")
-        # Fallback to a memory cache with async wrapper
-        mem_cache = mcache(maxsize=maxsize, ttl=ttl, policy=str(policy))
+        # The cached_func returned by AioCacheEngine.cache should already be an async def wrapper.
+        # So, we can return it directly.
+        # No need for an additional async def wrapper here if the engine does it right.
+        return cached_func
 
-        def decorator(
-            func: Callable[P, AsyncR] | Callable[P, Awaitable[AsyncR]],
-        ) -> Callable[P, Awaitable[AsyncR]]:
-            cached_func = mem_cache(func)  # type: ignore
-
-            @functools.wraps(func)
-            async def wrapper(*args: P.args, **kwargs: P.kwargs) -> AsyncR:
-                if asyncio.iscoroutinefunction(func):
-                    # If it's already a coroutine function, we need to await the result
-                    return await cached_func(*args, **kwargs)  # type: ignore
-                else:
-                    # If it's a regular function that returns an awaitable
-                    return await cached_func(*args, **kwargs)
-
-            return wrapper
-
-        return decorator
-
-
-def _get_available_backends() -> dict[str, bool]:
-    """
-    Get a dictionary of available cache backends.
-
-    Checks which cache backends are available in the current environment
-    by checking if the required packages are installed.
-
-    Returns:
-        dict[str, bool]: Dictionary mapping backend names to availability status.
-
-    Example:
-        >>> backends = _get_available_backends()
-        >>> print(backends)
-        {'aiocache': True, 'cachebox': False, 'cachetools': True, 'diskcache': True, 'joblib': True}
-    """
-    return {
-        "aiocache": HAS_AIOCACHE,
-        "cachebox": HAS_CACHEBOX,
-        "cachetools": HAS_CACHETOOLS,
-        "diskcache": HAS_DISKCACHE,
-        "joblib": HAS_JOBLIB,
-        "klepto": HAS_KLEPTO,
-    }
+    return decorator
 
 
-def _select_best_backend(
-    preferred: str | None = None,
-    *,  # Force remaining arguments to be keyword-only
-    is_async: bool = False,
-    needs_disk: bool = False,
-) -> str:
-    """
-    Select the best available backend based on requirements.
-
-    Determines the most suitable cache backend based on the specified preferences
-    and requirements. It considers whether async support is needed and whether
-    disk storage is required.
-
-    Args:
-        preferred: Name of the preferred backend. If available, this backend will be used.
-            If not available, a suitable alternative will be selected.
-        is_async: Whether async support is required. If True, only backends with
-            async support will be considered.
-        needs_disk: Whether disk storage is required. If True, only backends with
-            disk storage capabilities will be considered.
-
-    Returns:
-        str: Name of the selected backend.
-
-    Raises:
-        ImportError: If no suitable backend is available for the specified requirements.
-
-    Example:
-        >>> # Select best backend with disk storage
-        >>> backend = _select_best_backend(needs_disk=True)
-        >>> print(backend)
-        'diskcache'
-
-        >>> # Select best async backend
-        >>> backend = _select_best_backend(is_async=True)
-        >>> print(backend)
-        'aiocache'
-    """
-    backends = _get_available_backends()
-
-    # If preferred backend is available and meets requirements, use it
-    if preferred and backends.get(preferred):
-        if is_async and preferred != "aiocache":
-            # Only aiocache supports async natively
-            pass
-        elif needs_disk and preferred not in ("diskcache", "klepto", "joblib"):
-            # Only these backends support disk storage
-            pass
-        else:
-            return preferred
-
-    # Select based on requirements
-    if is_async:
-        if backends["aiocache"]:
-            return "aiocache"
-        # No good async fallback, will need to wrap
-        if needs_disk:
-            if backends["diskcache"]:
-                return "diskcache"
-            elif backends["klepto"]:
-                return "klepto"
-            elif backends["joblib"]:
-                return "joblib"
-        elif backends["cachebox"]:
-            return "cachebox"
-        elif backends["cachetools"]:
-            return "cachetools"
-    elif needs_disk:
-        if backends["diskcache"]:
-            return "diskcache"
-        elif backends["klepto"]:
-            return "klepto"
-        elif backends["joblib"]:
-            return "joblib"
-    elif backends["cachebox"]:
-        return "cachebox"
-    elif backends["cachetools"]:
-        return "cachetools"
-
-    # Fallback to functools (always available)
-    return "functools"
-
-
-def _create_engine(config: CacheConfig, func: Callable[P, R]) -> BaseCacheEngine[P, R]:
-    """
-    Create a cache engine based on configuration.
-
-    Instantiates the appropriate cache engine based on the provided configuration
-    and the function to be cached. This is an internal function used by the ucache
-    decorator to create the most suitable engine.
-
-    Args:
-        config: Configuration for the cache engine, including parameters like
-            maxsize, ttl, policy, and cache type.
-        func: The function that will be cached. Used to determine if the function
-            is asynchronous.
-
-    Returns:
-        BaseCacheEngine: An instance of the appropriate cache engine.
-
-    Raises:
-        ImportError: If the required backend is not available.
-        ValueError: If the configuration is invalid.
-
-    Example:
-        >>> def example_func(x, y):
-        ...     return x + y
-        >>>
-        >>> config = create_cache_config(maxsize=100, ttl=60)
-        >>> engine = _create_engine(config, example_func)
-        >>> print(type(engine).__name__)
-        'CacheToolsEngine'
-    """
-    # Check if function is async
-    is_async = asyncio.iscoroutinefunction(func)
-    needs_disk = config.cache_type in ("disk", "file")
-
-    # Select backend
-    backend = _select_best_backend(config.preferred_engine, is_async=is_async, needs_disk=needs_disk)
-
-    # Create engine based on selected backend - import modules instead of directly
-    # instantiating classes to avoid linter errors about abstract methods
-    if backend == "aiocache" and HAS_AIOCACHE:
-        from .engines import aiocache
-
-        return aiocache.AioCacheEngine(config)  # type: ignore[abstract]
-    elif backend == "cachebox" and HAS_CACHEBOX:
-        from .engines import cachebox
-
-        return cachebox.CacheBoxEngine(config)  # type: ignore[abstract]
-    elif backend == "cachetools" and HAS_CACHETOOLS:
-        from .engines import cachetools
-
-        return cachetools.CacheToolsEngine(config)  # type: ignore[abstract]
-    elif backend == "diskcache" and HAS_DISKCACHE:
-        from .engines import diskcache
-
-        return diskcache.DiskCacheEngine(config)  # type: ignore[abstract]
-    elif backend == "joblib" and HAS_JOBLIB:
-        from .engines import joblib
-
-        return joblib.JoblibEngine(config)  # type: ignore[abstract]
-    elif backend == "klepto" and HAS_KLEPTO:
-        from .engines import klepto
-
-        return klepto.KleptoEngine(config)  # type: ignore[abstract]
-    else:
-        # Always fallback to functools which is guaranteed to be available
-        from .engines import functools_engine
-
-        return functools_engine.FunctoolsCacheEngine(config)  # type: ignore[abstract]
-
+# Helper functions _get_available_backends, _select_best_backend, _create_engine
+# are now removed as ucache will use CacheEngineManager.
 
 def ucache(
     folder_name: str | None = None,
@@ -618,72 +267,90 @@ def ucache(
     use_sql: bool = False,
     compress: bool = False,
     secure: bool = True,
+    # Add serializer argument consistent with make_key, though engines might handle it
+    serializer: Callable[[Any], str] | None = None,
 ) -> CacheDecorator[P, R]:
     """
     Universal caching decorator.
 
-    Creates a decorator that automatically selects the best available caching backend
-    based on the function's characteristics and available backends.
+    Configures and applies a cache engine based on the provided parameters.
+    It uses CacheEngineManager to obtain an engine instance.
 
     Args:
-        folder_name: Name of the folder to store cache files. If None, a default is used.
-        maxsize: Maximum size of the cache. If None, the cache has no size limit.
-        ttl: Time-to-live in seconds. If None, cached values never expire.
-        policy: Cache eviction policy. Options: "lru", "fifo", "lifo", "mru", "lfu".
-        preferred_engine: Preferred caching engine. If not available, falls back to best available.
-        use_sql: Whether to use SQL-based disk cache (if available).
-        compress: Whether to compress cached values.
-        secure: Whether to use secure key generation (slower but handles more types).
+        folder_name: Name of the folder for disk-based caches.
+        maxsize: Maximum size of the cache. None means unlimited.
+        ttl: Time-to-live in seconds. None means no TTL.
+        policy: Cache eviction policy (e.g., "lru", "fifo").
+        preferred_engine: Name of the preferred cache engine (e.g., "diskcache", "functools").
+        use_sql: Hint for engines like Klepto (if used) whether to use SQL. (Consider if needed for MVP)
+        compress: Whether to compress data for disk-based caches.
+        secure: Secure file permissions for disk caches; or secure key generation hint.
+        serializer: Optional custom serializer for cache keys. (Currently make_key handles this globally)
 
     Returns:
-        A decorator function that can be applied to functions to cache their results.
-
-    Examples:
-        >>> @ucache(preferred_engine="joblib", compress=True)
-        ... def expensive_function(x, y):
-        ...     # Some expensive computation
-        ...     return x + y
+        A decorator function that caches results of the decorated function.
     """
-    logger.debug(f"Creating universal cache with preferred_engine={preferred_engine}")
+    logger.debug(
+        f"ucache invoked with: preferred_engine={preferred_engine}, maxsize={maxsize}, ttl={ttl}, policy='{policy}'"
+    )
 
+    # Create a configuration object from the decorator arguments
+    # 'cache_type' is removed as 'preferred_engine' dictates the engine.
+    # 'use_sql' is a hint that specific engines might use, keep for now.
     config = create_cache_config(
         folder_name=folder_name,
         maxsize=maxsize,
         ttl=ttl,
         policy=policy,
-        use_sql=use_sql,
+        preferred_engine=preferred_engine,
+        use_sql=use_sql, # Retained as it's a CacheConfig param, though its impact is engine-specific
         compress=compress,
         secure=secure,
-        cache_type="auto",
+        serializer=serializer, # Pass serializer to config
+        # cache_type="auto", # No longer needed, preferred_engine is key
     )
 
+    engine_manager = get_engine_manager()
+    # The func argument is not available at this stage for create_engine_instance,
+    # which is fine as our new CacheEngineManager doesn't need it.
+    cache_engine_instance = engine_manager.create_engine_instance(config)
+
+    if cache_engine_instance is None:
+        # This case should be rare if 'functools' is always a fallback.
+        logger.error(
+            "Failed to obtain a cache engine instance. "
+            "The ucache decorator will run the function without caching."
+        )
+
+        # Return a decorator that does nothing but run the original function
+        def no_cache_decorator(func: Callable[P, R]) -> Callable[P, R]:
+            @functools.wraps(func)
+            def no_cache_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+                return func(*args, **kwargs)
+            return no_cache_wrapper
+        return no_cache_decorator
+
+    # If an engine was successfully obtained, create the actual caching decorator
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
-        """Decorator that wraps a function with the best available caching backend."""
-        # Determine if the function is async
-        is_async = asyncio.iscoroutinefunction(func)
-
-        # Determine if we need disk caching based on the function's characteristics
-        needs_disk = False
-
-        # Select the best backend
-        backend = preferred_engine or _select_best_backend(is_async=is_async, needs_disk=needs_disk)
-
-        logger.debug(f"Selected {backend} backend for {func.__name__}")
-
-        # Create the appropriate engine
-        engine = _create_engine(config, func)
-
-        # Apply the cache decorator
-        cached_func = engine.cache(func)
+        # Use the .cache() method from the instantiated engine
+        # This engine.cache(func) returns the actual wrapped function.
+        cached_func = cache_engine_instance.cache(func)
 
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            # The cached_func already handles try-except for cache errors internally
+            # if the engine's .cache() method is robust.
+            # However, adding a top-level try-except here for ucache provides a safety net
+            # in case the engine's .cache() method itself raises an unexpected error
+            # or if cache_engine_instance.cache(func) failed.
             try:
                 return cached_func(*args, **kwargs)
             except Exception as e:
-                logger.warning(f"Cache error in {func.__name__}: {e}. Executing without cache.")
+                # This log is specific to ucache's own handling
+                logger.warning(
+                    f"Error during cached function execution via ucache for '{func.__name__}': {e}. "
+                    "Executing original function without cache."
+                )
                 return func(*args, **kwargs)
-
         return wrapper
-
     return decorator

@@ -14,8 +14,8 @@ from typing import Any
 
 import pytest
 
-from twat_cache.engines.base import CacheEngine
-from twat_cache.engines.functools import FunctoolsCacheEngine
+from twat_cache.engines.base import BaseCacheEngine # Changed from CacheEngine
+from twat_cache.engines.functools_engine import FunctoolsCacheEngine # Changed from .functools
 from twat_cache.engines.manager import CacheEngineManager
 from twat_cache.config import create_cache_config, CacheConfig
 from .test_constants import (
@@ -49,12 +49,12 @@ def base_config() -> CacheConfig:
 
 
 @pytest.fixture
-def base_engine(base_config: CacheConfig) -> CacheEngine[Any, Any]:
+def base_engine(base_config: CacheConfig) -> FunctoolsCacheEngine[Any, Any]: # Changed to FunctoolsCacheEngine
     """Provide a basic cache engine instance."""
     return FunctoolsCacheEngine(base_config)
 
 
-def create_test_engine() -> CacheEngine:
+def create_test_engine() -> FunctoolsCacheEngine: # Changed to FunctoolsCacheEngine
     """Create a test cache engine instance."""
     config = CacheConfig(
         maxsize=CACHE_SIZE,
@@ -68,7 +68,7 @@ def create_test_engine() -> CacheEngine:
 def test_engine_initialization() -> None:
     """Test cache engine initialization."""
     engine = create_test_engine()
-    assert isinstance(engine, CacheEngine)
+    assert isinstance(engine, FunctoolsCacheEngine) # Changed to FunctoolsCacheEngine
     assert engine.config.maxsize == CACHE_SIZE
     assert engine.config.ttl == CACHE_TTL
 

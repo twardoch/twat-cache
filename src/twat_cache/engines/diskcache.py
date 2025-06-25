@@ -103,78 +103,38 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
             super().cleanup()
 
     def _get_cached_value(self, key: CacheKey) -> R | None:
-        """Retrieve a value from the cache."""
+        """
+        Retrieve a value from the cache.
+        Relies on diskcache's internal TTL handling.
+        """
         try:
-            cache_result = self._disk_cache.get(key, default=None, expire_time=True)
-            if cache_result is not None:
-                # diskcache get with expire_time=True returns (value, expire_at_timestamp)
-                # If item is expired, diskcache itself should return None or handle it.
-                # However, the previous code stored (result, expire_time_custom_calc) as value.
-                # We need to be careful here. Assuming diskcache's `expire` on set works.
-                # If diskcache returns a value, it means it's not expired according to its own TTL.
+            # Default behavior of diskcache.get: returns None if key not found or expired.
+            cached_value = self._disk_cache.get(key, default=None)
 
-                # Let's simplify and trust diskcache's expiry.
-                # The value stored is (actual_result, custom_expire_time_stored_by_old_code)
-                # We only care about actual_result if diskcache gives it to us.
-                if isinstance(cache_result, tuple) and len(cache_result) == 2 and not isinstance(cache_result[1], bool):
-                    # This condition tries to detect if it's our old (value, expire_time) tuple
-                    # or diskcache's internal (value, True/False for expired).
-                    # This is fragile. Ideally, we'd only store raw values.
-                    # For now, assume if diskcache.get returns something, it's valid by its TTL.
-                    # The value itself might be our (actual_value, custom_ttl_timestamp) tuple.
-                    # Let's assume the value fetched IS the actual data `R` if not None.
-                    # This part needs more robust handling if we were to strictly follow the old logic.
-                    # Simplified: if diskcache returns it, it's a hit.
-                    self._hits += 1
-                    logger.trace(f"Cache hit for key {key}")
-                    # If the stored item was (actual_value, custom_expire_time), return actual_value
-                    if isinstance(cache_result, tuple) and len(cache_result) == 2: # Check if it's our tuple
-                         # This is still a bit of a guess. If diskcache returns the (value, expire_time) tuple
-                         # we stored, then cache_result[0] is the actual data.
-                         # If diskcache has its own format for get(expire_time=True), this needs adjustment.
-                         # Assuming diskcache returns the raw stored value if expire_time=False (default)
-                         # and (value, timestamp) if expire_time=True and value is not expired.
-
-                        # Re-checking diskcache docs:
-                        # If `expire_time` is true, the return value is a ``(value, time)`` tuple
-                        # where `time` is the timestamp of when the value expires.
-                        # If the value does not expire, then `time` is None.
-                        # If the value is not found, then ``default`` is returned.
-
-                        value, diskcache_expire_at = cache_result
-                        if diskcache_expire_at is None or time.time() < diskcache_expire_at:
-                            self._hits += 1
-                            logger.trace(f"Cache hit for key {key}")
-                            return cast(R, value) # Value here is our (actual_result, custom_expire_time)
-                        else:
-                            self._disk_cache.delete(key) # Explicitly delete if our check says expired
-                            self._misses += 1
-                            logger.trace(f"Cache miss (expired) for key {key}")
-                            return None
-                else: # If cache_result is not a tuple (e.g. default was returned, or value is not a tuple)
-                    self._misses +=1
-                    logger.trace(f"Cache miss for key {key}")
-                    return None
-
-            self._misses += 1
-            logger.trace(f"Cache miss for key {key}")
-            return None
+            if cached_value is not None:
+                self._hits += 1
+                logger.trace(f"Cache hit for key {key}")
+                return cast(R, cached_value) # Value is directly the stored object
+            else:
+                self._misses += 1
+                logger.trace(f"Cache miss for key {key} (not found or expired by diskcache)")
+                return None
         except Exception as e:
-            logger.error(f"Error getting from DiskCache for key {key}: {e}")
-            self._misses += 1
+            logger.error(f"Error getting from DiskCache for key {key}: {e}", exc_info=True)
+            self._misses += 1 # Count as miss on error
             return None
 
     def _set_cached_value(self, key: CacheKey, value: R) -> None:
-        """Store a value in the cache."""
+        """
+        Store a value in the cache.
+        Uses diskcache's 'expire' parameter for TTL.
+        """
         try:
-            # The old code stored a tuple: (result, custom_expire_time).
-            # DiskCache's `set` has an `expire` argument for TTL in seconds.
-            # It's better to rely on DiskCache's own TTL mechanism.
             self._disk_cache.set(
                 key=key,
-                value=value, # Store the raw value
-                expire=self._config.ttl, # Let DiskCache handle expiry
-                tag=key.split(":")[0] if ":" in key else "general", # Basic tagging
+                value=value,  # Store the raw value
+                expire=self._config.ttl,  # Let DiskCache handle expiry in seconds
+                tag=key.split(":")[0] if ":" in key else "general",  # Basic tagging
                 retry=True,
             )
             # Update cache size stat (safely)

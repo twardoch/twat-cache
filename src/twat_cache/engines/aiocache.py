@@ -42,25 +42,49 @@ class AioCacheEngine(BaseCacheEngine[P, R]):
             msg = "aiocache is not available"
             raise ImportError(msg)
 
-        # Import here to avoid loading if not used
-        from aiocache import Cache, RedisCache, MemcachedCache, SimpleMemoryCache
+        # Import base and default
+        from aiocache import Cache, SimpleMemoryCache
 
-        # Select backend based on availability
+        # Conditionally import and try to use RedisCache
         if is_package_available("redis"):
-            self._cache: Cache = RedisCache(
-                endpoint=config.redis_host or "localhost",
-                port=config.redis_port or 6379,
-                namespace=config.folder_name,
-                ttl=config.ttl,
-            )
-        elif is_package_available("pymemcache"):
-            self._cache = MemcachedCache(
-                endpoint=config.memcached_host or "localhost",
-                port=config.memcached_port or 11211,
-                namespace=config.folder_name,
-                ttl=config.ttl,
-            )
-        else:
+            try:
+                from aiocache import RedisCache
+                self._cache: Cache = RedisCache(
+                    endpoint=config.redis_host or "localhost",
+                    port=config.redis_port or 6379,
+                    namespace=config.folder_name,
+                    ttl=config.ttl,
+                )
+                return # Successfully initialized RedisCache
+            except ImportError: # Should not happen if is_package_available is True, but defensive
+                pass
+            except Exception: # Catch connection errors etc.
+                # Log this error, then fallback
+                # from loguru import logger # Avoid top-level import for conditional use
+                # logger.warning("Failed to initialize aiocache.RedisCache, falling back.")
+                pass
+
+
+        # Conditionally import and try to use MemcachedCache
+        if is_package_available("pymemcache"):
+            try:
+                from aiocache import MemcachedCache
+                self._cache = MemcachedCache(
+                    endpoint=config.memcached_host or "localhost", # type: ignore
+                    port=config.memcached_port or 11211, # type: ignore
+                    namespace=config.folder_name,
+                    ttl=config.ttl,
+                )
+                return # Successfully initialized MemcachedCache
+            except ImportError:
+                pass
+            except Exception:
+                # from loguru import logger
+                # logger.warning("Failed to initialize aiocache.MemcachedCache, falling back.")
+                pass
+
+        # Default fallback to SimpleMemoryCache only if self._cache hasn't been set
+        if self._cache is None:
             self._cache = SimpleMemoryCache(
                 namespace=config.folder_name,
                 ttl=config.ttl,

@@ -66,10 +66,13 @@ class CacheToolsEngine(BaseCacheEngine[P, R]):
             }
             cache_type = cache_types.get(config.policy, LRUCache)
 
-        self._cache: Cache = cache_type(
-            maxsize=config.maxsize or 100,
-            ttl=config.ttl,
-        )
+        cache_args: dict[str, Any] = {"maxsize": config.maxsize or 100}
+        if config.ttl and (cache_type is TTLCache or cache_type is TLRUCache):
+            # Only pass ttl if it's configured AND the cache type supports it.
+            # TTLCache and TLRUCache from cachetools accept a 'ttl' parameter.
+            cache_args["ttl"] = config.ttl
+
+        self._cache: Cache = cache_type(**cache_args) # type: ignore[call-arg]
 
     def cache(self, func: Callable[P, R]) -> Callable[P, R]:
         """Decorate a function with caching.
