@@ -65,7 +65,8 @@ test = [
     "pytest-xdist>=3.5.0", # For parallel test execution
 
 ]
-dev = ["pre-commit>=3.6.0"]
+dev = ["pre-commit>=3.6.0", "build>=0.10.0", "twine>=4.0.0"]
+build = ["build>=0.10.0", "twine>=4.0.0"]
 all = [
     'platformdirs>=4.3.6',
     'cachebox>=4.5.1',
@@ -189,3 +190,4 @@ compare = [
 
 [tool.hatch.version]
 source = "vcs"
+tag-pattern = "v(?P<version>.*)"

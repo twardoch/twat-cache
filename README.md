@@ -75,6 +75,79 @@ Choose the backend libraries that enable the cache engines you need:
 
 *Note on Redis:* Previous versions or documentation might have mentioned a Redis cache engine. Currently, the direct implementation for a Redis engine (`redis.py`) is not present in the core `twat_cache.engines` directory. While `pyproject.toml` might list a `redis` extra, ensure the `redis-py` (or equivalent) package is installed and that `twat-cache` explicitly supports it in the version you are using if Redis is a requirement. The `CacheEngineManager` has a provision to load a Redis engine, but the engine code itself must be available.
 
+## Development and Release
+
+### Development Setup
+
+For local development:
+
+```bash
+# Clone the repository
+git clone https://github.com/twardoch/twat.git
+cd twat
+
+# Set up development environment
+./scripts/setup-dev.sh
+
+# Or manually install dependencies
+pip install -e .[dev,test,all]
+```
+
+### Build and Test
+
+The project uses a comprehensive build system with multiplatform support:
+
+```bash
+# Quick commands using Make
+make help           # Show all available commands
+make test           # Run tests
+make lint           # Run linting
+make format         # Format code
+make build          # Build package
+make release-check  # Run all pre-release checks
+
+# Or use scripts directly
+python3 scripts/build.py test
+python3 scripts/build.py lint
+python3 scripts/build.py format
+python3 scripts/build.py build
+python3 scripts/build.py check
+```
+
+### Release Process
+
+The project uses git-tag-based semantic versioning with automated CI/CD:
+
+```bash
+# Check current version
+make version
+
+# Create releases
+make release        # Patch release (1.2.3 -> 1.2.4)
+make release-minor  # Minor release (1.2.3 -> 1.3.0)
+make release-major  # Major release (1.2.3 -> 2.0.0)
+
+# Dry run to see what would happen
+make release-dry-run
+```
+
+### Multiplatform Support
+
+The project is tested and built on:
+- **Operating Systems**: Ubuntu, Windows, macOS
+- **Python Versions**: 3.10, 3.11, 3.12
+- **Architectures**: x64 (primary), arm64 (via GitHub's runners)
+
+### CI/CD Pipeline
+
+Automated workflows provide:
+- **Continuous Integration**: Multi-platform testing on every push/PR
+- **Automated Releases**: Build and publish to PyPI on git tags
+- **Security Scanning**: Dependency and code security checks
+- **Quality Assurance**: Linting, type checking, test coverage
+
+See [`docs/BUILD_AND_RELEASE.md`](docs/BUILD_AND_RELEASE.md) for detailed information.
+
 ## How to Use `twat-cache`
 
 `twat-cache` is primarily used as a library by importing its decorators and context managers into your Python code. It does not currently offer a standalone command-line interface for direct cache manipulation outside of a Python script.
