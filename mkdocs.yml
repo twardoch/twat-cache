@@ -1,0 +1,199 @@
+# this_file: mkdocs.yml
+site_name: TWAT-Cache Documentation
+site_description: Advanced Python caching library with multiple backends
+site_author: TWAT Framework Team
+site_url: https://github.com/twat-framework/twat-cache
+repo_name: twat-framework/twat-cache
+repo_url: https://github.com/twat-framework/twat-cache
+edit_uri: edit/main/src_docs/
+
+# Build directories
+docs_dir: src_docs
+site_dir: docs
+
+# Theme configuration
+theme:
+  name: material
+  language: en
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - toc.follow
+    - toc.integrate
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - search.share
+    - header.autohide
+    - content.code.copy
+    - content.code.annotate
+    - content.tooltips
+    - content.tabs.link
+
+# Extensions
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - pymdownx.snippets:
+      base_path: 
+        - src_docs
+        - .
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+  - minify:
+      minify_html: true
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            docstring_section_style: list
+            show_source: true
+            show_root_heading: true
+            show_root_toc_entry: false
+            show_signature_annotations: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            signature_crossrefs: true
+            summary: true
+            merge_init_into_class: true
+            separate_signature: true
+            unwrap_annotated: true
+            filters:
+              - "!^_"
+              - "!^__"
+
+# Extra configuration
+extra:
+  version:
+    provider: mike
+    default: stable
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/twat-framework/twat-cache
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/twat-cache/
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY
+  consent:
+    title: Cookie consent
+    description: >-
+      We use cookies to recognize your repeated visits and preferences, as well
+      as to measure the effectiveness of our documentation and whether users
+      find what they're searching for. With your consent, you're helping us to
+      make our documentation better.
+
+# Navigation
+nav:
+  - Home:
+    - index.md
+    - getting-started.md
+    - changelog.md
+  - User Guide:
+    - user-guide/index.md
+    - user-guide/installation.md
+    - user-guide/quickstart.md
+    - user-guide/decorators.md
+    - user-guide/configuration.md
+    - user-guide/context-management.md
+    - user-guide/engines.md
+    - user-guide/advanced-usage.md
+  - API Reference:
+    - api/index.md
+    - api/decorators.md
+    - api/config.md
+    - api/context.md
+    - api/cache.md
+    - api/engines.md
+    - api/exceptions.md
+    - api/utils.md
+  - Developer Guide:
+    - dev-guide/index.md
+    - dev-guide/contributing.md
+    - dev-guide/development-setup.md
+    - dev-guide/testing.md
+    - dev-guide/build-release.md
+    - dev-guide/architecture.md
+  - Examples:
+    - examples/index.md
+    - examples/basic-usage.md
+    - examples/async-caching.md
+    - examples/disk-caching.md
+    - examples/context-managers.md
+    - examples/custom-engines.md
+  - FAQ: faq.md
+
+# Watch for changes
+watch:
+  - src/twat_cache
+  - src_docs

@@ -6,12 +6,54 @@
 # ///
 # this_file: src/twat_cache/context.py
 
-"""
-Context management utilities for twat_cache.
+"""Context management utilities for TWAT-Cache.
 
-This module provides context managers for proper resource management
-with different cache engines, ensuring that resources are cleaned up
-properly when no longer needed.
+This module provides advanced context managers for fine-grained control over
+cache behavior and lifecycle. Context managers allow temporary configuration
+overrides and ensure proper resource cleanup.
+
+Context Managers:
+    engine_context: Create a temporary cache engine with specific configuration.
+        Ensures proper cleanup when exiting the context.
+    
+    CacheContext: Class-based context manager for more complex scenarios.
+        Supports nested contexts and configuration inheritance.
+
+Use Cases:
+    1. Temporary configuration changes without affecting global state
+    2. Testing with isolated cache instances
+    3. Resource cleanup guarantees (files, connections, memory)
+    4. Dynamic engine switching based on runtime conditions
+    5. Performance profiling with specific configurations
+
+Example:
+    Basic usage with temporary configuration::
+    
+        from twat_cache.context import engine_context
+        from twat_cache import ucache
+        
+        # Temporarily use a different cache configuration
+        with engine_context(maxsize=50, ttl=60) as engine:
+            @ucache
+            def compute(x):
+                return x ** 2
+            
+            result = compute(5)  # Uses temporary configuration
+    
+    Using CacheContext for nested scenarios::
+    
+        from twat_cache.context import CacheContext
+        
+        with CacheContext(engine="memory", maxsize=100) as ctx1:
+            # All caching in this block uses memory engine
+            
+            with CacheContext(ttl=30) as ctx2:
+                # Inherits memory engine, adds TTL
+                result = cached_function()
+
+Note:
+    Context managers are thread-safe and can be nested. Inner contexts
+    inherit configuration from outer contexts unless explicitly overridden.
 """
 
 import contextlib

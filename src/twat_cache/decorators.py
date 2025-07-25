@@ -16,18 +16,60 @@
 # ///
 # this_file: src/twat_cache/decorators.py
 
-"""
-Core caching decorators.
+"""Core caching decorators for TWAT-Cache.
 
-This module provides five main decorators:
-- mcache: Memory-based caching using fastest available backend (with fallback to functools)
-- bcache: Basic disk caching using diskcache (with fallback to memory)
-- fcache: Fast file-based caching using joblib (with fallback to memory)
-- acache: Async-capable caching using aiocache (with fallback to async wrapper)
-- ucache: Universal caching that automatically selects best available backend
+This module provides the main caching decorators that form the public API of TWAT-Cache.
+Each decorator is designed for specific use cases while maintaining a consistent interface.
 
-These decorators provide a simple interface for caching function results with various
-backends, automatically handling fallbacks if preferred backends are not available.
+Decorators:
+    mcache: Memory-based caching using the fastest available backend.
+        - Backends: CacheBox (Rust) > CacheTools > functools (fallback)
+        - Use for: Fast, in-memory caching with no persistence needs
+        - Features: LRU/LFU/FIFO policies, TTL support, size limits
+    
+    bcache: Basic disk caching with persistence between runs.
+        - Backends: DiskCache > Klepto (SQL) > memory fallback
+        - Use for: Persistent caching that survives process restarts
+        - Features: SQLite storage, TTL support, size limits
+    
+    fcache: File-based caching optimized for large objects.
+        - Backends: Joblib > Klepto > memory fallback
+        - Use for: NumPy arrays, pandas DataFrames, large data structures
+        - Features: Efficient serialization, compression support
+    
+    acache: Async-capable caching for coroutine functions.
+        - Backends: AioCache > async-wrapped memory cache
+        - Use for: Async/await functions in async frameworks
+        - Features: Non-blocking cache operations, TTL support
+    
+    ucache: Universal caching with automatic backend selection.
+        - Backends: Auto-selected based on function characteristics
+        - Use for: General purpose caching (recommended default)
+        - Features: Intelligent backend selection, all features available
+
+Example:
+    Basic usage with automatic backend selection::
+    
+        from twat_cache import ucache
+        
+        @ucache(maxsize=100, ttl=3600)
+        def expensive_computation(x: int, y: int) -> int:
+            return x ** y
+    
+    Async function caching::
+    
+        from twat_cache import acache
+        
+        @acache(ttl=60)
+        async def fetch_data(url: str) -> dict:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    return await response.json()
+
+Note:
+    All decorators support automatic fallback to available backends if the
+    preferred backend is not installed. This ensures your code continues to
+    work even if optional dependencies are missing.
 """
 
 import asyncio
@@ -175,7 +217,7 @@ def make_key(
 def mcache(
     maxsize: int | None = None,
     ttl: float | None = None,
-    policy: str = "lru",
+    policy: str | EvictionPolicy = "lru",
     *,  # Force remaining arguments to be keyword-only
     secure: bool = True,
 ) -> CacheDecorator[P, R]:
@@ -237,7 +279,7 @@ def bcache(
     folder_name: str | None = None,
     maxsize: int | None = None,
     ttl: float | None = None,
-    policy: str = "lru",
+    policy: str | EvictionPolicy = "lru",
     *,  # Force remaining arguments to be keyword-only
     use_sql: bool = True,
     secure: bool = True,
@@ -624,7 +666,7 @@ def ucache(
     folder_name: str | None = None,
     maxsize: int | None = None,
     ttl: float | None = None,
-    policy: str = "lru",
+    policy: str | EvictionPolicy = "lru",
     preferred_engine: str | None = None,
     *,  # Force remaining arguments to be keyword-only
     use_sql: bool = False,
