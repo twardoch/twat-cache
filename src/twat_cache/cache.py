@@ -6,13 +6,64 @@
 # ///
 # this_file: src/twat_cache/cache.py
 
-"""
-Cache management utilities.
+"""Global cache management utilities for TWAT-Cache.
 
-This module provides functions for managing cache state, including:
-- Clearing caches
-- Getting cache statistics
-- Managing cache directories
+This module provides centralized management for all active cache instances,
+including registration, statistics tracking, and batch operations.
+
+Components:
+    CacheStats: NamedTuple for cache performance metrics.
+        Tracks hits, misses, size, and capacity for each cache.
+    
+    CacheEntry: Registry entry containing cache instance and metadata.
+        Stores the engine, wrapper function, and statistics.
+    
+    Global Registry: Thread-safe registry of all active caches.
+        Enables centralized management and monitoring.
+
+Functions:
+    register_cache: Register a new cache instance in the global registry.
+    unregister_cache: Remove a cache from the registry (cleanup).
+    get_cache: Retrieve a specific cache by name.
+    list_caches: Get all registered cache names.
+    clear_all_caches: Clear all registered caches at once.
+    get_all_stats: Aggregate statistics from all caches.
+    clear_cache_by_name: Clear a specific cache by name.
+    get_cache_directory: Get the base cache directory path.
+
+Use Cases:
+    1. Application-wide cache management and monitoring
+    2. Debugging and profiling cache performance
+    3. Graceful shutdown with cleanup of all caches
+    4. Cache statistics aggregation for monitoring
+    5. Selective cache clearing for maintenance
+
+Example:
+    Managing multiple caches::
+    
+        from twat_cache.cache import list_caches, clear_all_caches, get_all_stats
+        from twat_cache import ucache
+        
+        @ucache
+        def compute1(x): return x ** 2
+        
+        @ucache
+        def compute2(x): return x ** 3
+        
+        # List all active caches
+        print(list_caches())
+        # Output: ['compute1', 'compute2']
+        
+        # Get aggregate statistics
+        stats = get_all_stats()
+        print(f"Total hits: {stats['total_hits']}")
+        
+        # Clear all caches at once
+        clear_all_caches()
+
+Note:
+    The global registry is automatically managed by decorators.
+    Manual registration is only needed for custom cache implementations.
 """
 
 from pathlib import Path

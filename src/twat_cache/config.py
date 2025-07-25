@@ -7,7 +7,62 @@
 # ///
 # this_file: src/twat_cache/config.py
 
-"""Cache configuration system."""
+"""Cache configuration system for TWAT-Cache.
+
+This module provides the configuration infrastructure for the caching system,
+including validation, defaults, and environment variable support.
+
+Classes:
+    CacheConfig: Main configuration model using Pydantic for validation.
+        Handles all cache-related settings including size limits, TTL,
+        eviction policies, and backend-specific options.
+
+Functions:
+    create_cache_config: Factory function to create CacheConfig instances
+        with proper defaults and validation.
+    get_cache_config_from_env: Load configuration from environment variables.
+    merge_configs: Merge multiple configurations with precedence rules.
+
+Configuration Sources:
+    1. Direct parameters (highest priority)
+    2. Environment variables (TWAT_CACHE_* prefix)
+    3. Configuration files (future support)
+    4. Default values (lowest priority)
+
+Environment Variables:
+    TWAT_CACHE_MAXSIZE: Maximum cache size (integer)
+    TWAT_CACHE_TTL: Time-to-live in seconds (float)
+    TWAT_CACHE_POLICY: Eviction policy (lru, lfu, fifo, etc.)
+    TWAT_CACHE_FOLDER: Cache folder name
+    TWAT_CACHE_ENGINE: Preferred cache engine
+    TWAT_CACHE_COMPRESS: Enable compression (true/false)
+    TWAT_CACHE_SECURE: Enable secure mode (true/false)
+
+Example:
+    Basic configuration::
+    
+        from twat_cache.config import create_cache_config
+        
+        # Create config with specific settings
+        config = create_cache_config(
+            maxsize=1000,
+            ttl=3600,
+            policy="lru",
+            compress=True
+        )
+    
+    Environment-based configuration::
+    
+        import os
+        os.environ["TWAT_CACHE_MAXSIZE"] = "500"
+        os.environ["TWAT_CACHE_TTL"] = "300"
+        
+        config = get_cache_config_from_env()
+
+Note:
+    The configuration system is designed to be flexible and extensible,
+    allowing for easy addition of new cache backends and options.
+"""
 
 import os
 from typing import Any
@@ -21,7 +76,29 @@ CacheType = str | None
 
 
 class CacheConfig(BaseModel):
-    """Cache configuration settings."""
+    """Cache configuration settings.
+    
+    A Pydantic model that validates and manages all cache-related configuration.
+    This class ensures type safety and provides sensible defaults for all settings.
+    
+    Attributes:
+        maxsize: Maximum number of items to store in cache. None means unlimited.
+        folder_name: Name of the folder for disk/file-based caches. Auto-generated if None.
+        preferred_engine: Preferred cache backend. If unavailable, falls back to alternatives.
+        serializer: Custom serializer function for cache keys. Uses JSON by default.
+        ttl: Time-to-live for cached items in seconds. None means no expiration.
+        policy: Cache eviction policy ('lru', 'lfu', 'fifo', 'lifo', 'mru').
+        cache_dir: Deprecated. Use folder_name instead. Kept for backward compatibility.
+        compress: Whether to compress cached values (for file/disk backends).
+        secure: Whether to use secure key generation (handles more types but slower).
+    
+    Example:
+        >>> config = CacheConfig(maxsize=100, ttl=3600, policy="lfu")
+        >>> print(config.maxsize)
+        100
+        >>> print(config.get_ttl_seconds())
+        3600
+    """
 
     maxsize: int | None = Field(default=None, ge=1)
     folder_name: str | None = None
