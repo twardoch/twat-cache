@@ -1,4 +1,5 @@
 ---
+---
 this_file: REVIEW/FILES-cod.md
 title: Repository File Catalog
 generated_by: codex-cli
@@ -201,6 +202,11 @@ Top-level
 - scripts/release.py: Release automation helper.
 - scripts/setup-dev.sh: Dev environment bootstrap script.
 - scripts/version.py: Version bumping/version utilities for releases.
+- .github: GitHub configuration for CI and repository automation.
+- .github/workflows: Continuous Integration workflow definitions.
+- .github/workflows/ci.yml: Main CI pipeline running tests and linters on PRs.
+- .github/workflows/push.yml: Checks triggered on push events to branches.
+- .github/workflows/release.yml: Release pipeline to build and publish artifacts.
 - src: Python package source root.
 - src/twat_cache: Main package implementation for twat-cache.
 - src/twat_cache/__init__.py: Package export surface and convenience imports.
@@ -262,4 +268,3 @@ Top-level
 - tests/test_integration.py: Cross-module integration tests.
 - tests/test_twat_cache.py: High-level tests for package API.
 - uv.lock: uv resolver lockfile for dependencies.
-
