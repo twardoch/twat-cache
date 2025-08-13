@@ -54,7 +54,7 @@ This plan proposes concrete, example-illustrated enhancements to improve twat-ca
               if val is not None:
                   return self._deserialize(val)
               res = func(*args, **kwargs)
-              self._client.setex(key, config.ttl or 0, self._serialize(res))
+              self._client.setex(key, self.config.ttl or 0, self._serialize(res))
               return res
           return wrapper
   ```
