@@ -1,0 +1,265 @@
+---
+this_file: REVIEW/FILES-cod.md
+title: Repository File Catalog
+generated_by: codex-cli
+generated_reason: repository review and documentation
+---
+
+# Repository Catalog
+
+This document catalogs every file and folder in the repository, explains what each is for, and includes a dump of the filesystem tree for quick orientation.
+
+## Filesystem Tree
+
+```
+Repo filesystem tree (excluding .git, __pycache__, .venv):
+
+- .cursor
+-   rules
+-     0project.mdc
+-     cleanup.mdc
+-     filetree.mdc
+-     quality.mdc
+- .pre-commit-config.yaml
+- .specstory
+-   history
+-     .what-is-this.md
+-     2025-03-04_03-25-codebase-analysis-and-todo-md-update.md
+-     2025-03-04_05-35-implementation-of-todo-phases-1,-2,-3.md
+-     2025-03-04_08-00-project-maintenance-and-documentation-update.md
+-     2025-03-04_08-41-managing-todo-md-tasks.md
+-     2025-03-04_11-30-untitled.md
+-     caching-strategies-for-twat-cache-library.md
+-     codebase-improvement-and-dependency-management-plan.md
+-     documentation-update-and-task-management.md
+-     implementing-todo-item.md
+-     merging-files-from-wrong-location.md
+-     project-documentation-and-command-execution.md
+-     project-overview-and-todo-execution.md
+-     project-review-and-implementation.md
+-     project-setup-and-implementation-steps.md
+-     project-setup-and-task-implementation.md
+-     project-setup-and-task-management.md
+-     refactoring-plan-for-twat-cache-system.md
+-     refining-decorators-and-integration-goals-1.md
+-     refining-decorators-and-integration-goals.md
+-     running-lint-fix-command.md
+-     todo-list-update-and-progress-logging.md
+-     update-todo-and-log-for-project.md
+-     updating-todo-and-running-development-commands.md
+-     updating-todos-and-project-documentation.md
+- CHANGELOG.md
+- CLEANUP.txt
+- LICENSE
+- NEXT.md
+- PLAN.md
+- PROMPT.txt
+- README.md
+- REFACTOR_FILELIST.txt
+- REPO_CONTENT.txt
+- TODO.md
+- VERSION.txt
+- WORK.md
+- WORKFLOW_SETUP.md
+- cleanup.py
+- docs
+-   BUILD_AND_RELEASE.md
+-   context_management.md
+- examples
+-   backend_selection.py
+- mkdocs.yml
+- pyproject.toml
+- scripts
+-   README.md
+-   build.py
+-   release.py
+-   setup-dev.sh
+-   version.py
+- src
+-   twat_cache
+-     __init__.py
+-     __main__.py
+-     cache.py
+-     config.py
+-     context.py
+-     decorators.py
+-     engines
+-       __init__.py
+-       aiocache.py
+-       base.py
+-       cachebox.py
+-       cachetools.py
+-       common.py
+-       diskcache.py
+-       functools_engine.py
+-       joblib.py
+-       klepto.py
+-       manager.py
+-       py.typed
+-     exceptions.py
+-     logging.py
+-     paths.py
+-     py.typed
+-     type_defs.py
+-     types
+-       cachebox.pyi
+-     utils.py
+- src_docs
+-   api
+-     config.md
+-     decorators.md
+-     index.md
+-   changelog.md
+-   faq.md
+-   getting-started.md
+-   index.md
+-   user-guide
+-     configuration.md
+-     decorators.md
+-     index.md
+-     installation.md
+-     quickstart.md
+- tests
+-   __init__.py
+-   conftest.py
+-   test_benchmark.py
+-   test_cache.py
+-   test_config.py
+-   test_constants.py
+-   test_context.py
+-   test_context_simple.py
+-   test_decorators.py
+-   test_engines.py
+-   test_exceptions.py
+-   test_exceptions_simple.py
+-   test_fallback.py
+-   test_integration.py
+-   test_twat_cache.py
+- uv.lock
+```
+
+## Per-Item Descriptions
+
+Top-level
+
+- .cursor: Editor/workbench settings for Cursor IDE; contains project rules.
+- .cursor/rules/0project.mdc: Cursor rule file describing project context.
+- .cursor/rules/cleanup.mdc: Cursor rules related to cleanup tasks.
+- .cursor/rules/filetree.mdc: Cursor rules for file tree handling.
+- .cursor/rules/quality.mdc: Cursor rules for code quality enforcement.
+- .pre-commit-config.yaml: Pre-commit hooks configuration for linting/formatting.
+- .specstory: Tooling artifacts for SpecStory; historical discussion logs.
+- .specstory/history/.what-is-this.md: Explains the SpecStory history folder purpose.
+- .specstory/history/2025-03-04_03-25-codebase-analysis-and-todo-md-update.md: Historical work log entry.
+- .specstory/history/2025-03-04_05-35-implementation-of-todo-phases-1,-2,-3.md: Historical work log entry.
+- .specstory/history/2025-03-04_08-00-project-maintenance-and-documentation-update.md: Historical work log entry.
+- .specstory/history/2025-03-04_08-41-managing-todo-md-tasks.md: Historical work log entry.
+- .specstory/history/2025-03-04_11-30-untitled.md: Historical work log entry.
+- .specstory/history/caching-strategies-for-twat-cache-library.md: Notes on caching strategies.
+- .specstory/history/codebase-improvement-and-dependency-management-plan.md: Notes on improvements and dependencies.
+- .specstory/history/documentation-update-and-task-management.md: Notes on docs and tasks.
+- .specstory/history/implementing-todo-item.md: Notes for a TODO implementation session.
+- .specstory/history/merging-files-from-wrong-location.md: Notes on file merge corrections.
+- .specstory/history/project-documentation-and-command-execution.md: Notes on docs and commands.
+- .specstory/history/project-overview-and-todo-execution.md: Notes on project overview.
+- .specstory/history/project-review-and-implementation.md: Notes on review and implementation.
+- .specstory/history/project-setup-and-implementation-steps.md: Notes on setup and steps.
+- .specstory/history/project-setup-and-task-implementation.md: Notes on setup and tasks.
+- .specstory/history/project-setup-and-task-management.md: Notes on task management.
+- .specstory/history/refactoring-plan-for-twat-cache-system.md: Notes on refactoring plan.
+- .specstory/history/refining-decorators-and-integration-goals-1.md: Notes on decorators.
+- .specstory/history/refining-decorators-and-integration-goals.md: Notes on decorators.
+- .specstory/history/running-lint-fix-command.md: Notes on lint/format runs.
+- .specstory/history/todo-list-update-and-progress-logging.md: Notes on TODO updates.
+- .specstory/history/update-todo-and-log-for-project.md: Notes on project log.
+- .specstory/history/updating-todo-and-running-development-commands.md: Notes on updates and commands.
+- .specstory/history/updating-todos-and-project-documentation.md: Notes on docs and TODOs.
+- CHANGELOG.md: Accumulated release notes and change history.
+- CLEANUP.txt: Cleanup checklist and manual notes.
+- LICENSE: MIT license for the project.
+- NEXT.md: Short-term next actions and planning notes.
+- PLAN.md: Detailed future goals and implementation plan for the project.
+- PROMPT.txt: Prompt/context file for tooling or AI-assistant guidance.
+- README.md: Main project overview, usage, development, and release info.
+- REFACTOR_FILELIST.txt: File inventory used during refactor planning.
+- REPO_CONTENT.txt: Dump of the repository content for reference.
+- TODO.md: Flat, itemized task list derived from the plan.
+- VERSION.txt: Current version string for the project.
+- WORK.md: Work progress log with completed and pending steps.
+- WORKFLOW_SETUP.md: Instructions to set up development workflows and tools.
+- cleanup.py: Utility script to perform cleanup across the repo.
+- docs: Additional prose documentation not built via mkdocs site.
+- docs/BUILD_AND_RELEASE.md: Detailed build/release documentation and instructions.
+- docs/context_management.md: Documentation on cache context management.
+- examples: Example Python scripts demonstrating library usage.
+- examples/backend_selection.py: Demonstrates backend selection logic in practice.
+- mkdocs.yml: MkDocs configuration for building the docs site.
+- pyproject.toml: Project metadata, dependencies, tool configs (ruff, pytest, mypy, coverage, hatch).
+- scripts: Automation and release scripts.
+- scripts/README.md: Script usage and descriptions.
+- scripts/build.py: Build/test/lint orchestrator script.
+- scripts/release.py: Release automation helper.
+- scripts/setup-dev.sh: Dev environment bootstrap script.
+- scripts/version.py: Version bumping/version utilities for releases.
+- src: Python package source root.
+- src/twat_cache: Main package implementation for twat-cache.
+- src/twat_cache/__init__.py: Package export surface and convenience imports.
+- src/twat_cache/__main__.py: Optional CLI entrypoint or debug runner.
+- src/twat_cache/cache.py: Global cache registry/management utilities.
+- src/twat_cache/config.py: Cache configuration model and helpers.
+- src/twat_cache/context.py: Context manager for engine lifecycles and scoped cache usage.
+- src/twat_cache/decorators.py: Public caching decorators (mcache, bcache, fcache, acache, ucache).
+- src/twat_cache/engines: Concrete cache engine implementations and manager.
+- src/twat_cache/engines/__init__.py: Engine package init; exposes engine registry.
+- src/twat_cache/engines/aiocache.py: Async engine via aiocache backend.
+- src/twat_cache/engines/base.py: Base protocol/abstract API for engines.
+- src/twat_cache/engines/cachebox.py: In-memory engine using cachebox.
+- src/twat_cache/engines/cachetools.py: In-memory engine using cachetools with policies.
+- src/twat_cache/engines/common.py: Shared helpers/constants for engines.
+- src/twat_cache/engines/diskcache.py: Persistent disk-based engine using diskcache.
+- src/twat_cache/engines/functools_engine.py: Fallback engine using functools cache/LRU.
+- src/twat_cache/engines/joblib.py: File-based engine using joblib.Memory.
+- src/twat_cache/engines/klepto.py: Engine leveraging klepto storage options.
+- src/twat_cache/engines/manager.py: Engine registration/selection manager.
+- src/twat_cache/engines/py.typed: Marker file for PEP 561 typing support (engines).
+- src/twat_cache/exceptions.py: Custom exception types used across the package.
+- src/twat_cache/logging.py: Loguru-based logging configuration and utilities.
+- src/twat_cache/paths.py: Computation of cache directories and path helpers.
+- src/twat_cache/py.typed: Marker file for PEP 561 typing support (package root).
+- src/twat_cache/type_defs.py: Reusable type definitions and Protocols.
+- src/twat_cache/types: Type stub files for optional deps.
+- src/twat_cache/types/cachebox.pyi: Type hints for cachebox integration.
+- src/twat_cache/utils.py: Misc utilities (key hashing, serialization, helpers).
+- src_docs: Documentation source for MkDocs site.
+- src_docs/api: API reference pages configured for mkdocstrings.
+- src_docs/api/config.md: API docs entry page for config module.
+- src_docs/api/decorators.md: API docs entry page for decorators module.
+- src_docs/api/index.md: Overview and structure of API docs.
+- src_docs/changelog.md: Changelog page content for the docs site.
+- src_docs/faq.md: Frequently asked questions.
+- src_docs/getting-started.md: Getting started guide.
+- src_docs/index.md: Docs site landing page content.
+- src_docs/user-guide: User guide section pages.
+- src_docs/user-guide/configuration.md: Detailed configuration reference.
+- src_docs/user-guide/decorators.md: In-depth decorator usage guide.
+- src_docs/user-guide/index.md: User guide overview and navigation.
+- src_docs/user-guide/installation.md: Installation instructions.
+- src_docs/user-guide/quickstart.md: Quickstart tutorial.
+- tests: Test suite for functionality and performance.
+- tests/__init__.py: Test package marker.
+- tests/conftest.py: Pytest fixtures and configuration.
+- tests/test_benchmark.py: Micro/benchmark tests and comparisons.
+- tests/test_cache.py: Unit tests for cache registry and operations.
+- tests/test_config.py: Unit tests for config model and helpers.
+- tests/test_constants.py: Tests for constants/types used across the package.
+- tests/test_context.py: Tests for context manager behavior.
+- tests/test_context_simple.py: Simplified context tests.
+- tests/test_decorators.py: Tests for all decorators and fallbacks.
+- tests/test_engines.py: Tests for engine selection and functionality.
+- tests/test_exceptions.py: Exception cases and behaviors.
+- tests/test_exceptions_simple.py: Simplified exception tests.
+- tests/test_fallback.py: Fallback chains and behavior tests.
+- tests/test_integration.py: Cross-module integration tests.
+- tests/test_twat_cache.py: High-level tests for package API.
+- uv.lock: uv resolver lockfile for dependencies.
+
