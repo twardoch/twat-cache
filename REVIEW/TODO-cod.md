@@ -44,6 +44,7 @@ This plan proposes concrete, example-illustrated enhancements to improve twat-ca
               return False
 
       def __init__(self, config: CacheConfig):
+          self._config = config
           self._client = redis.Redis(host=config.redis_host or "localhost", port=config.redis_port or 6379, db=config.redis_db or 0)
 
       def cache(self, func):
