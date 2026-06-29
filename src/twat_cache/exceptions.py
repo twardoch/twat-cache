@@ -43,19 +43,27 @@ class EngineError(TwatCacheError):
 
 
 class EngineNotAvailableError(EngineError):
-    """Raised when a requested cache engine is not available."""
+    """Raised when a requested cache engine is not available.
 
-    def __init__(self, message: str, reason: str | None = None) -> None:
-        """Initialize with a message and an optional reason.
+    In the twat ecosystem this is the canonical signal that an optional
+    backend library (e.g. ``cachebox``, ``aiocache``, ``klepto``) is absent
+    so callers can either install the extra or fall back gracefully.
+    """
+
+    def __init__(self, engine_name: str, reason: str | None = None) -> None:
+        """Initialize with an engine name and an optional reason.
 
         Args:
-            message: Error message
+            engine_name: Name of the cache engine that is unavailable.
             reason: Optional reason why the engine is not available
+                (e.g. ``"Package is not installed"``).
         """
+        self.engine_name = engine_name
+        self.reason = reason
+        message = f"Cache engine '{engine_name}' is not available"
         if reason:
             message += f": {reason}"
         super().__init__(message)
-        self.reason = reason
 
 
 class CacheOperationError(TwatCacheError):

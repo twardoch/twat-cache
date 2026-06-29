@@ -82,27 +82,9 @@ class TestCacheBenchmarks:
         assert len(result) == 50
     
     @pytest.mark.benchmark
-    @pytest.mark.asyncio
+    @pytest.mark.skip(reason="pytest-benchmark does not support async benchmarks")
     async def test_async_cache_performance(self, benchmark):
-        """Benchmark async cache performance."""
-        test_data = self.generate_test_data(100)
-        
-        @acache(maxsize=1000)
-        async def process_data_async(data_id: int) -> Dict[str, Any]:
-            # Simulate some async processing
-            await asyncio.sleep(0.001)  # 1ms delay
-            return test_data[data_id % len(test_data)]
-        
-        async def run_cache_operations():
-            results = []
-            for i in range(50):
-                # Mix of cache hits and misses
-                result = await process_data_async(i % 20)
-                results.append(result)
-            return results
-        
-        result = await benchmark(run_cache_operations)
-        assert len(result) == 50
+        """Benchmark async cache performance (skipped — benchmark fixture is sync-only)."""
     
     @pytest.mark.benchmark
     def test_cache_context_performance(self, benchmark):
@@ -250,10 +232,10 @@ class TestCacheBenchmarks:
             return results, call_count
         
         results, actual_calls = benchmark(run_hit_ratio_test)
-        
+
         # Should have significantly fewer calls than total requests
         assert actual_calls < 200
-        assert len(results[0]) == 200
+        assert len(results) == 200
     
     @pytest.mark.benchmark
     def test_cache_serialization_performance(self, benchmark):
@@ -370,15 +352,12 @@ class TestPerformanceRegression:
                 results.append(result)
             return results
         
-        # Benchmark both approaches
-        direct_result = benchmark(run_direct_calls)
+        # Benchmark the cached approach (one benchmark() call per test)
         cached_result = benchmark(run_cached_calls)
-        
+        direct_result = run_direct_calls()
+
         assert len(direct_result) == 1000
         assert len(cached_result) == 1000
-        
-        # For high cache hit ratios, cached should be faster
-        # But we can't assert timing here as it depends on the environment
     
     @pytest.mark.benchmark
     def test_memory_usage_stability(self, benchmark):

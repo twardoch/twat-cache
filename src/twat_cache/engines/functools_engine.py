@@ -149,18 +149,14 @@ class FunctoolsCacheEngine(BaseCacheEngine[P, R]):
             @wraps(f)
             def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
                 key = json.dumps(tuple(args) + tuple(kwargs.items()), sort_keys=True)
+                logger.debug(f"[FUNCTOOLS] KEY={key!r} EXISTING_KEYS={list(self._cache.keys())!r}")
                 result = self._get_cached_value(key)
                 if result is None:
-                    try:
-                        result = f(*args, **kwargs)
-                        self._set_cached_value(key, result)
-                    except Exception as e:
-                        # Cache the exception to avoid recomputing
-                        # We know the exception is safe to cache in this context
-                        self._set_cached_value(key, cast(R, e))
-                        raise
-                elif isinstance(result, Exception):
-                    raise result
+                    self._misses += 1
+                    result = f(*args, **kwargs)  # propagates exceptions naturally
+                    self._set_cached_value(key, result)
+                else:
+                    self._hits += 1
                 return result
 
             return wrapper

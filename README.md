@@ -37,6 +37,32 @@ Whether you're building web applications, data processing pipelines, scientific 
 *   **Modern Python:** Built with type hints and supports modern Python features.
 *   **Part of a Larger Ecosystem:** As a component of the `twat` project, it aims for consistency and quality within that suite of tools.
 
+## Which Decorator Should I Use?
+
+| Situation | Decorator | Backend |
+|---|---|---|
+| General purpose (unsure) | `ucache` | auto-selected |
+| Results must survive restart | `bcache` | `diskcache` |
+| Large arrays / DataFrames | `fcache` | `joblib` |
+| `async def` functions | `acache` | `aiocache` or dict fallback |
+| Explicit memory control | `mcache` | `cachebox` / `cachetools` |
+
+**Key behaviours to know before you start:**
+
+- **Arguments must be hashable.** Lists are not hashable; pass tuples instead.
+  `ucache` catches `TypeError` and falls back to a direct call rather than
+  raising, so you get correct results but no caching benefit.
+- **Exceptions are not cached.** A call that raises will re-execute the
+  function on every subsequent call with the same arguments.
+- **`ttl` is in seconds.** `None` means cache forever (until eviction by
+  `maxsize`).
+- **`maxsize` is item count, not bytes.** For disk caches the underlying
+  library default (1 GB) applies to storage size.
+
+See the full [Caching Strategies](src_docs/user-guide/caching-strategies.md)
+guide for detailed trade-offs, TTL recommendations, eviction policy comparison,
+and a backend availability matrix.
+
 ## Installation
 
 You can install `twat-cache` using pip.

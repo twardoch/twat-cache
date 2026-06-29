@@ -166,6 +166,7 @@ nav:
     - user-guide/decorators.md
     - user-guide/configuration.md
     - user-guide/context-management.md
+    - user-guide/caching-strategies.md
     - user-guide/engines.md
     - user-guide/advanced-usage.md
   - API Reference:

@@ -21,61 +21,52 @@ from twat_cache.type_defs import CacheKey, P, R
 
 
 class CacheToolsEngine(BaseCacheEngine[P, R]):
-    """Cache engine using cachetools."""
+    """In-memory cache engine backed by the ``cachetools`` library.
+
+    Supports LRU, LFU, and round-robin eviction policies, plus optional
+    TTL expiry via ``cachetools.TTLCache``.  Falls back to ``LRUCache``
+    for any unrecognised policy.
+    """
 
     @classmethod
     def is_available(cls) -> bool:
-        """Check if cachetools is available."""
+        """Return ``True`` if cachetools is installed."""
         return is_package_available("cachetools")
 
     def __init__(self, config: CacheConfig) -> None:
-        """Initialize the cachetools engine.
+        """Initialise the cachetools engine.
 
         Args:
             config: Cache configuration settings.
         """
         super().__init__(config)
         self._config = config
-        self._cache = None
+        self._cache: Any = None
 
         if not CacheToolsEngine.is_available():
             msg = "cachetools is not available"
             raise ImportError(msg)
 
-        # Import here to avoid loading if not used
-        from cachetools import (
-            Cache,
-            LRUCache,
-            LFUCache,
-            TTLCache,
-            RRCache,
-            TLRUCache,
-        )
+        # Lazy-import so the module can be loaded without cachetools
+        from cachetools import LRUCache, LFUCache, TTLCache, RRCache  # noqa: PLC0415
 
-        # Select cache type based on policy and TTL
+        cache_args: dict[str, Any] = {"maxsize": config.maxsize or 100}
+
         if config.ttl:
-            if config.policy == "lru":
-                cache_type = TLRUCache
-            else:
-                cache_type = TTLCache
+            # TTLCache accepts (maxsize, ttl) — covers both LRU and non-LRU TTL cases
+            cache_args["ttl"] = config.ttl
+            self._cache = TTLCache(**cache_args)
         else:
             cache_types = {
                 "lru": LRUCache,
                 "lfu": LFUCache,
                 "rr": RRCache,
             }
-            cache_type = cache_types.get(config.policy, LRUCache)
-
-        cache_args: dict[str, Any] = {"maxsize": config.maxsize or 100}
-        if config.ttl and (cache_type is TTLCache or cache_type is TLRUCache):
-            # Only pass ttl if it's configured AND the cache type supports it.
-            # TTLCache and TLRUCache from cachetools accept a 'ttl' parameter.
-            cache_args["ttl"] = config.ttl
-
-        self._cache: Cache = cache_type(**cache_args) # type: ignore[call-arg]
+            cache_type = cache_types.get(config.policy or "lru", LRUCache)
+            self._cache = cache_type(**cache_args)
 
     def cache(self, func: Callable[P, R]) -> Callable[P, R]:
-        """Decorate a function with caching.
+        """Wrap *func* with a cachetools-backed LRU decorator.
 
         Args:
             func: Function to cache.
@@ -83,60 +74,48 @@ class CacheToolsEngine(BaseCacheEngine[P, R]):
         Returns:
             Callable: Decorated function with caching.
         """
-        if not self._cache:
+        if self._cache is None:
             msg = "Cache not initialized"
             raise RuntimeError(msg)
 
-        # Import here to avoid loading if not used
-        from cachetools import cached
+        from cachetools import cached  # noqa: PLC0415
 
-        return cast(
-            Callable[P, R],
-            cached(
-                cache=self._cache,
-            )(func),
-        )
+        return cast(Callable[P, R], cached(cache=self._cache)(func))
 
     def _get_cached_value(self, key: CacheKey) -> R | None:
-        """Get a value from the cache.
+        """Return the cached value for *key*, or ``None`` on a miss.
 
         Args:
             key: Cache key.
-
-        Returns:
-            Optional[R]: Cached value if found, None otherwise.
         """
-        if not self._cache:
-            # This case should ideally not be hit if used by BaseCacheEngine.cache decorator,
-            # which calls _get_cached_value. But good for direct use.
-            self._misses += 1 # Assuming direct call if _cache is None
+        if self._cache is None:
+            self._misses += 1
             return None
 
-        # cachetools .get() returns the value or the default (None here)
         value = self._cache.get(str(key))
-        if value is not None: # Or however cachetools signifies a hit from a miss with default=None
-            self._hits +=1 # Approximate, actual hits are internal to cachetools object for @cached
+        if value is not None:
+            self._hits += 1
         else:
-            self._misses +=1 # Approximate
+            self._misses += 1
         return cast(R | None, value)
 
     def _set_cached_value(self, key: CacheKey, value: R) -> None:
-        """Set a value in the cache.
+        """Store *value* under *key*.
 
         Args:
             key: Cache key.
             value: Value to cache.
         """
-        if not self._cache:
-            msg = "Cache not initialized" # Should not happen if __init__ ran
+        if self._cache is None:
+            msg = "Cache not initialized"
             raise RuntimeError(msg)
 
         self._cache[str(key)] = value
-        self._size = len(self._cache) # Approximate size tracking
+        self._size = len(self._cache)
 
     def clear(self) -> None:
-        """Clear all cached values."""
-        if not self._cache:
+        """Evict all cached entries."""
+        if self._cache is None:
             msg = "Cache not initialized"
             raise RuntimeError(msg)
 
@@ -144,12 +123,12 @@ class CacheToolsEngine(BaseCacheEngine[P, R]):
 
     @property
     def stats(self) -> dict[str, Any]:
-        """Get cache statistics.
+        """Return a snapshot of cache statistics.
 
         Returns:
             dict[str, Any]: Dictionary of cache statistics.
         """
-        if not self._cache:
+        if self._cache is None:
             msg = "Cache not initialized"
             raise RuntimeError(msg)
 

@@ -76,6 +76,7 @@ import asyncio
 import functools
 import importlib.util
 import json
+import time as _time
 from pathlib import Path
 from typing import (
     Any,
@@ -271,7 +272,7 @@ def mcache(
         from .engines import functools_engine
 
         logger.debug("Using functools engine for memory caching (fallback)")
-        engine = functools_engine.FunctoolsEngine(config)  # type: ignore[abstract]
+        engine = functools_engine.FunctoolsCacheEngine(config)  # type: ignore[abstract]
         return cast(CacheDecorator[P, R], engine.cache)
 
 
@@ -459,23 +460,37 @@ def acache(
 
         return decorator
     else:
-        logger.warning("AioCache not available, using memory cache with async wrapper")
-        # Fallback to a memory cache with async wrapper
-        mem_cache = mcache(maxsize=maxsize, ttl=ttl, policy=str(policy))
+        logger.warning("AioCache not available, using simple async cache wrapper")
+        # Each call to an async function produces a *new* coroutine object; we
+        # must await the coroutine and cache the *result*, not the coroutine.
+        _maxsize = maxsize
+        _ttl = ttl
 
         def decorator(
             func: Callable[P, AsyncR] | Callable[P, Awaitable[AsyncR]],
         ) -> Callable[P, Awaitable[AsyncR]]:
-            cached_func = mem_cache(func)  # type: ignore
+            _store: dict[Any, tuple[Any, float | None]] = {}
 
             @functools.wraps(func)
             async def wrapper(*args: P.args, **kwargs: P.kwargs) -> AsyncR:
-                if asyncio.iscoroutinefunction(func):
-                    # If it's already a coroutine function, we need to await the result
-                    return await cached_func(*args, **kwargs)  # type: ignore
-                else:
-                    # If it's a regular function that returns an awaitable
-                    return await cached_func(*args, **kwargs)
+                try:
+                    key: Any = args + tuple(sorted(kwargs.items()))  # type: ignore[operator]
+                except TypeError:
+                    return await func(*args, **kwargs)  # type: ignore[misc]
+
+                now = _time.monotonic()
+                entry = _store.get(key)
+                if entry is not None:
+                    val, expires = entry
+                    if expires is None or now < expires:
+                        return val  # type: ignore[return-value]
+                    del _store[key]
+
+                result: AsyncR = await func(*args, **kwargs)  # type: ignore[misc]
+                expiry = (now + _ttl) if _ttl is not None else None
+                if _maxsize is None or len(_store) < _maxsize:
+                    _store[key] = (result, expiry)
+                return result
 
             return wrapper
 
@@ -622,7 +637,8 @@ def _create_engine(config: CacheConfig, func: Callable[P, R]) -> BaseCacheEngine
     """
     # Check if function is async
     is_async = asyncio.iscoroutinefunction(func)
-    needs_disk = config.cache_type in ("disk", "file")
+    # Infer disk requirement from the preferred engine name; cache_type was removed
+    needs_disk = config.preferred_engine in ("diskcache", "klepto", "joblib")
 
     # Select backend
     backend = _select_best_backend(
@@ -705,10 +721,10 @@ def ucache(
         maxsize=maxsize,
         ttl=ttl,
         policy=policy,
+        preferred_engine=preferred_engine,
         use_sql=use_sql,
         compress=compress,
         secure=secure,
-        cache_type="auto",
     )
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
@@ -736,9 +752,11 @@ def ucache(
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             try:
                 return cached_func(*args, **kwargs)
-            except Exception as e:
+            except TypeError as e:
+                # TypeError means the arguments cannot be used as a cache key
+                # (e.g. unhashable type).  Fall back to a direct call.
                 logger.warning(
-                    f"Cache error in {func.__name__}: {e}. Executing without cache."
+                    f"Cache key error in {func.__name__}: {e}. Executing without cache."
                 )
                 return func(*args, **kwargs)
 

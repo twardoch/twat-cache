@@ -75,15 +75,19 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
                 self._cache_path, mode=0o700 if self._config.secure else 0o755
             )
 
-            # Initialize DiskCache with the configuration
-            self._disk_cache = Cache(
-                directory=str(self._cache_path),
-                size_limit=self._config.maxsize,
-                disk_min_file_size=0,  # Cache everything to disk
-                statistics=True,
-                tag_index=True,
-                disk_pickle_protocol=4,
-            )
+            cache_kwargs: dict[str, Any] = {
+                "directory": str(self._cache_path),
+                "disk_min_file_size": 0,
+                "statistics": True,
+                "tag_index": True,
+                "disk_pickle_protocol": 4,
+            }
+            # maxsize is an item count, not bytes; diskcache size_limit is in
+            # bytes so we do not map maxsize → size_limit to avoid premature
+            # eviction.  The default 1 GB limit is fine for typical use-cases.
+
+            self._disk_cache = Cache(**cache_kwargs)
+            logger.debug(f"CACHE_KWARGS: {cache_kwargs} SIZE_LIMIT: {getattr(self._disk_cache, 'size_limit', 'N/A')}")
 
             logger.debug(f"Initialized DiskCache at {self._cache_path}")
         except Exception as e:
@@ -120,7 +124,7 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
                 logger.trace(f"Cache miss for key {key} (not found or expired by diskcache)")
                 return None
         except Exception as e:
-            logger.error(f"Error getting from DiskCache for key {key}: {e}", exc_info=True)
+            logger.exception("Error getting from DiskCache")
             self._misses += 1 # Count as miss on error
             return None
 
@@ -146,8 +150,8 @@ class DiskCacheEngine(BaseCacheEngine[P, R]):
                 pass # Avoid incrementing self._size without better logic
             logger.trace(f"Stored value for key {key}")
         except Exception as e:
-            logger.error(f"Error setting to DiskCache for key {key}: {e}")
-            raise CacheOperationError(f"Failed to set value for key {key} in DiskCache") from e
+            logger.exception("Error setting to DiskCache")
+            raise CacheOperationError("Failed to set value in DiskCache") from e
 
     def cache(self, func: Callable[P, R]) -> Callable[P, R]:
         """

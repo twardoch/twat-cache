@@ -63,7 +63,7 @@ from collections.abc import Generator
 from loguru import logger
 
 from twat_cache.config import CacheConfig, create_cache_config
-from twat_cache.exceptions import EngineError
+from twat_cache.exceptions import EngineError, EngineNotAvailableError
 from twat_cache.engines.base import BaseCacheEngine
 from twat_cache.engines.manager import get_engine_manager
 
@@ -101,11 +101,10 @@ def engine_context(
     # Get the engine manager
     manager = get_engine_manager()
 
-    # If a specific engine_name is given, set it as the preferred_engine in the config
+    # If a specific engine_name is given, verify it is registered before proceeding
     if engine_name:
-        # We need to ensure engine_config is mutable here or create a new one
-        # Pydantic models are immutable by default after creation unless configured otherwise.
-        # Let's create a new config dictionary and update it.
+        if engine_name not in manager.list_engines():
+            raise EngineNotAvailableError(engine_name)
         config_dict = engine_config.to_dict()
         config_dict['preferred_engine'] = engine_name
         final_engine_config = CacheConfig.from_dict(config_dict)
@@ -134,6 +133,45 @@ def engine_context(
             engine.cleanup()
         except Exception as e:
             logger.error(f"Error during engine cleanup: {e}")
+
+
+def get_or_create_engine(
+    config: CacheConfig | None = None,
+    engine_name: str | None = None,
+    **kwargs: Any,
+) -> BaseCacheEngine[Any, Any]:
+    """
+    Get or create a cache engine without a context manager.
+
+    Useful when you need an engine instance that outlives a ``with`` block.
+    Caller is responsible for calling ``engine.cleanup()`` when done.
+
+    Args:
+        config: Optional cache configuration.
+        engine_name: Optional name of the engine to use.
+        **kwargs: Additional configuration parameters when *config* is ``None``.
+
+    Returns:
+        An initialised cache engine instance.
+
+    Raises:
+        EngineError: If no suitable engine can be created.
+    """
+    engine_config = config or create_cache_config(**kwargs)
+    manager = get_engine_manager()
+
+    if engine_name:
+        config_dict = engine_config.to_dict()
+        config_dict["preferred_engine"] = engine_name
+        engine_config = CacheConfig.from_dict(config_dict)
+
+    engine = manager.create_engine_instance(engine_config)
+    if engine is None:
+        msg = "No suitable engine could be created for the given configuration"
+        raise EngineError(msg)
+
+    logger.debug("Created engine %s via get_or_create_engine", engine.__class__.__name__)
+    return engine
 
 
 class CacheContext:
@@ -196,54 +234,3 @@ class CacheContext:
                 logger.error(f"Error during engine cleanup: {e}")
             finally:
                 self.engine = None
-
-
-def get_or_create_engine(
-    config: CacheConfig | None = None,
-    engine_name: str | None = None,
-    **kwargs: Any,
-) -> BaseCacheEngine[Any, Any]:
-    """
-    Get or create a cache engine instance.
-
-    Note: The caller is responsible for calling cleanup() on the returned engine
-    when it is no longer needed. For automatic cleanup, use engine_context or
-    CacheContext instead.
-
-    Args:
-        config: Optional cache configuration to use
-        engine_name: Optional name of the specific engine to use
-        **kwargs: Additional configuration parameters if config is not provided
-
-    Returns:
-        A cache engine instance
-
-    Raises:
-        EngineError: If the requested engine is not available
-    """
-    # Use provided config or create one from kwargs
-    engine_config = config or create_cache_config(**kwargs)
-
-    # Get the engine manager
-    manager = get_engine_manager()
-
-    # If a specific engine_name is given, set it as the preferred_engine in the config
-    if engine_name:
-        config_dict = engine_config.to_dict()
-        config_dict['preferred_engine'] = engine_name
-        final_engine_config = CacheConfig.from_dict(config_dict)
-    else:
-        final_engine_config = engine_config
-
-    engine = manager.create_engine_instance(final_engine_config)
-
-    if engine is None:
-        logger.error(
-            f"Failed to create engine in get_or_create_engine. Engine name: {engine_name}, "
-            f"Config preferred: {engine_config.preferred_engine}"
-        )
-        msg = "No suitable engine could be created for the given configuration in get_or_create_engine"
-        raise EngineError(msg)
-
-    logger.debug(f"Created engine {engine.__class__.__name__} via get_or_create_engine")
-    return engine

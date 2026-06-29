@@ -218,18 +218,14 @@ def create_cache_config(
     folder_name: str | None = None,
     preferred_engine: str | None = None,
     serializer: Callable[[Any], str] | None = None,
-    # cache_type: CacheType | None = None, # REMOVED
+    cache_type: str | None = None,
     ttl: float | None = None,
     policy: EvictionPolicy = "lru",
     cache_dir: str | None = None,  # For backward compatibility
     *,  # Force remaining arguments to be keyword-only
-    # use_sql: bool = False, # REMOVED
+    use_sql: bool = False,
     compress: bool = False,
     secure: bool = True,
-    # redis_host: str = "localhost", # REMOVED
-    # redis_port: int = 6379, # REMOVED
-    # redis_db: int = 0, # REMOVED
-    # redis_password: str | None = None, # REMOVED
 ) -> CacheConfig:
     """Create a cache configuration.
 

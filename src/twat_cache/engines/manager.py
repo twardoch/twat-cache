@@ -22,14 +22,8 @@ from loguru import logger
 from twat_cache.type_defs import (
     CacheConfig,
 )
-from .aiocache import AioCacheEngine
 from .base import BaseCacheEngine
-from .cachebox import CacheBoxEngine
-from .cachetools import CacheToolsEngine
-from .diskcache import DiskCacheEngine
-from .functools import FunctoolsCacheEngine
-from .joblib import JoblibEngine
-from .klepto import KleptoEngine
+from .functools_engine import FunctoolsCacheEngine
 
 # Type variable for concrete cache engine
 E = TypeVar("E", bound=BaseCacheEngine[Any, Any])
@@ -37,7 +31,6 @@ E = TypeVar("E", bound=BaseCacheEngine[Any, Any])
 # Try to import optional backends
 try:
     from .aiocache import AioCacheEngine
-
     HAS_AIOCACHE = True
 except ImportError:
     HAS_AIOCACHE = False
@@ -45,15 +38,27 @@ except ImportError:
 
 try:
     from .cachetools import CacheToolsEngine
-
     HAS_CACHETOOLS = True
 except ImportError:
     HAS_CACHETOOLS = False
     logger.debug("cachetools not available")
 
 try:
-    from .klepto import KleptoEngine
+    from .cachebox import CacheBoxEngine
+    HAS_CACHEBOX = True
+except ImportError:
+    HAS_CACHEBOX = False
+    logger.debug("cachebox not available")
 
+try:
+    from .diskcache import DiskCacheEngine
+    HAS_DISKCACHE = True
+except ImportError:
+    HAS_DISKCACHE = False
+    logger.debug("diskcache not available")
+
+try:
+    from .klepto import KleptoEngine
     HAS_KLEPTO = True
 except ImportError:
     HAS_KLEPTO = False
@@ -61,7 +66,6 @@ except ImportError:
 
 try:
     from .joblib import JoblibEngine
-
     HAS_JOBLIB = True
 except ImportError:
     HAS_JOBLIB = False
@@ -69,7 +73,6 @@ except ImportError:
 
 try:
     from .redis import RedisCacheEngine
-
     HAS_REDIS = True
 except ImportError:
     HAS_REDIS = False
@@ -87,12 +90,18 @@ class CacheEngineManager:
     def _register_builtin_engines(self) -> None:
         """Register built-in cache engine implementations."""
         self.register_engine("functools", FunctoolsCacheEngine)
-        self.register_engine("cachetools", CacheToolsEngine)
-        self.register_engine("diskcache", DiskCacheEngine)
-        self.register_engine("aiocache", AioCacheEngine)
-        self.register_engine("klepto", KleptoEngine)
-        self.register_engine("joblib", JoblibEngine)
-        self.register_engine("cachebox", CacheBoxEngine)
+        if HAS_CACHETOOLS:
+            self.register_engine("cachetools", CacheToolsEngine)
+        if HAS_DISKCACHE:
+            self.register_engine("diskcache", DiskCacheEngine)
+        if HAS_AIOCACHE:
+            self.register_engine("aiocache", AioCacheEngine)
+        if HAS_KLEPTO:
+            self.register_engine("klepto", KleptoEngine)
+        if HAS_JOBLIB:
+            self.register_engine("joblib", JoblibEngine)
+        if HAS_CACHEBOX:
+            self.register_engine("cachebox", CacheBoxEngine)
 
         # Register Redis engine if available
         if HAS_REDIS:
@@ -177,6 +186,33 @@ class CacheEngineManager:
             return fallback
 
         return None
+
+    def create_engine_instance(
+        self, config: CacheConfig
+    ) -> BaseCacheEngine[Any, Any] | None:
+        """
+        Create a cache engine instance based on configuration.
+
+        Selects an appropriate engine class (respecting ``config.preferred_engine``
+        if set) and instantiates it with the provided configuration.
+
+        Args:
+            config: Cache configuration used for both engine selection and init.
+
+        Returns:
+            An initialised engine instance, or ``None`` if no suitable engine
+            is registered or instantiation fails.
+        """
+        preferred = [config.preferred_engine] if config.preferred_engine else None
+        engine_cls = self.select_engine(config, preferred=preferred)
+        if engine_cls is None:
+            logger.warning("No suitable engine class found for config: %s", config)
+            return None
+        try:
+            return engine_cls(config)
+        except Exception as e:
+            logger.error("Failed to instantiate engine %s: %s", engine_cls.__name__, e)
+            return None
 
 
 def get_engine_manager() -> CacheEngineManager:

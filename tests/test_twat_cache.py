@@ -105,7 +105,7 @@ def test_disk_cache_persistence(disk_engine: DiskCacheEngine) -> None:
     assert disk_engine._get_cached_value(key) == value
 
     # Create new instance with same path
-    config = disk_engine.config
+    config = disk_engine._config
     new_engine = DiskCacheEngine(config)
     assert new_engine._get_cached_value(key) == value
 
@@ -133,7 +133,8 @@ def test_joblib_numpy_array(joblib_engine: JoblibEngine) -> None:
 # Klepto Tests
 @pytest.fixture
 def klepto_engine(base_config: CacheConfig, temp_path: Path) -> KleptoEngine:
-    """Create a klepto cache engine instance."""
+    """Create a klepto cache engine instance (skipped if klepto not installed)."""
+    pytest.importorskip("klepto")
     config = create_cache_config(maxsize=100, cache_dir=str(temp_path))
     return KleptoEngine(config)
 
@@ -150,7 +151,8 @@ def test_klepto_persistence(klepto_engine: KleptoEngine) -> None:
 # Async Cache Tests
 @pytest.fixture
 async def async_engine(base_config: CacheConfig) -> AioCacheEngine:
-    """Create an async cache engine instance."""
+    """Create an async cache engine instance (skipped if aiocache not installed)."""
+    pytest.importorskip("aiocache")
     return AioCacheEngine(base_config)
 
 
@@ -171,7 +173,8 @@ async def test_async_cache_operations(async_engine: AioCacheEngine) -> None:
 # CacheBox Tests
 @pytest.fixture
 def cachebox_engine(base_config: CacheConfig) -> CacheBoxEngine:
-    """Create a cachebox engine instance."""
+    """Create a cachebox engine instance (skipped if cachebox not installed)."""
+    pytest.importorskip("cachebox")
     return CacheBoxEngine(base_config)
 
 

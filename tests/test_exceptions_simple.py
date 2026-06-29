@@ -67,8 +67,8 @@ def test_exception_messages():
     assert str(resource_exc) == "Resource error message"
 
     # Third-level exceptions
-    engine_not_available_exc = EngineNotAvailableError("Engine not available message")
-    assert str(engine_not_available_exc) == "Engine not available message"
+    engine_not_available_exc = EngineNotAvailableError("testengine")
+    assert str(engine_not_available_exc) == "Cache engine 'testengine' is not available"
 
     key_exc = CacheKeyError("Key error message")
     assert str(key_exc) == "Key error message"

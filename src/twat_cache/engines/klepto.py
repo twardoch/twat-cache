@@ -15,11 +15,6 @@ import time
 from typing import Any, cast
 from collections.abc import Callable
 
-from klepto import lru_cache, lfu_cache, rr_cache
-from klepto.archives import (
-    sql_archive,
-    file_archive,
-)
 from loguru import logger
 
 from twat_cache.config import CacheConfig
@@ -53,11 +48,13 @@ class KleptoEngine(BaseCacheEngine[P, R]):
         self._config = config
         self._cache = None
 
-        if not self.is_available:
+        if not self.is_available():
             msg = "klepto is not available"
             raise ImportError(msg)
 
-        # Import here to avoid loading if not used
+        # Lazy-import klepto so the module can be imported without the library installed
+        from klepto import lru_cache, lfu_cache, rr_cache  # noqa: PLC0415
+        from klepto.archives import sql_archive, file_archive  # noqa: PLC0415
 
         # Create cache based on policy
         maxsize = config.maxsize or float("inf")
@@ -201,7 +198,7 @@ class KleptoEngine(BaseCacheEngine[P, R]):
         Returns:
             Callable: Decorated function with caching.
         """
-        if not self._cache:
+        if self._cache is None:
             msg = "Cache not initialized"
             raise RuntimeError(msg)
 

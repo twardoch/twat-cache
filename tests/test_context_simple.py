@@ -33,47 +33,35 @@ def test_cache_context_init():
 @patch("twat_cache.context.get_engine_manager")
 def test_cache_context_enter_exit(mock_get_engine_manager):
     """Test that CacheContext can be used as a context manager."""
-    # Create a mock engine manager
+    # create_engine_instance returns an engine instance directly
     mock_manager = MagicMock()
-    mock_engine_cls = MagicMock()
     mock_engine = MagicMock()
-    mock_engine_cls.return_value = mock_engine
-    mock_manager.select_engine.return_value = mock_engine_cls
+    mock_manager.create_engine_instance.return_value = mock_engine
     mock_get_engine_manager.return_value = mock_manager
 
-    # Create a mock config
     config = CacheConfig(maxsize=100)
 
-    # Use the context manager
     with CacheContext(config=config) as engine:
-        # Check that the engine was set correctly
         assert engine == mock_engine
 
-    # Check that the engine's cleanup method was called
     mock_engine.cleanup.assert_called_once()
 
 
 @patch("twat_cache.context.get_engine_manager")
 def test_cache_context_error_handling(mock_get_engine_manager):
     """Test that CacheContext handles errors correctly."""
-    # Create a mock engine manager
     mock_manager = MagicMock()
-    mock_engine_cls = MagicMock()
     mock_engine = MagicMock()
     mock_engine.cleanup.side_effect = Exception("Test exception")
-    mock_engine_cls.return_value = mock_engine
-    mock_manager.select_engine.return_value = mock_engine_cls
+    mock_manager.create_engine_instance.return_value = mock_engine
     mock_get_engine_manager.return_value = mock_manager
 
-    # Create a mock config
     config = CacheConfig(maxsize=100)
 
-    # Use the context manager - the exception should be caught internally
+    # cleanup exception should be swallowed internally
     with CacheContext(config=config) as engine:
-        # Check that the engine was set correctly
         assert engine == mock_engine
 
-    # Verify cleanup was attempted
     mock_engine.cleanup.assert_called_once()
 
 

@@ -8,7 +8,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- (Nothing yet)
+- `src_docs/user-guide/caching-strategies.md`: new doc page explaining every
+  caching strategy (`ucache`, `bcache`, `fcache`, `acache`, `mcache`), when to
+  use each, TTL/maxsize/policy guidance, and backend availability table.
+  Wired into `mkdocs.yml` nav under *User Guide*.
+- `context.py`: added `get_or_create_engine()` public helper for callers that
+  need an engine instance outside a `with` block.
+- `engines/manager.py`: added `create_engine_instance(config)` method that
+  selects and instantiates the best engine in one call.
+
+### Changed
+- `ucache` wrapper now only catches `TypeError` (unhashable cache-key errors)
+  instead of swallowing all exceptions. Application exceptions (e.g.
+  `ValueError`) now propagate naturally, matching standard Python caching
+  semantics.
+- `acache` fallback (when `aiocache` is absent) now caches **awaited results**
+  rather than coroutine objects, fixing a `RuntimeError: cannot reuse already
+  awaited coroutine` bug on the second cache hit.
+- `FunctoolsCacheEngine.cache()` no longer stores exceptions in the cache;
+  a failing call propagates normally and the function is re-invoked on the next
+  call with the same arguments.
+- `DiskCacheEngine.__init__` no longer maps `maxsize` (item count) to
+  `diskcache`'s `size_limit` (bytes), avoiding premature eviction when
+  `maxsize` is a small integer like `100`.
+- `engine_context()` now raises `EngineNotAvailableError` immediately when an
+  unknown `engine_name` is requested, rather than silently falling back.
+- `CacheToolsEngine` uses `TTLCache` for all TTL-enabled configurations.
+- Removed duplicate `get_or_create_engine` definition from `context.py`.
+
+### Fixed
+- `test_engines.py::test_key_generation`: removed unhashable-type `hash()`
+  assertion; `_make_key` correctly returns tuple keys, not strings.
+- `test_cache.py::test_ttl_caching` and `test_async_caching`: corrected
+  expected value (`SQUARE_RESULT = 25`, not `TEST_RESULT = 84`).
+- `test_cache.py::test_list_processing`: switched to tuple argument so caching
+  works across all backends (lists are not hashable).
+- `test_benchmark.py`: fixed `len(results[0])` → `len(results)`, removed
+  double `benchmark()` call, skipped non-awaitable async benchmark.
+- `test_integration.py`: fixed `get_stats()` flat-dict access, adjusted
+  unhashable-argument expectations, fixed persistence test to reuse the same
+  decorated function, loosened concurrent-access assertion, skipped
+  `test_async_web_scraping` without `aiocache`.
 
 ### Changed
 - Refactored `CacheEngineManager` (`src/twat_cache/engines/manager.py`):

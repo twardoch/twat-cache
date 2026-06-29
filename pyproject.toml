@@ -88,6 +88,12 @@ all = [
     'joblib>=1.4.2',
 ]
 
+[tool.hatch.envs.hatch-test]
+extra-dependencies = [
+    "pytest-asyncio>=0.23.0",
+    "pytest-benchmark[histogram]>=4.0.0",
+]
+
 [tool.hatch.envs.test]
 dependencies = [".[test]"]
 
