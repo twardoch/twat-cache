@@ -208,3 +208,6 @@ compare = [
 [tool.hatch.version]
 source = "vcs"
 tag-pattern = "v(?P<version>.*)"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/twat_cache/__version__.py"
